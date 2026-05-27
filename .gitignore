@@ -1,0 +1,23 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Build/Packaging
+build/
+dist/
+*.spec
+TextPolish.pkg
+
+# Logs & Configs (although config is in ~/.textpolish, just in case)
+*.log
+
+# macOS
+.DS_Store

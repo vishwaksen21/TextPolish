@@ -1,0 +1,24 @@
+# TextPolish — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# ── UI framework ──────────────────────────────────────────────────────────────
+PyQt6>=6.6.0
+
+# ── Global hotkey detection (cross-platform) ──────────────────────────────────
+pynput>=1.7.6
+
+# ── Clipboard read / write ────────────────────────────────────────────────────
+pyperclip>=1.8.2
+
+# ── Keyboard / mouse simulation (copy + paste) ────────────────────────────────
+pyautogui>=0.9.54
+
+# ── macOS screenshot prevention workaround (required by pyautogui on macOS) ──
+# Pillow is also used for icon image processing.
+Pillow>=10.0.0
+
+# ── AI backends ───────────────────────────────────────────────────────────────
+requests>=2.31.0                # Ollama local REST API
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+packaging>=23.0                 # Version comparisons (used internally by deps)
