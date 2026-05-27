@@ -175,6 +175,7 @@ class AutoReplacer(QObject):
         self._processor = processor
         self._clipboard = clipboard
         self._tray = tray
+        self._toast = ToastOverlay()
         self._worker: AIWorker | None = None
         
     def start_replacement(self, text: str) -> None:
@@ -185,6 +186,8 @@ class AutoReplacer(QObject):
         logger.info("Auto-replace triggered for text: %r", text[:30])
         # clipboard.save() was already done by hotkeys.py
         
+        self._toast.show_message("✨ Enhancing...", loading=True)
+        
         self._worker = AIWorker(self._processor, text, self._settings.default_mode)
         self._worker.finished.connect(self._on_ai_finished)
         self._worker.error_occurred.connect(self._on_error)
@@ -192,6 +195,7 @@ class AutoReplacer(QObject):
         
     def _on_ai_finished(self, enhanced_text: str) -> None:
         if not enhanced_text:
+            self._toast.show_message("⚠ Empty response", error=True)
             self._clipboard.restore()
             self._worker = None
             return
@@ -207,6 +211,7 @@ class AutoReplacer(QObject):
         try:
             ph.paste_text()
             logger.info("Auto-replaced selected text successfully.")
+            self._toast.show_message("✓ Enhanced", success=True)
         finally:
             # Restore clipboard AFTER paste fully completes
             QTimer.singleShot(1800, self._restore_clipboard)
@@ -216,6 +221,7 @@ class AutoReplacer(QObject):
         self._worker = None
         
     def _on_error(self, msg: str) -> None:
+        self._toast.show_message("⚠ Error", error=True)
         logger.error("AutoReplace failed: %s", msg)
         self._tray.notify(APP_NAME, f"AI Error: {msg[:50]}")
         self._clipboard.restore()
