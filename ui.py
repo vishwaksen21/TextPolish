@@ -1092,13 +1092,14 @@ class ToastOverlay(QWidget):
             Qt.WindowType.WindowTransparentForInput
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         
         self._pill = QFrame()
         self._pill.setStyleSheet(
-            "background: #7C3AED; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 13px;"
+            "background: #7C3AED; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;"
         )
         pill_layout = QHBoxLayout(self._pill)
         pill_layout.setContentsMargins(16, 6, 16, 6)
@@ -1120,21 +1121,11 @@ class ToastOverlay(QWidget):
             # Position bottom center
             x = sg.x() + (sg.width() - self.width()) // 2
             y = sg.bottom() - 100
-            self.move(x, y)
+            self.move(int(x), int(y))
             
-        self.setWindowOpacity(0.0)
+        self.setWindowOpacity(1.0)
         self.show()
-        
-        self._anim = QPropertyAnimation(self, b"windowOpacity", self)
-        self._anim.setDuration(150)
-        self._anim.setStartValue(0.0)
-        self._anim.setEndValue(1.0)
-        self._anim.start()
+        self.raise_()
         
     def hide_toast(self) -> None:
-        self._anim = QPropertyAnimation(self, b"windowOpacity", self)
-        self._anim.setDuration(150)
-        self._anim.setStartValue(1.0)
-        self._anim.setEndValue(0.0)
-        self._anim.finished.connect(self.hide)
-        self._anim.start()
+        self.hide()
