@@ -1111,14 +1111,22 @@ class ToastOverlay(QWidget):
         layout.addWidget(self._pill)
         self.hide()
         
-    def show_toast(self, text: str = "✨ Enhancing...") -> None:
+    def show_message(self, text: str, loading: bool = False, success: bool = False, error: bool = False) -> None:
         self._lbl.setText(text)
+        
+        # Style based on state
+        if success:
+            self._pill.setStyleSheet("background: #10B981; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;")
+        elif error:
+            self._pill.setStyleSheet("background: #EF4444; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;")
+        else:
+            self._pill.setStyleSheet("background: #7C3AED; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;")
+            
         self.adjustSize()
         
         screen = QApplication.primaryScreen()
         if screen:
             sg = screen.availableGeometry()
-            # Position bottom center
             x = sg.x() + (sg.width() - self.width()) // 2
             y = sg.bottom() - 100
             self.move(int(x), int(y))
@@ -1127,5 +1135,6 @@ class ToastOverlay(QWidget):
         self.show()
         self.raise_()
         
-    def hide_toast(self) -> None:
-        self.hide()
+        # Auto-hide if it's a transient message (success/error)
+        if success or error:
+            QTimer.singleShot(1500, self.hide)
