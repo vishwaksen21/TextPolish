@@ -29,10 +29,11 @@ from logger import logger
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Keyboard Controller
+# Keyboard Controller & State
 # ──────────────────────────────────────────────────────────────────────────────
 
 keyboard = Controller()
+_macos_active_app: Optional[str] = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -58,8 +59,22 @@ def copy_selection() -> None:
     Windows/Linux:
         Ctrl + C
     """
+    global _macos_active_app
 
     try:
+        # Record the active application so we can restore focus before pasting
+        if IS_MACOS:
+            try:
+                res = subprocess.run(
+                    ['osascript', '-e', 'tell application "System Events" to get name of first application process whose frontmost is true'],
+                    capture_output=True, text=True, timeout=1
+                )
+                if res.returncode == 0:
+                    _macos_active_app = res.stdout.strip()
+                    logger.debug("Active app recorded: %s", _macos_active_app)
+            except Exception as e:
+                logger.debug("Failed to record active app: %s", e)
+
         logger.debug("Waiting for selection stabilization...")
 
         # Allow macOS/browser selection to stabilize
@@ -91,8 +106,21 @@ def paste_text() -> None:
     Windows/Linux:
         Ctrl + V
     """
+    global _macos_active_app
 
     try:
+        # Restore focus to the original application if Terminal stole it
+        if IS_MACOS and _macos_active_app:
+            try:
+                logger.debug("Reactivating original app: %s", _macos_active_app)
+                subprocess.run(
+                    ['osascript', '-e', f'tell application "{_macos_active_app}" to activate'],
+                    timeout=1
+                )
+                time.sleep(0.05)
+            except Exception as e:
+                logger.debug("Failed to reactivate app: %s", e)
+
         # Ensure clipboard is fully updated
         time.sleep(0.10)
 
