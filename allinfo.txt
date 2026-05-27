@@ -1,0 +1,41 @@
+TextPolish - AI-Powered Global Text Enhancer
+============================================
+
+## Overview
+TextPolish is a background macOS application that allows users to seamlessly enhance, rewrite, and polish selected text in any application using a global hotkey (`Ctrl+Shift+E`). It operates entirely offline by bridging the OS clipboard with a local Ollama AI model (`gemma3:4b`).
+
+## Core Architecture & Components
+1. **main.py**: The entry point. Handles PyQt6 lifecycle, system tray initialization, background thread setup (OllamaStartupWorker, AutoReplacer), and settings loading. It orchestrates all the components without blocking the main event loop.
+2. **ai_processor.py**: The Ollama LLM backend engine. It constructs the rewrite prompts, communicates with the local Ollama server on `http://localhost:11434`, heavily sanitizes and cleans the AI output to enforce strict "rewrite-only" behavior (no chatty text), and features hardware optimizations specific to macOS M1 architecture.
+3. **hotkeys.py**: Manages global keyboard shortcuts using `pynput`. It captures the trigger (`Ctrl+Shift+E`), coordinates the complex state transitions required for copying selected text, interacts with the AI thread, and signals Qt.
+4. **clipboard_manager.py**: An extremely robust PyQt6 `QClipboard` wrapper. It safely preserves the user's historical clipboard contents, injects temporary UUID markers for accurate copy-detection, and handles graceful restoration.
+5. **platform_handler.py**: Encapsulates OS-specific automation and requirements. Handles macOS Accessibility (`AXIsProcessTrusted`) permission requests, AppleScript (`osascript`) GUI fallbacks, `pynput` key simulation (`Cmd+C`, `Cmd+V`), and Ollama subprocess auto-launching.
+6. **settings.py**: Dynamic configuration management. Reads/writes to `~/.textpolish/config.json`.
+7. **ui.py**: Contains all visual elements including the System Tray icon, Settings window, and fallback Enhancement Popups.
+8. **logger.py**: Centralized logging system rotating logs to `~/.textpolish/logs/app.log`.
+
+## Deep-Dive System Mechanics
+
+### 1. The macOS Clipboard & Hotkey Race Condition (The "UUID Trick")
+When a global hotkey is pressed, detecting whether a user has text selected is notoriously difficult on macOS because you cannot directly inspect an application's selection state.
+- **The Problem:** The app must simulate a `Cmd+C` keystroke to copy the text to the clipboard. However, the system clipboard updates asynchronously. If you check the clipboard immediately, you might read old data.
+- **The Solution:** TextPolish first injects a highly unique 47-character marker (`__TEXTPOLISH_{UUID}__`) into the system clipboard. It then simulates `Cmd+C`. It polls the clipboard for up to 15 attempts. The moment the clipboard text *changes* from the UUID marker, the app knows the exact selected text was successfully captured.
+
+### 2. M1/MacBook Air AI Optimizations
+Running a 4B parameter model (`gemma3:4b`) locally requires significant unified memory.
+- **Cold Boot Prevention:** By default, Ollama unloads the model from RAM after 5 minutes, causing 6-7 second delays when the hotkey is next pressed. TextPolish injects `"keep_alive": "24h"` into the Ollama payload to permanently pin the model in RAM. This drops response latency from 7.5s down to ~1.3s.
+- **Context Window Reduction:** The `"num_ctx"` parameter is forced down to `512`. Since TextPolish only rewrites short paragraphs, limiting the KV cache drastically reduces memory footprint, preventing OS paging and swap on 8GB machines.
+
+### 3. Asynchronous Paste Stabilization
+Electron/Chromium apps (like VS Code, Chrome, or Discord) suffer from sluggish clipboard polling.
+- **The Fix:** After the AI generates the new text, it is placed on the clipboard. TextPolish waits 150ms before firing `Cmd+V`. Crucially, it then waits a massive **1800ms** before cleanly restoring the user's *original* clipboard. This ensures the target application actually pastes the AI text before the clipboard is reset, preventing "phantom pastes" where the text doesn't appear to change.
+
+### 4. Application Bundling & macOS Security
+TextPolish is compiled into a standalone macOS Application bundle (`TextPolish.app`) using PyInstaller, hiding the terminal entirely.
+- **Accessibility Quirk:** Because the app utilizes `pynput` for global hooks and keystroke injection, it requires macOS Accessibility permissions (System Settings -> Privacy & Security -> Accessibility). Overwriting the `.app` bundle during rebuilds silently breaks the macOS code signature cache. When upgrading, the app must be deleted from the Accessibility list using the minus (`-`) button and re-added from scratch to regain functionality.
+
+## Packaging
+The app is built using `pyinstaller --name "TextPolish" --windowed --noconsole --add-data "assets:assets" main.py`.
+
+## Version
+Current Version: v1.0.0
