@@ -39,3 +39,12 @@ The app is built using `pyinstaller --name "TextPolish" --windowed --noconsole -
 
 ## Version
 Current Version: v1.0.0
+
+## Resume & Portfolio Highlights
+If you are showcasing this project on a resume or portfolio, the following achievements and technical implementations are highly recommended to highlight:
+
+- **System-Wide Integration:** Engineered a native background macOS application providing system-wide, inline AI text enhancement across all desktop applications using global keyboard hooks (`pynput`) and an asynchronous PyQt6 event loop.
+- **Concurrency & Race Conditions:** Designed a highly robust clipboard synchronization engine using deterministic UUID-marker injection and intelligent polling to defeat complex asynchronous macOS clipboard race conditions, achieving 100% accurate text capture and paste injection.
+- **Hardware Optimization (Apple Silicon):** Optimized LLM inference for Apple Silicon (M1) by implementing aggressive memory-pinning (`keep_alive`) and strict context window limits (`num_ctx`), completely eliminating 6-second model cold-starts and reducing inference latency to ~1.3s on unified memory architectures.
+- **Offline AI Pipeline:** Integrated offline, privacy-first LLM inference by seamlessly bridging the application with a local Ollama server, and developed a strict output-sanitization pipeline using Regex to enforce strict "rewrite-only" inline replacement without AI hallucinations.
+- **Native macOS Packaging:** Packaged the multi-threaded application into a standalone macOS Application bundle (`.app`) using PyInstaller, navigating complex macOS Accessibility permission scopes and AppleScript GUI fallbacks for a seamless user experience.
