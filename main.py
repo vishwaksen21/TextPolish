@@ -27,7 +27,7 @@ from settings        import Settings
 from clipboard_manager import ClipboardManager
 from ai_processor    import AIProcessor
 from hotkeys         import HotkeyBridge, HotkeyManager
-from ui              import EnhancementPopup, SettingsWindow, SystemTrayIcon, AIWorker
+from ui              import EnhancementPopup, SettingsWindow, SystemTrayIcon, AIWorker, ToastOverlay
 import platform_handler as ph
 
 
@@ -175,6 +175,7 @@ class AutoReplacer(QObject):
         self._processor = processor
         self._clipboard = clipboard
         self._tray = tray
+        self._toast = ToastOverlay()
         self._worker: AIWorker | None = None
         
     def start_replacement(self, text: str) -> None:
@@ -185,12 +186,15 @@ class AutoReplacer(QObject):
         logger.info("Auto-replace triggered for text: %r", text[:30])
         # clipboard.save() was already done by hotkeys.py
         
+        self._toast.show_toast("✨ Enhancing...")
+        
         self._worker = AIWorker(self._processor, text, self._settings.default_mode)
         self._worker.finished.connect(self._on_ai_finished)
         self._worker.error_occurred.connect(self._on_error)
         self._worker.start()
         
     def _on_ai_finished(self, enhanced_text: str) -> None:
+        self._toast.hide_toast()
         if not enhanced_text:
             self._clipboard.restore()
             self._worker = None
@@ -216,6 +220,7 @@ class AutoReplacer(QObject):
         self._worker = None
         
     def _on_error(self, msg: str) -> None:
+        self._toast.hide_toast()
         logger.error("AutoReplace failed: %s", msg)
         self._tray.notify(APP_NAME, f"AI Error: {msg[:50]}")
         self._clipboard.restore()

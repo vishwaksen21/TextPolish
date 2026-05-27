@@ -1075,3 +1075,66 @@ class SystemTrayIcon(QSystemTrayIcon):
     def notify(self, title: str, message: str) -> None:
         if self._settings.get("show_notifications", True):
             self.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, 2500)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TOAST OVERLAY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ToastOverlay(QWidget):
+    """A small, frameless pill overlay to indicate activity."""
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowTransparentForInput
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 8, 12, 8)
+        
+        self._pill = QFrame()
+        self._pill.setStyleSheet(
+            "background: #7C3AED; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 13px;"
+        )
+        pill_layout = QHBoxLayout(self._pill)
+        pill_layout.setContentsMargins(16, 6, 16, 6)
+        
+        self._lbl = QLabel("✨ Enhancing...")
+        self._lbl.setStyleSheet("background: transparent; color: #FFF;")
+        pill_layout.addWidget(self._lbl)
+        
+        layout.addWidget(self._pill)
+        self.hide()
+        
+    def show_toast(self, text: str = "✨ Enhancing...") -> None:
+        self._lbl.setText(text)
+        self.adjustSize()
+        
+        screen = QApplication.primaryScreen()
+        if screen:
+            sg = screen.availableGeometry()
+            # Position bottom center
+            x = sg.x() + (sg.width() - self.width()) // 2
+            y = sg.bottom() - 100
+            self.move(x, y)
+            
+        self.setWindowOpacity(0.0)
+        self.show()
+        
+        self._anim = QPropertyAnimation(self, b"windowOpacity", self)
+        self._anim.setDuration(150)
+        self._anim.setStartValue(0.0)
+        self._anim.setEndValue(1.0)
+        self._anim.start()
+        
+    def hide_toast(self) -> None:
+        self._anim = QPropertyAnimation(self, b"windowOpacity", self)
+        self._anim.setDuration(150)
+        self._anim.setStartValue(1.0)
+        self._anim.setEndValue(0.0)
+        self._anim.finished.connect(self.hide)
+        self._anim.start()
