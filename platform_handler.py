@@ -66,12 +66,12 @@ def copy_selection() -> None:
         if IS_MACOS:
             try:
                 res = subprocess.run(
-                    ['osascript', '-e', 'tell application "System Events" to get name of first application process whose frontmost is true'],
+                    ['osascript', '-e', 'tell application "System Events" to get bundle identifier of first application process whose frontmost is true'],
                     capture_output=True, text=True, timeout=1
                 )
                 if res.returncode == 0:
                     _macos_active_app = res.stdout.strip()
-                    logger.debug("Active app recorded: %s", _macos_active_app)
+                    logger.debug("Active app recorded (bundle id): %s", _macos_active_app)
             except Exception as e:
                 logger.debug("Failed to record active app: %s", e)
 
@@ -114,7 +114,7 @@ def paste_text() -> None:
             try:
                 logger.debug("Reactivating original app: %s", _macos_active_app)
                 subprocess.run(
-                    ['osascript', '-e', f'tell application "{_macos_active_app}" to activate'],
+                    ['osascript', '-e', f'tell application id "{_macos_active_app}" to activate'],
                     timeout=1
                 )
                 time.sleep(0.05)

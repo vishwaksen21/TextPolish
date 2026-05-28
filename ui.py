@@ -1102,18 +1102,10 @@ class ToastOverlay(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # Container for Opacity Animation (bypasses macOS window opacity bugs)
-        self._container = QWidget()
-        self._container.setStyleSheet("background: transparent;")
-        container_layout = QHBoxLayout(self._container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Opacity Effect
-        self._opacity_effect = QGraphicsOpacityEffect(self)
-        self._opacity_effect.setOpacity(0.0)
-        self._container.setGraphicsEffect(self._opacity_effect)
-        
         # The actual pill
+        self._pill = QFrame()
+        self._pill_layout = QHBoxLayout(self._pill)
+        self._pill_layout.setContentsMargins(20, 10, 20, 10)
         self._pill = QFrame()
         self._pill_layout = QHBoxLayout(self._pill)
         self._pill_layout.setContentsMargins(20, 10, 20, 10)
@@ -1131,17 +1123,16 @@ class ToastOverlay(QWidget):
         self._shadow.setColor(QColor(0, 0, 0, 80))
         self._pill.setGraphicsEffect(self._shadow)
         
-        container_layout.addWidget(self._pill)
-        layout.addWidget(self._container)
+        layout.addWidget(self._pill)
         
         # Animations
-        self._anim_in = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._anim_in = QPropertyAnimation(self, b"windowOpacity")
         self._anim_in.setDuration(250)
         self._anim_in.setStartValue(0.0)
         self._anim_in.setEndValue(1.0)
         self._anim_in.setEasingCurve(QEasingCurve.Type.OutCubic)
         
-        self._anim_out = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._anim_out = QPropertyAnimation(self, b"windowOpacity")
         self._anim_out.setDuration(300)
         self._anim_out.setStartValue(1.0)
         self._anim_out.setEndValue(0.0)
@@ -1197,8 +1188,8 @@ class ToastOverlay(QWidget):
             self.move(int(x), int(y))
             
         # Fade in if not fully visible
-        if self._opacity_effect.opacity() < 1.0:
-            self.setWindowOpacity(1.0)
+        if self.windowOpacity() < 1.0:
+            self.setWindowOpacity(0.0)
             self.show()
             self.raise_()
             self._anim_in.start()
