@@ -1081,10 +1081,14 @@ class SystemTrayIcon(QSystemTrayIcon):
 # TOAST OVERLAY
 # ═══════════════════════════════════════════════════════════════════════════════
 
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QGraphicsOpacityEffect
+from PyQt6.QtCore import QPropertyAnimation, QEasingCurve
+
 class ToastOverlay(QWidget):
-    """A small, frameless pill overlay to indicate activity."""
+    """A premium, animated frameless pill overlay to indicate activity."""
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+        # Use ToolTip to prevent focus stealing
         self.setWindowFlags(
             Qt.WindowType.ToolTip |
             Qt.WindowType.FramelessWindowHint |
@@ -1094,47 +1098,115 @@ class ToastOverlay(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         
+        # Main layout
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(20, 20, 20, 20)
         
+        # Container for Opacity Animation (bypasses macOS window opacity bugs)
+        self._container = QWidget()
+        self._container.setStyleSheet("background: transparent;")
+        container_layout = QHBoxLayout(self._container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Opacity Effect
+        self._opacity_effect = QGraphicsOpacityEffect(self)
+        self._opacity_effect.setOpacity(0.0)
+        self._container.setGraphicsEffect(self._opacity_effect)
+        
+        # The actual pill
         self._pill = QFrame()
-        self._pill.setStyleSheet(
-            "background: #7C3AED; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;"
-        )
-        pill_layout = QHBoxLayout(self._pill)
-        pill_layout.setContentsMargins(16, 6, 16, 6)
+        self._pill_layout = QHBoxLayout(self._pill)
+        self._pill_layout.setContentsMargins(20, 10, 20, 10)
         
+        # Label
         self._lbl = QLabel("✨ Enhancing...")
-        self._lbl.setStyleSheet("background: transparent; color: #FFF;")
-        pill_layout.addWidget(self._lbl)
+        self._lbl.setStyleSheet("background: transparent; color: #FFFFFF; font-weight: 600; font-size: 15px;")
+        self._pill_layout.addWidget(self._lbl)
         
-        layout.addWidget(self._pill)
+        # Shadow Effect
+        self._shadow = QGraphicsDropShadowEffect(self)
+        self._shadow.setBlurRadius(20)
+        self._shadow.setXOffset(0)
+        self._shadow.setYOffset(4)
+        self._shadow.setColor(QColor(0, 0, 0, 80))
+        self._pill.setGraphicsEffect(self._shadow)
+        
+        container_layout.addWidget(self._pill)
+        layout.addWidget(self._container)
+        
+        # Animations
+        self._anim_in = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._anim_in.setDuration(250)
+        self._anim_in.setStartValue(0.0)
+        self._anim_in.setEndValue(1.0)
+        self._anim_in.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        self._anim_out = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._anim_out.setDuration(300)
+        self._anim_out.setStartValue(1.0)
+        self._anim_out.setEndValue(0.0)
+        self._anim_out.setEasingCurve(QEasingCurve.Type.InCubic)
+        self._anim_out.finished.connect(self.hide)
+        
+        # Loading dots timer
+        self._dot_count = 0
+        self._base_text = "✨ Enhancing"
+        self._loading_timer = QTimer(self)
+        self._loading_timer.setInterval(400)
+        self._loading_timer.timeout.connect(self._update_loading_text)
+        
         self.hide()
         
-    def show_message(self, text: str, loading: bool = False, success: bool = False, error: bool = False) -> None:
-        self._lbl.setText(text)
+    def _update_loading_text(self) -> None:
+        self._dot_count = (self._dot_count + 1) % 4
+        self._lbl.setText(self._base_text + "." * self._dot_count)
+        self.adjustSize()
         
-        # Style based on state
-        if success:
-            self._pill.setStyleSheet("background: #10B981; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;")
-        elif error:
-            self._pill.setStyleSheet("background: #EF4444; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;")
+    def show_message(self, text: str, loading: bool = False, success: bool = False, error: bool = False) -> None:
+        # Reset state
+        self._loading_timer.stop()
+        self._anim_out.stop()
+        
+        if loading:
+            self._base_text = text.replace(".", "")
+            self._dot_count = 0
+            self._lbl.setText(self._base_text)
+            self._loading_timer.start()
         else:
-            self._pill.setStyleSheet("background: #7C3AED; color: #FFF; border-radius: 16px; font-weight: 600; font-size: 14px; padding: 4px 8px;")
+            self._lbl.setText(text)
+            
+        # Glassmorphism styling based on state
+        if success:
+            self._pill.setStyleSheet("background: rgba(16, 185, 129, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px;")
+            self._shadow.setColor(QColor(16, 185, 129, 60))
+        elif error:
+            self._pill.setStyleSheet("background: rgba(239, 68, 68, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px;")
+            self._shadow.setColor(QColor(239, 68, 68, 60))
+        else:
+            self._pill.setStyleSheet("background: rgba(30, 30, 32, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;")
+            self._shadow.setColor(QColor(0, 0, 0, 100))
             
         self.adjustSize()
         
+        # Position bottom center
         screen = QApplication.primaryScreen()
         if screen:
             sg = screen.availableGeometry()
             x = sg.x() + (sg.width() - self.width()) // 2
-            y = sg.bottom() - 100
+            y = sg.bottom() - 120
             self.move(int(x), int(y))
             
-        self.setWindowOpacity(1.0)
-        self.show()
-        self.raise_()
-        
+        # Fade in if not fully visible
+        if self._opacity_effect.opacity() < 1.0:
+            self.setWindowOpacity(1.0)
+            self.show()
+            self.raise_()
+            self._anim_in.start()
+            
         # Auto-hide if it's a transient message (success/error)
         if success or error:
-            QTimer.singleShot(1500, self.hide)
+            QTimer.singleShot(1500, self._trigger_fade_out)
+            
+    def _trigger_fade_out(self) -> None:
+        self._anim_in.stop()
+        self._anim_out.start()
