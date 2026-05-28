@@ -73,6 +73,7 @@ class HotkeyManager:
         self._listener = None        # pynput GlobalHotKeys instance
         self._enabled = True         # Can be toggled to pause without stopping
         self._lock = threading.Lock()
+        self._is_processing = False
 
     # ── Listener lifecycle ────────────────────────────────────────────────────
 
@@ -135,29 +136,31 @@ class HotkeyManager:
     def _on_hotkey_fired(self) -> None:
         """
         Called by pynput in its own thread when the hotkey is pressed.
-
-        Sequence:
-          1. Check if hotkey processing is enabled.
-          2. Snapshot current clipboard (for restore later).
-          3. Simulate Ctrl/Cmd+C to copy the current selection.
-          4. Read the new clipboard content with retry logic.
-          5. Emit the appropriate Qt signal (thread-safe via queued connection).
+        Spawns a background thread immediately to prevent blocking the macOS Quartz Event Tap.
         """
         with self._lock:
             if not self._enabled:
                 logger.debug("Hotkey fired but processing is paused.")
                 return
+            if self._is_processing:
+                logger.debug("Hotkey fired but already processing.")
+                return
+            self._is_processing = True
 
-        logger.debug("Hotkey fired.")
+        threading.Thread(target=self._process_hotkey_task, daemon=True).start()
 
-        import uuid
+    def _process_hotkey_task(self) -> None:
+        """The actual work for the hotkey, running in a non-blocking thread."""
         try:
+            logger.debug("Hotkey processing started in background thread.")
+
+            import uuid
+            
             # 1. Save what's currently on the clipboard.
             self._clipboard.save()
             previous = self._clipboard.saved_content or ""
             
             # 1.5 Inject a temporary unique marker to definitively detect if Cmd+C worked.
-            # Without this, selecting the exact same text again makes the clipboard look unchanged!
             temp_marker = f"__TEXTPOLISH_{uuid.uuid4().hex}__"
             self._clipboard.set(temp_marker)
 
@@ -183,3 +186,6 @@ class HotkeyManager:
         except Exception as exc:                          # noqa: BLE001
             logger.error("Error in hotkey callback: %s", exc)
             self._bridge.error_occurred.emit(str(exc))
+        finally:
+            with self._lock:
+                self._is_processing = False

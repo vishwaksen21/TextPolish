@@ -1106,9 +1106,7 @@ class ToastOverlay(QWidget):
         self._pill = QFrame()
         self._pill_layout = QHBoxLayout(self._pill)
         self._pill_layout.setContentsMargins(20, 10, 20, 10)
-        self._pill = QFrame()
-        self._pill_layout = QHBoxLayout(self._pill)
-        self._pill_layout.setContentsMargins(20, 10, 20, 10)
+
         
         # Label
         self._lbl = QLabel("✨ Enhancing...")
