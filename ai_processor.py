@@ -40,59 +40,225 @@ from settings import Settings
 # Rewrite Modes
 # ──────────────────────────────────────────────────────────────────────────────
 
-MODE_PROMPTS = {
-    "professional":
-        "Rewrite this user instruction into a cleaner, clearer, and more professional prompt while preserving the original intent.",
+SYSTEM_PROMPT = """
+You are TextPolish.
 
-    "creative":
-        "Rewrite this instruction into a more creative and engaging prompt while preserving the original intent.",
+Your task is to transform text according to the selected mode.
 
-    "technical":
-        "Rewrite this instruction in a clearer and more technical way while preserving meaning.",
-
-    "concise":
-        "Rewrite this instruction in a shorter and clearer way while preserving meaning.",
-
-    "academic":
-        "Rewrite this instruction in a more academic and formal way while preserving intent.",
-}
-
-USER_TEMPLATE = """
-{mode_prompt}
-
-RULES:
-- Keep the rewritten text natural
-- Keep it human-readable
-- Keep the same intent
-- Improve grammar and wording
-- Do NOT answer the request
-- Do NOT generate the final content
-- Return ONLY the improved prompt
-
-TEXT:
-{text}
-
-REWRITTEN:
+Rules:
+- Return ONLY the final result.
+- Never explain what you changed.
+- Never include introductions.
+- Never include phrases like:
+  'Here's the rewritten version'
+  'Certainly'
+  'Sure'
+  'Output:'
+- Never use markdown unless explicitly required.
+- Preserve the user's intent.
+- Produce production-quality output.
 """
 
+MODE_PROMPTS = {
+    "smart":
+        """
+        Analyze the user's text and automatically determine the best transformation.
 
-def _build_prompt(text: str, mode: str) -> str:
-    mode_prompt = MODE_PROMPTS.get(
-        mode,
-        MODE_PROMPTS["professional"]
-    )
+        Examples:
+        - Prompt-like text → improve_prompt
+        - Email-like text → email
+        - Social post → linkedin
+        - Poor grammar → grammar
+        - General text → professional
 
-    return USER_TEMPLATE.format(
-        mode_prompt=mode_prompt,
-        text=text.strip()
-    )
+        Return only the transformed result.
+        """,
+
+    "improve_prompt":
+        """
+        Convert the user's input into a concise, high-quality AI prompt.
+
+        Requirements:
+        - Preserve the original intent.
+        - Improve clarity and specificity.
+        - Add useful context only when necessary.
+        - Keep the prompt concise.
+        - Do not invent excessive details.
+        - Return only the improved prompt.
+        """,
+
+    "engineer_prompt":
+        """
+        Transform the user's input into a highly engineered, production-ready AI prompt.
+
+        Requirements:
+        - Preserve the original intent.
+        - Define a suitable expert role/persona.
+        - Specify the desired output format (like JSON, bullet points, etc.).
+        - Add constraints that improve response quality.
+        - Do not explain your changes.
+        - Return ONLY the engineered prompt.
+        """,
+
+    "email":
+        """
+        Rewrite the text as a professional email.
+
+        Requirements:
+        - Maintain the original intent.
+        - Use a clear subject line if appropriate.
+        - Improve grammar and tone.
+        - Keep the email concise and professional.
+        - Add greeting and closing only when needed.
+        - Return ONLY the email.
+        """,
+
+    "translate":
+        """
+        Translate the text into fluent English.
+
+        Requirements:
+        - Preserve meaning, tone, and context.
+        - Use natural and professional wording.
+        - Do not add explanations.
+        - Return ONLY the translated text.
+        """,
+
+    "explain_code":
+        """
+        Explain the provided code.
+
+        Requirements:
+        - Describe the purpose of the code.
+        - Explain key functions and logic.
+        - Keep the explanation concise and developer-friendly.
+        - Use bullet points when helpful.
+        - Return ONLY the explanation.
+        """,
+
+    "grammar":
+        """
+        Correct grammar, spelling, punctuation, and sentence structure.
+
+        Requirements:
+        - Preserve the original meaning.
+        - Preserve the original tone.
+        - Improve readability.
+        - Do not rewrite unnecessarily.
+        - Return ONLY the corrected text.
+        """,
+
+    "professional":
+        """
+        Rewrite the text in a professional and polished manner.
+
+        Requirements:
+        - Improve clarity and structure.
+        - Maintain the original meaning.
+        - Use confident and professional language.
+        - Remove unnecessary filler.
+        - Return ONLY the rewritten text.
+        """,
+
+    "linkedin":
+        """
+        Rewrite the content as a professional LinkedIn post.
+
+        Requirements:
+        - Create a strong opening hook.
+        - Improve readability using short paragraphs.
+        - Maintain authenticity.
+        - End with a natural closing statement.
+        - Avoid excessive emojis.
+        - Return ONLY the LinkedIn post.
+        """,
+
+    "summarize":
+        """
+        Summarize the text.
+
+        Requirements:
+        - Preserve key information.
+        - Remove repetition.
+        - Keep the summary concise.
+        - Return ONLY the summary.
+        """,
+
+    "shorten":
+        """
+        Rewrite the text in fewer words.
+
+        Requirements:
+        - Preserve meaning.
+        - Remove unnecessary details.
+        - Improve readability.
+        - Return ONLY the shortened version.
+        """,
+
+    "expand":
+        """
+        Expand the text while preserving its meaning.
+
+        Requirements:
+        - Add clarity and useful detail.
+        - Improve flow and readability.
+        - Avoid repetition.
+        - Return ONLY the expanded version.
+        """,
+
+    "resume":
+        """
+        Convert the input into ATS-friendly resume content.
+
+        Requirements:
+        - Use strong action verbs.
+        - Keep concise and measurable.
+        - Return ONLY the result.
+        """,
+
+    "tweet":
+        """
+        Rewrite as a concise, engaging social media post.
+
+        Requirements:
+        - Return ONLY the post.
+        """,
+
+    "meeting_notes":
+        """
+        Convert the text into structured meeting notes.
+
+        Requirements:
+        - Include key points and action items.
+        - Return ONLY the notes.
+        """,
+
+    "eli5":
+        """
+        Explain the content in simple terms that a beginner can understand.
+
+        Requirements:
+        - Return ONLY the explanation.
+        """
+}
+
+def _build_prompt(text: str, mode: str, custom_instruction: Optional[str] = None) -> str:
+    if mode == "custom" and custom_instruction:
+        mode_prompt = f"Follow this exact instruction to modify the text: {custom_instruction}"
+    else:
+        mode_prompt = MODE_PROMPTS.get(
+            mode,
+            MODE_PROMPTS["professional"]
+        )
+
+    return f"{SYSTEM_PROMPT.strip()}\n\n{mode_prompt.strip()}\n\nINPUT:\n{text.strip()}\n\nOUTPUT:\n"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Response Cleanup
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _clean_response(text: str) -> str:
+def _clean_response(text: str, mode: str) -> str:
     """
     Aggressively clean AI output to force rewrite-only behavior.
     """
@@ -136,32 +302,28 @@ def _clean_response(text: str) -> str:
     if text.startswith('"') and text.endswith('"'):
         text = text[1:-1].strip()
 
-    # Keep only first paragraph
-    text = text.split("\n")[0]
+    # Keep only first paragraph for short rewrite modes
+    if mode not in ("smart", "improve_prompt", "engineer_prompt", "email", "explain_code", "custom", "resume", "meeting_notes", "eli5"):
+        text = text.split("\n")[0]
 
-    # Remove repeated sentences
-    sentences = re.split(r'(?<=[.!?])\s+', text)
+        # Remove repeated sentences
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        unique_sentences = []
+        seen = set()
+        for sentence in sentences:
+            normalized = sentence.strip().lower()
+            if normalized and normalized not in seen:
+                unique_sentences.append(sentence.strip())
+                seen.add(normalized)
+        text = " ".join(unique_sentences).strip()
 
-    unique_sentences = []
-    seen = set()
-
-    for sentence in sentences:
-        normalized = sentence.strip().lower()
-
-        if normalized and normalized not in seen:
-            unique_sentences.append(sentence.strip())
-            seen.add(normalized)
-
-    text = " ".join(unique_sentences).strip()
-
-    # Hard output limit
-    if len(text) > 180:
-        cutoff = text[:180]
-
-        if "." in cutoff:
-            text = cutoff.rsplit(".", 1)[0] + "."
-        else:
-            text = cutoff
+        # Hard output limit
+        if len(text) > 180:
+            cutoff = text[:180]
+            if "." in cutoff:
+                text = cutoff.rsplit(".", 1)[0] + "."
+            else:
+                text = cutoff
 
     return text.strip()
 
@@ -175,32 +337,55 @@ def _call_ollama(
     mode: str,
     host: str,
     model: str = "gemma3:4b",
+    custom_instruction: Optional[str] = None,
 ) -> Generator[str, None, None]:
 
-    prompt = _build_prompt(text, mode)
+    prompt = _build_prompt(text, mode, custom_instruction)
 
     url = f"{host.rstrip('/')}/api/generate"
+
+    # ── Per-mode token budgets (tighter = faster) ─────────────────────────────
+    # Simple rewrites need very few tokens; only detailed modes get more.
+    TOKEN_BUDGETS = {
+        "grammar":        60,
+        "shorten":        60,
+        "tweet":          80,
+        "professional":  120,
+        "translate":     150,
+        "linkedin":      150,
+        "improve_prompt":150,
+        "smart":         150,
+        "email":         200,
+        "engineer_prompt":200,
+        "eli5":          200,
+        "explain_code":  250,
+        "meeting_notes": 250,
+        "resume":        300,
+        "custom":        200,
+    }
+    num_predict = TOKEN_BUDGETS.get(mode, 150)
+
+    # Smaller context window = faster prefill on Apple Silicon
+    num_ctx = 512 if num_predict <= 150 else 768
 
     payload = {
         "model": model,
         "prompt": prompt,
-        "stream": False,
-        "keep_alive": "24h", # Keep model in RAM to eliminate cold-start load times
-
+        "stream": True,             # Stream tokens as they arrive → feels instant
+        "keep_alive": "24h",        # Keep model loaded in RAM (eliminates cold-start)
         "options": {
-            "temperature": 0.2,
-            "num_predict": 80,
-            "top_p": 0.8,
-            "num_ctx": 512,  # Drastically reduce memory footprint on M1 Air
+            "temperature":  0.15,   # Low = deterministic & fast, no creative meandering
+            "num_predict":  num_predict,
+            "top_p":        0.8,
+            "top_k":        20,     # Restrict vocabulary → faster sampling
+            "num_ctx":      num_ctx,
+            "repeat_penalty": 1.1,  # Prevent repetitive output padding
         }
     }
 
     logger.info(
-        "Ollama request: model=%s mode=%s chars=%d prompt_len=%d",
-        model,
-        mode,
-        len(text),
-        len(prompt),
+        "Ollama request: model=%s mode=%s chars=%d num_predict=%d",
+        model, mode, len(text), num_predict,
     )
 
     start_time = time.perf_counter()
@@ -210,16 +395,32 @@ def _call_ollama(
             url,
             json=payload,
             timeout=90,
+            stream=True,        # Enable HTTP streaming
         )
 
         response.raise_for_status()
 
-        raw_result = response.json().get("response", "")
+        # ── Stream tokens and accumulate ──────────────────────────────────────
+        full_response = []
+        for raw_line in response.iter_lines():
+            if not raw_line:
+                continue
+            try:
+                chunk = json.loads(raw_line)
+            except json.JSONDecodeError:
+                continue
 
-        cleaned_result = _clean_response(raw_result)
+            token = chunk.get("response", "")
+            if token:
+                full_response.append(token)
+
+            if chunk.get("done", False):
+                break
+
+        raw_result = "".join(full_response)
+        cleaned_result = _clean_response(raw_result, mode)
 
         elapsed = time.perf_counter() - start_time
-
         logger.info(
             "Ollama response: %.2fs latency, %d output chars",
             elapsed,
@@ -282,6 +483,7 @@ class AIProcessor:
         self,
         text: str,
         mode: Optional[str] = None,
+        custom_instruction: Optional[str] = None,
     ) -> Generator[str, None, None]:
 
         text = text.strip()
@@ -296,6 +498,7 @@ class AIProcessor:
             mode=mode,
             host=self._settings.ollama_host,
             model=self._settings.ollama_model,
+            custom_instruction=custom_instruction,
         )
 
     def test_connection(self) -> str:
@@ -308,7 +511,7 @@ class AIProcessor:
         result = "".join(
             self.enhance(
                 probe,
-                mode="concise"
+                mode="professional"
             )
         )
 

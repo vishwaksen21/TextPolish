@@ -24,10 +24,56 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from logger          import logger, setup_logger
 from settings        import Settings
+from installer import Installer
+
+class InstallWorker(QThread):
+    """
+    Background thread: download Ollama, start server, pull model.
+    Never blocks the UI thread.
+    """
+    progress  = pyqtSignal(int, str)   # (percent 0-100, status_text)
+    finished  = pyqtSignal(bool, str)  # (success, error_message)
+
+    def __init__(self, model_name: str, parent=None) -> None:
+        super().__init__(parent)
+        self._model_name = model_name
+
+    def run(self) -> None:
+        try:
+            def cb(percent: int, text: str) -> None:
+                self.progress.emit(percent, text)
+
+            cb(2, "Checking installation...")
+
+            # Step 1: Download & extract if binary is missing
+            if Installer.needs_installation():
+                Installer.download_and_extract_ollama(cb)
+            else:
+                cb(48, "Ollama already installed.")
+
+            # Step 2: Start the server
+            cb(50, "Starting Ollama...")
+            Installer.start_ollama()
+
+            # Step 3: Wait for server to be ready
+            cb(52, "Waiting for server...")
+            if not Installer.verify_installation(max_wait=30):
+                raise RuntimeError(
+                    "Ollama server did not start in time.\n"
+                    "Please launch Ollama manually and restart TextPolish."
+                )
+
+            # Step 4: Pull model
+            Installer.pull_model(self._model_name, cb)
+
+            self.finished.emit(True, "")
+        except Exception as exc:
+            logger.error("Installation failed: %s", exc)
+            self.finished.emit(False, str(exc))
 from clipboard_manager import ClipboardManager
 from ai_processor    import AIProcessor
 from hotkeys         import HotkeyBridge, HotkeyManager
-from ui              import EnhancementPopup, SettingsWindow, SystemTrayIcon, AIWorker, ToastOverlay
+from ui              import EnhancementPopup, SettingsWindow, SystemTrayIcon, AIWorker, ToastOverlay, CommandPalette, InstallerOverlay
 import platform_handler as ph
 
 
@@ -166,8 +212,8 @@ class OllamaStartupWorker(QThread):
 
 # ── Auto Replacer ─────────────────────────────────────────────────────────────
 
-class AutoReplacer(QObject):
-    """Handles silent background text replacement without a popup."""
+class CommandPaletteWorkflow(QObject):
+    """Handles the Command Palette UI and background text replacement."""
     
     def __init__(self, settings: Settings, processor: AIProcessor, clipboard: ClipboardManager, tray: SystemTrayIcon) -> None:
         super().__init__()
@@ -175,23 +221,48 @@ class AutoReplacer(QObject):
         self._processor = processor
         self._clipboard = clipboard
         self._tray = tray
+        
+        self._palette = CommandPalette()
         self._toast = ToastOverlay()
         self._worker: AIWorker | None = None
         
-    def start_replacement(self, text: str) -> None:
+        self._current_text = ""
+        self._palette_is_hidden = True   # tracks whether palette animation has completed
+        self._pending_paste    = False   # enhanced text is ready, waiting for palette close
+
+        self._palette.action_selected.connect(self._on_action_selected)
+        self._palette.cancelled.connect(self._on_cancelled)
+        self._palette.hidden.connect(self._on_palette_hidden)
+        
+    def show_capturing(self) -> None:
+        pass
+        
+    def start_workflow(self, text: str) -> None:
         if self._worker is not None and self._worker.isRunning():
-            logger.warning("AutoReplacer is already running. Ignoring hotkey.")
+            logger.warning("Workflow is already running. Ignoring hotkey.")
             return
             
-        logger.info("Auto-replace triggered for text: %r", text[:30])
-        # clipboard.save() was already done by hotkeys.py
+        logger.info("Command Palette triggered for text: %r", text[:30])
+        self._current_text = text
+        self._palette_is_hidden = False
+        self._pending_paste = False
+        self._toast.hide()
+        # Capture the active app bundle BEFORE the palette steals focus
+        ph.record_active_app()
+        self._palette.show_palette(selected_text=text)
         
-        self._toast.show_message("✨ Enhancing...", loading=True)
+    def _on_action_selected(self, mode: str, custom_instruction: str) -> None:
+        logger.info("Command Palette action selected: %s (custom: %s)", mode, custom_instruction)
+        self._toast.show_message("✦ Enhancing...", loading=True)
         
-        self._worker = AIWorker(self._processor, text, self._settings.default_mode)
+        self._worker = AIWorker(self._processor, self._current_text, mode, custom_instruction)
         self._worker.finished.connect(self._on_ai_finished)
         self._worker.error_occurred.connect(self._on_error)
         self._worker.start()
+        
+    def _on_cancelled(self) -> None:
+        logger.info("Command Palette cancelled by user.")
+        self._restore_clipboard()
         
     def _on_ai_finished(self, enhanced_text: str) -> None:
         if not enhanced_text:
@@ -201,28 +272,42 @@ class AutoReplacer(QObject):
             return
 
         self._clipboard.set(enhanced_text)
+        logger.info("Enhanced text ready. Palette hidden: %s", self._palette_is_hidden)
 
-        logger.info("Prepared enhanced text for inline replacement.")
+        if self._palette_is_hidden:
+            # Palette already closed — paste immediately with a small focus-settle delay
+            QTimer.singleShot(250, self._perform_paste)
+        else:
+            # Palette still animating — set flag so _on_palette_hidden triggers paste
+            self._pending_paste = True
 
-        # Delay paste slightly for clipboard stabilization
-        QTimer.singleShot(150, self._perform_paste)
+    def _on_palette_hidden(self) -> None:
+        """Fires after palette fade-out animation completes."""
+        self._palette_is_hidden = True
+        if self._pending_paste:
+            self._pending_paste = False
+            logger.info("Palette closed. Triggering paste now.")
+            # Give macOS 250ms to fully return focus to the original app
+            QTimer.singleShot(250, self._perform_paste)
 
     def _perform_paste(self) -> None:
         try:
             ph.paste_text()
             logger.info("Auto-replaced selected text successfully.")
-            self._toast.show_message("✓ Enhanced", success=True)
+            # Show toast 400ms after paste so it doesn't disrupt Cmd+V
+            QTimer.singleShot(400, lambda: self._toast.show_message("✓ Enhanced", success=True))
         finally:
-            # Restore clipboard AFTER paste fully completes
-            QTimer.singleShot(1800, self._restore_clipboard)
+            # Restore clipboard well after paste completes
+            QTimer.singleShot(2000, self._restore_clipboard)
         
     def _restore_clipboard(self) -> None:
         self._clipboard.restore()
         self._worker = None
+        self._current_text = ""
         
     def _on_error(self, msg: str) -> None:
         self._toast.show_message("⚠ Error", error=True)
-        logger.error("AutoReplace failed: %s", msg)
+        logger.error("Workflow failed: %s", msg)
         self._tray.notify(APP_NAME, f"AI Error: {msg[:50]}")
         self._clipboard.restore()
         self._worker = None
@@ -244,7 +329,9 @@ class TextPolishApp:
         self._processor = AIProcessor(self._settings)
 
         # ── Qt application ────────────────────────────────────────────────────
-        self._qapp = QApplication(sys.argv)
+        self._qapp = QApplication.instance()
+        if self._qapp is None:
+            self._qapp = QApplication(sys.argv)
         self._qapp.setApplicationName(APP_NAME)
         self._qapp.setApplicationVersion(__version__)
         self._qapp.setQuitOnLastWindowClosed(False)   # Keep alive as tray app
@@ -268,7 +355,7 @@ class TextPolishApp:
         # ── UI components ─────────────────────────────────────────────────────
         self._tray    = SystemTrayIcon(self._settings)
         self._popup   = EnhancementPopup(self._settings, self._processor, self._clipboard)
-        self._auto_replacer = AutoReplacer(self._settings, self._processor, self._clipboard, self._tray)
+        self._workflow = CommandPaletteWorkflow(self._settings, self._processor, self._clipboard, self._tray)
         self._settings_win: SettingsWindow | None = None
 
         # ── Hotkey bridge (thread → Qt signal) ────────────────────────────────
@@ -330,11 +417,13 @@ class TextPolishApp:
 
     def _on_text_captured(self, text: str) -> None:
         if self._settings.auto_replace:
-            self._auto_replacer.start_replacement(text)
+            self._workflow.start_workflow(text)
         else:
             self._popup.show_for_text(text)
 
     def _on_nothing_selected(self) -> None:
+        if self._settings.auto_replace:
+            self._workflow._toast.hide()
         self._tray.notify(
             APP_NAME,
             "No text selected. Select some text first, then press the shortcut.",
@@ -389,8 +478,69 @@ def main() -> None:
         sys.exit(0)
 
     # ── Full application ──────────────────────────────────────────────────────
-    app = TextPolishApp(args)
-    sys.exit(app.run())
+    settings = Settings()
+
+    needs_install = Installer.needs_installation() or not Installer.is_server_running()
+
+    if needs_install and not settings.get("first_run_completed"):
+        # ── First-run installer flow ──────────────────────────────────────────
+        logger.info("First run or Ollama missing. Triggering auto-installer...")
+        app = QApplication(sys.argv)
+        overlay = InstallerOverlay()
+        overlay.show()
+        QApplication.processEvents()
+
+        model_name = settings.ollama_model
+        worker = InstallWorker(model_name)
+        worker.progress.connect(overlay.update_progress)
+
+        # Keep references alive (prevent GC)
+        _refs = {"overlay": overlay, "worker": worker, "app": app}
+
+        def _on_install_finished(success: bool, error_msg: str) -> None:
+            if success:
+                overlay.show_success()
+                settings.set("first_run_completed", True)
+                logger.info("Installation complete. Launching TextPolish...")
+                # Show success for 1.5s then launch
+                QTimer.singleShot(1500, lambda: _launch_after_install(args))
+            else:
+                logger.error("Installation failed: %s", error_msg)
+                overlay.show_error(error_msg)
+
+        def _on_retry() -> None:
+            logger.info("User requested retry...")
+            worker2 = InstallWorker(model_name)
+            worker2.progress.connect(overlay.update_progress)
+            worker2.finished.connect(_on_install_finished)
+            _refs["worker2"] = worker2
+            overlay.update_progress(0, "Retrying...")
+            worker2.start()
+
+        def _launch_after_install(launch_args) -> None:
+            overlay.hide()
+            tp_app = TextPolishApp(launch_args)
+            # app.exec() is already running; just start the app object
+            _refs["tp_app"] = tp_app
+
+        overlay.retry_requested.connect(_on_retry)
+        worker.finished.connect(_on_install_finished)
+        worker.start()
+        sys.exit(app.exec())
+
+    elif needs_install and settings.get("first_run_completed"):
+        # Ollama installed before but not running — just start it silently
+        logger.info("Ollama not running. Starting server silently...")
+        try:
+            Installer.start_ollama()
+        except Exception as exc:
+            logger.warning("Could not auto-start Ollama: %s", exc)
+        app = TextPolishApp(args)
+        sys.exit(app.run())
+
+    else:
+        app = TextPolishApp(args)
+        sys.exit(app.run())
 
 
 if __name__ == "__main__":

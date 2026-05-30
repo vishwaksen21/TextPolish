@@ -40,7 +40,7 @@ from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFormLayout,
     QFrame, QGraphicsDropShadowEffect, QGroupBox, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu,
-    QMessageBox, QPushButton, QScrollArea, QSizePolicy,
+    QMessageBox, QProgressBar, QPushButton, QScrollArea, QSizePolicy,
     QSplitter, QStackedWidget, QSystemTrayIcon, QTextEdit,
     QToolButton, QVBoxLayout, QWidget,
 )
@@ -61,85 +61,85 @@ DARK_QSS = """
 * { font-family: "Inter", "Segoe UI", "SF Pro Display", system-ui, sans-serif;
     font-size: 13px; }
 
-QDialog, QWidget { background: #0D0D0F; color: #F0F0F8; }
+QDialog, QWidget { background: #F5F4F0; color: #1A1918; }
 
-QLabel { color: #F0F0F8; background: transparent; }
+QLabel { color: #1A1918; background: transparent; }
 
 /* ── Scrollbars ─────────────────────────────────────────── */
-QScrollBar:vertical { background: #16161B; width: 6px; border-radius: 3px; }
-QScrollBar::handle:vertical { background: #2A2A38; border-radius: 3px; min-height: 20px; }
-QScrollBar::handle:vertical:hover { background: #7C3AED; }
+QScrollBar:vertical { background: #E6E4DD; width: 6px; border-radius: 3px; }
+QScrollBar::handle:vertical { background: #C5C3BC; border-radius: 3px; min-height: 20px; }
+QScrollBar::handle:vertical:hover { background: #D97757; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-QScrollBar:horizontal { background: #16161B; height: 6px; border-radius: 3px; }
-QScrollBar::handle:horizontal { background: #2A2A38; border-radius: 3px; }
-QScrollBar::handle:horizontal:hover { background: #7C3AED; }
+QScrollBar:horizontal { background: #E6E4DD; height: 6px; border-radius: 3px; }
+QScrollBar::handle:horizontal { background: #C5C3BC; border-radius: 3px; }
+QScrollBar::handle:horizontal:hover { background: #D97757; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 
 /* ── Buttons ────────────────────────────────────────────── */
 QPushButton {
-    background: #1E1E26; color: #F0F0F8;
-    border: 1px solid #2A2A38; border-radius: 8px;
+    background: #FFFFFF; color: #1A1918;
+    border: 1px solid #E6E4DD; border-radius: 8px;
     padding: 8px 18px; font-size: 13px; font-weight: 500;
 }
-QPushButton:hover { background: #2A2A38; border-color: #7C3AED; }
-QPushButton:pressed { background: #16161B; }
-QPushButton:disabled { color: #4A4A5A; border-color: #1E1E26; }
+QPushButton:hover { background: #F5F4F0; border-color: #D97757; }
+QPushButton:pressed { background: #E6E4DD; }
+QPushButton:disabled { color: #A3A09A; border-color: #E6E4DD; }
 
 QPushButton#replaceBtn {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #7C3AED, stop:1 #5B21B6);
+        stop:0 #D97757, stop:1 #C46244);
     border: none; color: #FFFFFF; font-weight: 600;
     padding: 9px 24px; border-radius: 8px;
 }
 QPushButton#replaceBtn:hover {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #6D28D9, stop:1 #4C1D95);
+        stop:0 #C46244, stop:1 #B05235);
 }
-QPushButton#replaceBtn:disabled { background: #2A2A38; color: #4A4A5A; }
+QPushButton#replaceBtn:disabled { background: #E6E4DD; color: #A3A09A; }
 
-QPushButton#cancelBtn { color: #9090A8; }
-QPushButton#cancelBtn:hover { color: #F0F0F8; border-color: #EF4444; }
+QPushButton#cancelBtn { color: #6B6965; }
+QPushButton#cancelBtn:hover { color: #1A1918; border-color: #D45454; }
 
-QPushButton#undoBtn { color: #9090A8; }
-QPushButton#undoBtn:hover { color: #F0F0F8; border-color: #10B981; }
+QPushButton#undoBtn { color: #6B6965; }
+QPushButton#undoBtn:hover { color: #1A1918; border-color: #54A071; }
 
 QPushButton#settingsSaveBtn {
-    background: #7C3AED; border: none; color: #FFF;
+    background: #D97757; border: none; color: #FFF;
     font-weight: 600; padding: 9px 24px; border-radius: 8px;
 }
-QPushButton#settingsSaveBtn:hover { background: #6D28D9; }
+QPushButton#settingsSaveBtn:hover { background: #C46244; }
 
-QPushButton#testBtn { color: #7C3AED; border-color: #7C3AED; }
-QPushButton#testBtn:hover { background: #1A1025; }
+QPushButton#testBtn { color: #D97757; border-color: #D97757; }
+QPushButton#testBtn:hover { background: #F9EBE5; }
 
 /* ── Text areas ─────────────────────────────────────────── */
 QTextEdit {
-    background: #16161B; color: #F0F0F8;
-    border: 1px solid #2A2A38; border-radius: 10px;
+    background: #FFFFFF; color: #1A1918;
+    border: 1px solid #E6E4DD; border-radius: 10px;
     padding: 14px; font-size: 14px; line-height: 1.6;
-    selection-background-color: #7C3AED40;
+    selection-background-color: rgba(217, 119, 87, 0.2);
 }
-QTextEdit:focus { border-color: #7C3AED; }
+QTextEdit:focus { border-color: #D97757; }
 
 /* ── Line edits ─────────────────────────────────────────── */
 QLineEdit {
-    background: #16161B; color: #F0F0F8;
-    border: 1px solid #2A2A38; border-radius: 8px;
+    background: #FFFFFF; color: #1A1918;
+    border: 1px solid #E6E4DD; border-radius: 8px;
     padding: 8px 12px; font-size: 13px;
 }
-QLineEdit:focus { border-color: #7C3AED; }
+QLineEdit:focus { border-color: #D97757; }
 
 /* ── Combo boxes ────────────────────────────────────────── */
 QComboBox {
-    background: #16161B; color: #F0F0F8;
-    border: 1px solid #2A2A38; border-radius: 8px;
+    background: #FFFFFF; color: #1A1918;
+    border: 1px solid #E6E4DD; border-radius: 8px;
     padding: 7px 12px; font-size: 13px;
 }
-QComboBox:hover { border-color: #7C3AED; }
+QComboBox:hover { border-color: #D97757; }
 QComboBox::drop-down { border: none; width: 24px; }
 QComboBox QAbstractItemView {
-    background: #1E1E26; border: 1px solid #2A2A38; color: #F0F0F8;
-    selection-background-color: #7C3AED; outline: none;
+    background: #FFFFFF; border: 1px solid #E6E4DD; color: #1A1918;
+    selection-background-color: #F9EBE5; selection-color: #D97757; outline: none;
 }
 
 /* ── Check boxes ────────────────────────────────────────── */
@@ -284,17 +284,19 @@ class AIWorker(QThread):
         processor: AIProcessor,
         text: str,
         mode: str,
+        custom_instruction: Optional[str] = None,
         parent: Optional[QObject] = None,
     ) -> None:
         super().__init__(parent)
         self._processor = processor
         self._text = text
         self._mode = mode
+        self._custom_instruction = custom_instruction
         self._full_result = ""
 
     def run(self) -> None:
         try:
-            for chunk in self._processor.enhance(self._text, self._mode):
+            for chunk in self._processor.enhance(self._text, self._mode, self._custom_instruction):
                 self._full_result += chunk
                 self.chunk_received.emit(chunk)
             self.finished.emit(self._full_result)
@@ -1084,16 +1086,173 @@ class SystemTrayIcon(QSystemTrayIcon):
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QGraphicsOpacityEffect
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve
 
+class InstallerOverlay(QWidget):
+    """
+    Frameless overlay shown during first-run Ollama installation.
+    Features: progress bar, status text, success state, error state + retry button.
+    Always stays on top; never freezes the event loop.
+    """
+
+    retry_requested = pyqtSignal()
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowFlags(
+            Qt.WindowType.Window |
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+
+        self.resize(400, 170)
+        self._center_on_screen()
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(16, 16, 16, 16)
+
+        card = QFrame()
+        card.setObjectName("installerCard")
+        card.setStyleSheet("""
+            #installerCard {
+                background-color: rgba(14, 14, 18, 245);
+                border-radius: 14px;
+                border: 1px solid rgba(255, 255, 255, 22);
+            }
+        """)
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(40)
+        shadow.setOffset(0, 8)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        card.setGraphicsEffect(shadow)
+
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(24, 22, 24, 22)
+        card_layout.setSpacing(14)
+
+        self._title = QLabel("Setting up Local AI Engine")
+        self._title.setStyleSheet(
+            "color: #F0F0F8; font-size: 15px; font-weight: 700; background: transparent;"
+        )
+        self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self._progress = QProgressBar()
+        self._progress.setRange(0, 100)
+        self._progress.setValue(0)
+        self._progress.setTextVisible(False)
+        self._progress.setFixedHeight(8)
+        self._progress.setStyleSheet("""
+            QProgressBar {
+                background-color: rgba(255, 255, 255, 18);
+                border-radius: 4px;
+                border: none;
+            }
+            QProgressBar::chunk {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #3b82f6, stop:1 #818cf8);
+                border-radius: 4px;
+            }
+        """)
+
+        self._status = QLabel("Initializing...")
+        self._status.setStyleSheet(
+            "color: rgba(240,240,248,160); font-size: 12px; background: transparent;"
+        )
+        self._status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._status.setWordWrap(True)
+
+        self._note = QLabel("This only happens once.")
+        self._note.setStyleSheet(
+            "color: rgba(240,240,248,80); font-size: 11px; background: transparent;"
+        )
+        self._note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self._retry_btn = QPushButton("Retry")
+        self._retry_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._retry_btn.setFixedWidth(100)
+        self._retry_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #ef4444; color: white; border: none;
+                border-radius: 8px; padding: 7px 0;
+                font-weight: 600; font-size: 13px;
+            }
+            QPushButton:hover { background-color: #dc2626; }
+            QPushButton:pressed { background-color: #b91c1c; }
+        """)
+        self._retry_btn.hide()
+        self._retry_btn.clicked.connect(self.retry_requested.emit)
+
+        card_layout.addWidget(self._title)
+        card_layout.addWidget(self._progress)
+        card_layout.addWidget(self._status)
+        card_layout.addWidget(self._note)
+        card_layout.addWidget(self._retry_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        root.addWidget(card)
+
+    def update_progress(self, percent: int, text: str) -> None:
+        self._progress.setValue(percent)
+        self._status.setText(text)
+        self._status.setStyleSheet(
+            "color: rgba(240,240,248,160); font-size: 12px; background: transparent;"
+        )
+        self._progress.show()
+        self._retry_btn.hide()
+        self._note.show()
+        self.repaint()
+        QApplication.processEvents()
+
+    def show_error(self, message: str) -> None:
+        self._title.setText("Setup Failed")
+        self._status.setText(message)
+        self._status.setStyleSheet(
+            "color: #ef4444; font-size: 12px; background: transparent;"
+        )
+        self._progress.hide()
+        self._note.hide()
+        self._retry_btn.show()
+        self.repaint()
+        QApplication.processEvents()
+
+    def show_success(self) -> None:
+        self._title.setText("Ready!")
+        self._status.setText("Local AI engine is running.")
+        self._status.setStyleSheet(
+            "color: #22c55e; font-size: 12px; background: transparent;"
+        )
+        self._progress.setValue(100)
+        self._progress.setStyleSheet("""
+            QProgressBar {
+                background-color: rgba(255,255,255,18);
+                border-radius: 4px; border: none;
+            }
+            QProgressBar::chunk { background-color: #22c55e; border-radius: 4px; }
+        """)
+        self._note.hide()
+        self._retry_btn.hide()
+        self.repaint()
+        QApplication.processEvents()
+
+    def _center_on_screen(self) -> None:
+        screen = QApplication.primaryScreen()
+        if screen:
+            geo = screen.geometry()
+            self.move(
+                geo.x() + (geo.width()  - self.width())  // 2,
+                geo.y() + (geo.height() - self.height()) // 2,
+            )
+
+
 class ToastOverlay(QWidget):
     """A premium, animated frameless pill overlay to indicate activity."""
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        # Use ToolTip to prevent focus stealing
+        # Use ToolTip to prevent focus stealing, but force on-top
         self.setWindowFlags(
             Qt.WindowType.ToolTip |
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.WindowTransparentForInput
+            Qt.WindowType.WindowTransparentForInput |
+            Qt.WindowType.BypassWindowManagerHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
@@ -1154,6 +1313,7 @@ class ToastOverlay(QWidget):
     def show_message(self, text: str, loading: bool = False, success: bool = False, error: bool = False) -> None:
         # Reset state
         self._loading_timer.stop()
+        self._anim_in.stop()
         self._anim_out.stop()
         
         if loading:
@@ -1164,16 +1324,17 @@ class ToastOverlay(QWidget):
         else:
             self._lbl.setText(text)
             
-        # Glassmorphism styling based on state
+        # Anthropic Glassmorphism styling based on state
         if success:
-            self._pill.setStyleSheet("background: rgba(16, 185, 129, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px;")
-            self._shadow.setColor(QColor(16, 185, 129, 60))
+            self._pill.setStyleSheet("background: rgba(84, 160, 113, 0.95); border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 20px;")
+            self._shadow.setColor(QColor(84, 160, 113, 60))
         elif error:
-            self._pill.setStyleSheet("background: rgba(239, 68, 68, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px;")
-            self._shadow.setColor(QColor(239, 68, 68, 60))
+            self._pill.setStyleSheet("background: rgba(212, 84, 84, 0.95); border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 20px;")
+            self._shadow.setColor(QColor(212, 84, 84, 60))
         else:
-            self._pill.setStyleSheet("background: rgba(30, 30, 32, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;")
-            self._shadow.setColor(QColor(0, 0, 0, 100))
+            self._pill.setStyleSheet("background: rgba(245, 244, 240, 0.95); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 20px;")
+            self._lbl.setStyleSheet("color: #1A1918; font-weight: 500;")
+            self._shadow.setColor(QColor(0, 0, 0, 40))
             
         self.adjustSize()
         
@@ -1185,11 +1346,15 @@ class ToastOverlay(QWidget):
             y = sg.bottom() - 120
             self.move(int(x), int(y))
             
+        self.show()
+        self.raise_()
+        self.repaint()
+        
+        logger.info("Overlay shown: %s", text)
+        
         # Fade in if not fully visible
         if self.windowOpacity() < 1.0:
             self.setWindowOpacity(0.0)
-            self.show()
-            self.raise_()
             self._anim_in.start()
             
         # Auto-hide if it's a transient message (success/error)
@@ -1199,3 +1364,502 @@ class ToastOverlay(QWidget):
     def _trigger_fade_out(self) -> None:
         self._anim_in.stop()
         self._anim_out.start()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMAND PALETTE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class CommandPalette(QWidget):
+    """
+    A Raycast/Notion AI-grade floating command palette.
+    Features:
+      - Glassmorphism card with drop shadow
+      - Selected-text preview pill at top
+      - Live fuzzy search filtering of modes
+      - Keyboard navigation (Up/Down/Enter/Escape)
+      - Smooth fade + scale-in animation
+      - Two-column icon + label rows with keyboard shortcut hints
+      - Section grouping (Quick Actions / All Modes)
+    """
+    action_selected = pyqtSignal(str, str)   # (mode_id, custom_instruction)
+    cancelled       = pyqtSignal()
+    hidden          = pyqtSignal()            # emitted after hide animation completes
+
+    # ── Mode registry ─────────────────────────────────────────────────────────
+    MODES = [
+        # (display_label, icon, mode_id, section)
+        ("Smart Assist",       "◈", "smart",          "Quick Actions"),
+        ("Improve Writing",    "✦", "professional",   "Quick Actions"),
+        ("Improve Prompt",     "⌖", "improve_prompt", "Quick Actions"),
+        ("Fix Grammar",        "✓", "grammar",         "Quick Actions"),
+        ("Engineer Prompt",    "⚙", "engineer_prompt", "All Modes"),
+        ("Professional Email", "✉", "email",           "All Modes"),
+        ("Engaging Tweet",     "⤹", "tweet",           "All Modes"),
+        ("LinkedIn Post",      "≡", "linkedin",        "All Modes"),
+        ("Meeting Notes",      "☷", "meeting_notes",  "All Modes"),
+        ("Explain like I'm 5","⍰", "eli5",           "All Modes"),
+        ("Translate to English","↬","translate",       "All Modes"),
+        ("Explain Code",       "⟨⟩","explain_code",   "All Modes"),
+        ("Format Resume",      "☑", "resume",          "All Modes"),
+        ("Make Shorter",       "◂", "shorten",         "All Modes"),
+    ]
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowFlags(
+            Qt.WindowType.Window |
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+        self._selected_text: str = ""
+        self._visible_modes = list(self.MODES)
+
+        self._build_ui()
+        self._build_animations()
+        self.hide()
+
+    # ── UI construction ───────────────────────────────────────────────────────
+
+    def _build_ui(self) -> None:
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(20, 20, 20, 20)
+
+        # ── Main card ────────────────────────────────────────────────────────
+        self._card = QFrame()
+        self._card.setObjectName("paletteCard")
+        self._card.setStyleSheet("""
+            QFrame#paletteCard {
+                background: rgba(252, 251, 248, 0.97);
+                border-radius: 16px;
+                border: 1px solid rgba(0,0,0,0.07);
+            }
+        """)
+
+        shadow = QGraphicsDropShadowEffect(self._card)
+        shadow.setBlurRadius(50)
+        shadow.setXOffset(0)
+        shadow.setYOffset(16)
+        shadow.setColor(QColor(0, 0, 0, 55))
+        self._card.setGraphicsEffect(shadow)
+
+        card_layout = QVBoxLayout(self._card)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+
+        # ── Search bar section ───────────────────────────────────────────────
+        search_section = QWidget()
+        search_section.setStyleSheet("background: transparent;")
+        search_layout = QHBoxLayout(search_section)
+        search_layout.setContentsMargins(16, 16, 16, 10)
+        search_layout.setSpacing(10)
+
+        # Magnifier icon
+        search_icon = QLabel("⌕")
+        search_icon.setStyleSheet(
+            "color: rgba(100,95,90,0.7); font-size: 18px; background: transparent;"
+        )
+        search_icon.setFixedWidth(22)
+
+        # Input field
+        self._input = QLineEdit()
+        self._input.setPlaceholderText("Ask AI or search actions...")
+        self._input.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                border: none;
+                font-size: 15px;
+                font-weight: 500;
+                color: #1A1918;
+                padding: 2px 0;
+            }
+            QLineEdit::placeholder {
+                color: rgba(100,95,90,0.5);
+            }
+        """)
+        self._input.textChanged.connect(self._on_search_changed)
+
+        # Keyboard shortcut badge
+        esc_badge = QLabel("Esc to close")
+        esc_badge.setStyleSheet("""
+            color: rgba(100,95,90,0.45);
+            font-size: 11px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 5px;
+            padding: 3px 7px;
+        """)
+
+        search_layout.addWidget(search_icon)
+        search_layout.addWidget(self._input, 1)
+        search_layout.addWidget(esc_badge)
+        card_layout.addWidget(search_section)
+
+        # ── Divider ──────────────────────────────────────────────────────────
+        self._divider = QFrame()
+        self._divider.setFrameShape(QFrame.Shape.HLine)
+        self._divider.setStyleSheet("background: rgba(0,0,0,0.06); max-height: 1px;")
+        card_layout.addWidget(self._divider)
+
+        # ── Selected text preview ────────────────────────────────────────────
+        self._preview_widget = QWidget()
+        self._preview_widget.setStyleSheet(
+            "background: rgba(217,119,87,0.08); border-bottom: 1px solid rgba(0,0,0,0.05);"
+        )
+        preview_layout = QHBoxLayout(self._preview_widget)
+        preview_layout.setContentsMargins(16, 8, 16, 8)
+        preview_layout.setSpacing(8)
+
+        preview_icon = QLabel("↳")
+        preview_icon.setStyleSheet(
+            "color: #D97757; font-size: 13px; background: transparent;"
+        )
+        preview_icon.setFixedWidth(14)
+
+        self._preview_label = QLabel()
+        self._preview_label.setStyleSheet(
+            "color: rgba(100,95,90,0.75); font-size: 12px; "
+            "font-style: italic; background: transparent;"
+        )
+        self._preview_label.setWordWrap(False)
+
+        preview_layout.addWidget(preview_icon)
+        preview_layout.addWidget(self._preview_label, 1)
+        self._preview_widget.hide()
+        card_layout.addWidget(self._preview_widget)
+
+        # ── Action list ──────────────────────────────────────────────────────
+        list_container = QWidget()
+        list_container.setStyleSheet("background: transparent;")
+        list_container_layout = QVBoxLayout(list_container)
+        list_container_layout.setContentsMargins(8, 6, 8, 10)
+        list_container_layout.setSpacing(0)
+
+        self._list = QListWidget()
+        self._list.setObjectName("paletteList")
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._list.setStyleSheet("""
+            QListWidget {
+                background: transparent;
+                border: none;
+                outline: none;
+            }
+            QListWidget::item {
+                border-radius: 8px;
+                padding: 0;
+                margin: 1px 0;
+                background: transparent;
+            }
+            QListWidget::item:selected {
+                background: transparent;
+            }
+        """)
+
+        self._list.itemDoubleClicked.connect(self._accept)
+        list_container_layout.addWidget(self._list)
+        card_layout.addWidget(list_container)
+
+        # ── Footer ───────────────────────────────────────────────────────────
+        footer = QWidget()
+        footer.setStyleSheet(
+            "background: rgba(0,0,0,0.025); border-top: 1px solid rgba(0,0,0,0.05);"
+            "border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;"
+        )
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(16, 7, 16, 7)
+
+        nav_hint = QLabel("↑↓ navigate   ⏎ confirm   Type to filter")
+        nav_hint.setStyleSheet(
+            "color: rgba(100,95,90,0.4); font-size: 11px; background: transparent;"
+        )
+
+        powered = QLabel("Powered by Ollama")
+        powered.setStyleSheet(
+            "color: rgba(100,95,90,0.3); font-size: 11px; background: transparent;"
+        )
+
+        footer_layout.addWidget(nav_hint)
+        footer_layout.addStretch()
+        footer_layout.addWidget(powered)
+        card_layout.addWidget(footer)
+
+        outer.addWidget(self._card)
+        self._input.installEventFilter(self)
+        self._populate_list()
+
+    def _build_animations(self) -> None:
+        from PyQt6.QtCore import QParallelAnimationGroup, QRect
+
+        # ── Fade in ──────────────────────────────────────────────────────────
+        self._fade_in = QPropertyAnimation(self, b"windowOpacity")
+        self._fade_in.setDuration(200)
+        self._fade_in.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._fade_in.setStartValue(0.0)
+        self._fade_in.setEndValue(1.0)
+
+        # ── Fade out ─────────────────────────────────────────────────────────
+        self._fade_out = QPropertyAnimation(self, b"windowOpacity")
+        self._fade_out.setDuration(130)
+        self._fade_out.setEasingCurve(QEasingCurve.Type.InCubic)
+        self._fade_out.setStartValue(1.0)
+        self._fade_out.setEndValue(0.0)
+        self._fade_out.finished.connect(self._on_fully_hidden)
+
+        # ── Geometry slide-up (pos animation) ────────────────────────────────
+        self._slide_in  = QPropertyAnimation(self, b"pos")
+        self._slide_in.setDuration(200)
+        self._slide_in.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        self._slide_out = QPropertyAnimation(self, b"pos")
+        self._slide_out.setDuration(130)
+        self._slide_out.setEasingCurve(QEasingCurve.Type.InCubic)
+
+        # Convenience aliases used by old code paths
+        self._anim_in  = self._fade_in
+        self._anim_out = self._fade_out
+
+    # ── List population ───────────────────────────────────────────────────────
+
+    def _make_section_header(self, text: str) -> QListWidgetItem:
+        item = QListWidgetItem()
+        item.setData(Qt.ItemDataRole.UserRole, "__header__")
+        item.setFlags(Qt.ItemFlag.NoItemFlags)
+
+        widget = QWidget()
+        widget.setStyleSheet("background: transparent;")
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(8, 6, 8, 2)
+
+        label = QLabel(text.upper())
+        label.setStyleSheet(
+            "color: rgba(100,95,90,0.45); font-size: 10px; "
+            "font-weight: 700; letter-spacing: 1px; background: transparent;"
+        )
+        layout.addWidget(label)
+        layout.addStretch()
+
+        item.setSizeHint(QSize(0, 28))
+        return item, widget
+
+    def _make_mode_item(self, label: str, icon: str, mode_id: str, selected: bool = False) -> tuple:
+        item = QListWidgetItem()
+        item.setData(Qt.ItemDataRole.UserRole, mode_id)
+
+        widget = QWidget()
+        bg = "rgba(217,119,87,0.12)" if selected else "transparent"
+        widget.setStyleSheet(f"background: {bg}; border-radius: 8px;")
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(10, 7, 10, 7)
+        layout.setSpacing(10)
+
+        # Icon badge
+        icon_label = QLabel(icon)
+        icon_label.setFixedSize(28, 28)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setStyleSheet(
+            "color: #D97757; font-size: 14px; "
+            "background: rgba(217,119,87,0.1); border-radius: 6px;"
+        )
+
+        # Label
+        text_label = QLabel(label)
+        weight = "600" if selected else "400"
+        color = "#1A1918" if selected else "#2A2725"
+        text_label.setStyleSheet(
+            f"color: {color}; font-size: 13px; font-weight: {weight}; background: transparent;"
+        )
+
+        # Enter hint (only on selected)
+        enter_hint = QLabel("⏎")
+        enter_hint.setStyleSheet(
+            "color: rgba(100,95,90,0.35); font-size: 12px; background: transparent;"
+        )
+        enter_hint.setVisible(selected)
+
+        layout.addWidget(icon_label)
+        layout.addWidget(text_label, 1)
+        layout.addWidget(enter_hint)
+
+        item.setSizeHint(QSize(0, 44))
+        return item, widget
+
+    def _populate_list(self) -> None:
+        self._list.clear()
+        current_section = None
+
+        for i, (label, icon, mode_id, section) in enumerate(self._visible_modes):
+            # Section header
+            if section != current_section:
+                h_item, h_widget = self._make_section_header(section)
+                self._list.addItem(h_item)
+                self._list.setItemWidget(h_item, h_widget)
+                current_section = section
+
+            selected = (self._list.count() == 1 and i == 0) or False
+            m_item, m_widget = self._make_mode_item(label, icon, mode_id, selected)
+            self._list.addItem(m_item)
+            self._list.setItemWidget(m_item, m_widget)
+
+        # Select first real (non-header) item
+        self._select_first_real_item()
+
+    def _select_first_real_item(self) -> None:
+        for i in range(self._list.count()):
+            item = self._list.item(i)
+            if item and item.data(Qt.ItemDataRole.UserRole) != "__header__":
+                self._list.setCurrentItem(item)
+                self._update_item_highlight(i, True)
+                return
+
+    def _update_item_highlight(self, row: int, selected: bool) -> None:
+        item = self._list.item(row)
+        if not item or item.data(Qt.ItemDataRole.UserRole) == "__header__":
+            return
+        widget = self._list.itemWidget(item)
+        if not widget:
+            return
+        bg = "rgba(217,119,87,0.12)" if selected else "transparent"
+        widget.setStyleSheet(f"background: {bg}; border-radius: 8px;")
+        # Update child labels
+        layout = widget.layout()
+        if layout and layout.count() >= 3:
+            # icon, text_label, enter_hint
+            text_w = layout.itemAt(1).widget()
+            enter_w = layout.itemAt(2).widget()
+            if text_w:
+                weight = "600" if selected else "400"
+                color = "#1A1918" if selected else "#2A2725"
+                text_w.setStyleSheet(
+                    f"color: {color}; font-size: 13px; font-weight: {weight}; background: transparent;"
+                )
+            if enter_w:
+                enter_w.setVisible(selected)
+
+    # ── Public API ────────────────────────────────────────────────────────────
+
+    def show_palette(self, selected_text: str = "") -> None:
+        self._selected_text = selected_text
+        self._input.clear()
+        self._visible_modes = list(self.MODES)
+        self._populate_list()
+
+        # Preview selected text
+        if selected_text:
+            preview = selected_text.strip()
+            if len(preview) > 60:
+                preview = preview[:57] + "..."
+            self._preview_label.setText('\u201c' + preview + '\u201d')
+            self._preview_widget.show()
+        else:
+            self._preview_widget.hide()
+
+        # Size & center
+        self.resize(580, 440)
+        screen = QApplication.primaryScreen()
+        if screen:
+            sg = screen.availableGeometry()
+            x = sg.x() + (sg.width()  - self.width())  // 2
+            y = sg.y() + (sg.height() - self.height())  // 3
+            self.move(int(x), int(y))
+
+        # Position: start 18px lower, slide up to final position
+        final_y = int(y)
+        start_y = final_y + 18
+        self.move(int(x), start_y)
+
+        self.setWindowOpacity(0.0)
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self._input.setFocus()
+
+        # Slide-up destination
+        from PyQt6.QtCore import QPoint
+        self._slide_in.setStartValue(QPoint(int(x), start_y))
+        self._slide_in.setEndValue(QPoint(int(x), final_y))
+        self._fade_in.start()
+        self._slide_in.start()
+
+    def hide_palette(self) -> None:
+        self._fade_in.stop()
+        self._slide_in.stop()
+        # Slide down while fading out
+        from PyQt6.QtCore import QPoint
+        cur = self.pos()
+        self._slide_out.setStartValue(cur)
+        self._slide_out.setEndValue(QPoint(cur.x(), cur.y() + 12))
+        self._fade_out.start()
+        self._slide_out.start()
+
+    def _on_fully_hidden(self) -> None:
+        self.hide()
+        self.hidden.emit()
+
+    # ── Interaction ───────────────────────────────────────────────────────────
+
+    def _on_search_changed(self, text: str) -> None:
+        query = text.strip().lower()
+        if query:
+            self._visible_modes = [
+                m for m in self.MODES
+                if query in m[0].lower() or query in m[2].lower()
+            ]
+        else:
+            self._visible_modes = list(self.MODES)
+        self._populate_list()
+
+    def _current_real_row(self) -> int:
+        """Return index of currently selected non-header row."""
+        return self._list.currentRow()
+
+    def _move_selection(self, direction: int) -> None:
+        current = self._list.currentRow()
+        self._update_item_highlight(current, False)
+
+        count = self._list.count()
+        new_row = current
+        for _ in range(count):
+            new_row = (new_row + direction) % count
+            item = self._list.item(new_row)
+            if item and item.data(Qt.ItemDataRole.UserRole) != "__header__":
+                break
+
+        self._list.setCurrentRow(new_row)
+        self._update_item_highlight(new_row, True)
+        self._list.scrollToItem(self._list.item(new_row))
+
+    def _accept(self) -> None:
+        custom_instr = self._input.text().strip()
+        if custom_instr and not any(
+            custom_instr.lower() in m[0].lower() for m in self.MODES
+        ):
+            self.action_selected.emit("custom", custom_instr)
+        else:
+            row = self._list.currentRow()
+            item = self._list.item(row)
+            if item:
+                mode_id = item.data(Qt.ItemDataRole.UserRole)
+                if mode_id and mode_id != "__header__":
+                    self.action_selected.emit(mode_id, "")
+        self.hide_palette()
+
+    def eventFilter(self, obj: QObject, event) -> bool:
+        if obj == self._input and event.type() == event.Type.KeyPress:
+            key = event.key()
+            if key == Qt.Key.Key_Up:
+                self._move_selection(-1)
+                return True
+            elif key == Qt.Key.Key_Down:
+                self._move_selection(1)
+                return True
+            elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self._accept()
+                return True
+            elif key == Qt.Key.Key_Escape:
+                self.cancelled.emit()
+                self.hide_palette()
+                return True
+        return super().eventFilter(obj, event)

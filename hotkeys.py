@@ -155,7 +155,7 @@ class HotkeyManager:
             logger.debug("Hotkey processing started in background thread.")
 
             import uuid
-            
+
             # 1. Save what's currently on the clipboard.
             self._clipboard.save()
             previous = self._clipboard.saved_content or ""

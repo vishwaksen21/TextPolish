@@ -32,13 +32,13 @@ from logger import logger
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Delay between clipboard polling attempts
-_RETRY_DELAY = 0.10
+_RETRY_DELAY = 0.02
 
 # Total retry attempts
-_MAX_RETRIES = 15
+_MAX_RETRIES = 25
 
 # Additional stabilization delay after copy
-_POST_COPY_DELAY = 0.20
+_POST_COPY_DELAY = 0.02
 
 
 class ClipboardManager:

@@ -32,6 +32,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # Enhancement defaults
     "default_mode":       "professional",
     "auto_replace":       True,
+    "first_run_completed": False,
 
     # UI
     "theme":              "dark",     # "dark" | "light"
@@ -169,3 +170,7 @@ class Settings:
     @property
     def launch_at_startup(self) -> bool:
         return bool(self._config.get("launch_at_startup", False))
+
+    @property
+    def first_run_completed(self) -> bool:
+        return bool(self._config.get("first_run_completed", False))

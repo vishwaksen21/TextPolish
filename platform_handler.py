@@ -36,6 +36,26 @@ keyboard = Controller()
 _macos_active_app: Optional[str] = None
 
 
+def record_active_app() -> None:
+    """Snapshot the currently frontmost app bundle ID (macOS only).
+    Call this BEFORE showing any TextPolish window that will steal focus."""
+    global _macos_active_app
+    if not IS_MACOS:
+        return
+    try:
+        res = subprocess.run(
+            ['osascript', '-e',
+             'tell application "System Events" to get bundle identifier '
+             'of first application process whose frontmost is true'],
+            capture_output=True, text=True, timeout=1
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            _macos_active_app = res.stdout.strip()
+            logger.debug("Active app snapshotted: %s", _macos_active_app)
+    except Exception as exc:
+        logger.debug("record_active_app failed: %s", exc)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Platform Detection
 # ──────────────────────────────────────────────────────────────────────────────
@@ -109,7 +129,7 @@ def paste_text() -> None:
     global _macos_active_app
 
     try:
-        # Restore focus to the original application if Terminal stole it
+        # Restore focus to the original application
         if IS_MACOS and _macos_active_app:
             try:
                 logger.debug("Reactivating original app: %s", _macos_active_app)
@@ -117,7 +137,8 @@ def paste_text() -> None:
                     ['osascript', '-e', f'tell application id "{_macos_active_app}" to activate'],
                     timeout=1
                 )
-                time.sleep(0.05)
+                # Longer delay: let macOS fully animate the window focus transfer
+                time.sleep(0.35)
             except Exception as e:
                 logger.debug("Failed to reactivate app: %s", e)
 
