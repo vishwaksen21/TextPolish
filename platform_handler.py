@@ -131,8 +131,9 @@ def copy_selection() -> None:
     """
     Copy currently selected text from the active application.
 
-    macOS:         osascript → System Events → Cmd+C
-    Windows/Linux: pynput   → CGEventPost   → Ctrl+C
+    Uses pynput on all platforms. On macOS, this is now safe because
+    the hotkey_pressed signal (which shows the Qt UI) is delayed until
+    after this function completes.
     """
     global _macos_active_app, _windows_active_hwnd
 
@@ -141,9 +142,13 @@ def copy_selection() -> None:
         logger.info("=== CAPTURE PHASE: BEFORE COPY ===")
         logger.info("ACTIVE_APP_BEFORE_CAPTURE_NAME=%s",   app_info_before.get("name"))
         logger.info("ACTIVE_APP_BEFORE_CAPTURE_BUNDLE=%s", app_info_before.get("bundle_id") or app_info_before.get("hwnd"))
+        logger.info("ACTIVE_APP=%s", app_info_before.get("name"))
+        logger.info("ACTIVE_BUNDLE_ID=%s", app_info_before.get("bundle_id") or app_info_before.get("hwnd"))
         logger.info("IS_TEXTPOLISH_BEFORE_CAPTURE=%s",     app_info_before.get("is_textpolish"))
 
         # ── Record active app BEFORE any UI is shown ──────────────────────────
+        app_name = app_info_before.get("name")
+        logger.info(f"Frontmost app before copy: {app_name}")
         if IS_MACOS:
             try:
                 from AppKit import NSWorkspace
@@ -169,32 +174,23 @@ def copy_selection() -> None:
         time.sleep(0.1)
 
         # ── Send copy keystroke ───────────────────────────────────────────────
+        kb = _get_keyboard()
+        kb.release(Key.ctrl)
+        kb.release(Key.shift)
+        kb.release(Key.alt)
+        kb.release(Key.cmd)
+        
         if IS_MACOS:
-            # osascript routes through System Events → frontmost app at window-manager
-            # level. Immune to the HID focus race that breaks pynput in packaged mode.
-            logger.debug("Sending Cmd+C via osascript (frontmost-app routing).")
-            result = subprocess.run(
-                ['osascript', '-e',
-                 'tell application "System Events" to keystroke "c" using command down'],
-                capture_output=True, text=True, timeout=3
-            )
-            if result.returncode != 0:
-                logger.warning("osascript copy failed (rc=%d): %s", result.returncode, result.stderr.strip())
-            else:
-                logger.debug("osascript copy succeeded.")
-
+            logger.debug("Sending Cmd+C via pynput.")
+            with kb.pressed(Key.cmd):
+                kb.press('c')
+                kb.release('c')
         else:
-            # Windows / Linux: pynput Ctrl+C
-            # Release any modifiers the user may still be holding (Ctrl+Shift from the hotkey)
-            kb = _get_keyboard()
-            kb.release(Key.ctrl)
-            kb.release(Key.shift)
-            kb.release(Key.alt)
+            logger.debug("Sending Ctrl+C via pynput.")
             with kb.pressed(Key.ctrl):
                 kb.press('c')
                 kb.release('c')
-            logger.debug("Ctrl+C sent via pynput.")
-
+                
         logger.debug("Copy shortcut sent successfully.")
 
         app_info_after = get_frontmost_app_diagnostics()
@@ -215,7 +211,7 @@ def paste_text() -> None:
     """
     Paste clipboard content into the previously active application.
 
-    macOS:   AppKit focus restoration + osascript Cmd+V
+    macOS:   AppKit focus restoration + pynput Cmd+V
     Windows: win32gui.SetForegroundWindow + pynput Ctrl+V
     """
     global _macos_active_app, _windows_active_hwnd
@@ -233,10 +229,6 @@ def paste_text() -> None:
         if IS_MACOS and _macos_active_app:
             logger.info("ACTIVE_APP_BEFORE_PASTE=%s", _macos_active_app)
             try:
-                # NOTE: no time.sleep() here — this runs on the Qt main thread.
-                # Sleeping blocks the event loop and prevents macOS from completing
-                # the focus-transfer animation. The QTimer.singleShot(400) in
-                # _perform_paste already gives macOS time to return focus.
                 logger.debug("Reactivating original app via AppKit: %s", _macos_active_app)
                 from AppKit import NSWorkspace, NSApplicationActivateIgnoringOtherApps
                 apps = NSWorkspace.sharedWorkspace().runningApplications()
@@ -253,14 +245,11 @@ def paste_text() -> None:
                 import win32gui
                 import win32con
 
-                # AllowSetForegroundWindow bypasses Windows' foreground-lock restriction.
-                # Without this, SetForegroundWindow silently fails when another app owns
-                # the foreground lock (which TextPolish does while the palette is open).
                 try:
                     import win32process
                     win32gui.AllowSetForegroundWindow(win32con.ASFW_ANY)
                 except Exception:
-                    pass  # Non-fatal — SetForegroundWindow may still succeed
+                    pass
 
                 result = win32gui.SetForegroundWindow(_windows_active_hwnd)
                 restore_success = bool(result)
@@ -273,42 +262,40 @@ def paste_text() -> None:
 
         logger.info("FOCUS_RESTORE_SUCCESS=%s", restore_success)
 
+        # Small clipboard stabilization delay
+        # macOS WindowServer requires ~400ms to complete the focus transition animation
+        if IS_MACOS:
+            time.sleep(0.40)
+        else:
+            time.sleep(0.15)
+
         app_info_after = get_frontmost_app_diagnostics()
         logger.info("=== PASTE PHASE: AFTER FOCUS RESTORATION (RIGHT BEFORE PASTE) ===")
         logger.info("ACTIVE_APP_AFTER_PASTE_NAME=%s",   app_info_after.get("name"))
         logger.info("ACTIVE_APP_AFTER_PASTE_BUNDLE=%s", app_info_after.get("bundle_id") or app_info_after.get("hwnd"))
         logger.info("IS_TEXTPOLISH_AFTER_PASTE=%s",     app_info_after.get("is_textpolish"))
 
-        # Small clipboard stabilization delay
-        time.sleep(0.10)
-
         # ── Send paste keystroke ──────────────────────────────────────────────
-        if IS_MACOS:
-            # osascript routes to window-manager frontmost app — immune to HID focus races
-            logger.debug("Sending Cmd+V via osascript (frontmost-app routing).")
-            result = subprocess.run(
-                ['osascript', '-e',
-                 'tell application "System Events" to keystroke "v" using command down'],
-                capture_output=True, text=True, timeout=3
-            )
-            if result.returncode != 0:
-                logger.warning("osascript paste failed (rc=%d): %s", result.returncode, result.stderr.strip())
-            else:
-                logger.debug("osascript paste succeeded.")
+        kb = _get_keyboard()
+        kb.release(Key.ctrl)
+        kb.release(Key.shift)
+        kb.release(Key.alt)
+        kb.release(Key.cmd)
 
+        if IS_MACOS:
+            logger.debug("Sending Cmd+V via pynput.")
+            with kb.pressed(Key.cmd):
+                kb.press('v')
+                kb.release('v')
         else:
-            # Windows / Linux: pynput Ctrl+V
-            kb = _get_keyboard()
-            kb.release(Key.ctrl)
-            kb.release(Key.shift)
-            kb.release(Key.alt)
+            logger.debug("Sending Ctrl+V via pynput.")
             with kb.pressed(Key.ctrl):
                 kb.press('v')
                 kb.release('v')
-            logger.debug("Ctrl+V sent via pynput.")
 
         logger.debug("Paste shortcut sent successfully.")
         logger.info("PASTE_SENT=True")
+        logger.info("PASTE_SUCCESS=True")
 
     except Exception as exc:
         logger.error("paste_text failed: %s", exc)

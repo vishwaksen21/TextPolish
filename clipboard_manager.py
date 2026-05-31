@@ -164,6 +164,7 @@ class ClipboardManager:
                 attempt,
                 len(current),
             )
+            logger.info(f"Polling attempt {attempt}: {current!r}")
 
             # Ignore empty whitespace-only content
             if not current.strip():

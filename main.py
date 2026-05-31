@@ -75,7 +75,7 @@ from ai_processor    import AIProcessor
 from hotkeys         import HotkeyBridge, HotkeyManager
 from ui              import (
     EnhancementPopup, SettingsWindow, SystemTrayIcon, 
-    AIWorker, ToastOverlay, CommandPalette
+    AIWorker, ToastOverlay, CommandPalette, InstallerOverlay
 )
 from onboarding      import OnboardingWindow
 from permissions     import PermissionManager
@@ -307,7 +307,14 @@ class TextPolishApp:
 
     def run(self) -> int:
         """Start all services and enter the Qt event loop."""
-        if not self._settings.get("first_run_completed", False):
+        # On macOS, verify required permissions even if first_run_completed is True.
+        # This prevents silent failures in packaged mode if permissions are missing.
+        permissions_ok = True
+        if ph.IS_MACOS:
+            permissions_ok = PermissionManager.check_accessibility() and PermissionManager.check_input_monitoring()
+
+        if not self._settings.get("first_run_completed", False) or not permissions_ok:
+            logger.info("First run or missing permissions detected (permissions_ok=%s). Starting onboarding...", permissions_ok)
             self._start_onboarding()
         else:
             self._finish_startup()
@@ -350,6 +357,7 @@ class TextPolishApp:
         threading.Thread(target=background_ollama, daemon=True).start()
 
         logger.info("%s v%s started. Platform: %s", APP_NAME, __version__, ph.platform_name())
+        logger.info("PACKAGED_MODE=%s", getattr(sys, 'frozen', False))
 
     # ── Slots / handlers ──────────────────────────────────────────────────────
 

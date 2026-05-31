@@ -92,28 +92,26 @@ class PermissionManager:
     @staticmethod
     def check_input_monitoring() -> bool:
         """
-        macOS: tests whether pynput can register a keyboard listener (Input Monitoring).
+        macOS: tests whether Input Monitoring permission is granted using IOKit.
         Windows/Linux: always True — no permission required for global hotkeys.
         """
         if not IS_MACOS:
             return True
 
-        # In a packaged PyInstaller app we cannot use sys.executable -c safely
-        if getattr(sys, 'frozen', False):
-            return True
-
         try:
-            script = (
-                "import time; from pynput import keyboard; "
-                "listener = keyboard.Listener(on_press=lambda k: None); "
-                "listener.start(); listener.stop()"
-            )
-            result = subprocess.run(
-                [sys.executable, "-c", script],
-                capture_output=True,
-                timeout=2
-            )
-            return result.returncode == 0
+            import ctypes
+            import ctypes.util
+            # Resolve and load IOKit framework path dynamically
+            lib_path = ctypes.util.find_library('IOKit')
+            if not lib_path:
+                logger.warning("Could not find IOKit library.")
+                return False
+            iokit = ctypes.cdll.LoadLibrary(lib_path)
+            # IOHIDCheckAccess C prototype: IOHIDAccessType IOHIDCheckAccess(IOHIDRequestType requestType);
+            # kIOHIDRequestTypeListenEvent = 0
+            # kIOHIDAccessTypeGranted = 0
+            access_type = iokit.IOHIDCheckAccess(0)
+            return access_type == 0
         except Exception as e:
-            logger.error("Input monitoring check failed: %s", e)
+            logger.error("Input monitoring check failed via IOHIDCheckAccess: %s", e)
             return False

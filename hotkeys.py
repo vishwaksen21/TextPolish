@@ -190,7 +190,9 @@ class HotkeyManager:
             temp_marker = f"__TEXTPOLISH_{uuid.uuid4().hex}__"
             self._clipboard.set(temp_marker)
             logger.info("UUID_MARKER_INJECTED=%s", temp_marker)
+            logger.info(f"UUID inserted: {temp_marker}")
             logger.info("CLIPBOARD_AFTER_UUID_INJECTION=%r", self._clipboard.get())
+            logger.info(f"Clipboard immediately after UUID insert: {self._clipboard.get()}")
             logger.info("UUID_STATUS=%s", "Injected" if self._clipboard.get() == temp_marker else "Failed to Inject")
 
             # 2. Small delay to let any key-up events settle before we send Ctrl+C.
@@ -212,6 +214,7 @@ class HotkeyManager:
             logger.info("Clipboard after copy: '%s'", text)
             logger.info("STILL_UUID=%s", "True" if text == temp_marker else "False")
             logger.info("CLIPBOARD_CHANGED=%s", "True" if text != temp_marker and text != "" else "False")
+            logger.info("COPY_SUCCESS=%s", "True" if text != temp_marker and text != "" else "False")
 
             # 5. Signal Qt.
             if not text or len(text.strip()) < 3:
