@@ -365,8 +365,11 @@ def _call_ollama(
     }
     num_predict = TOKEN_BUDGETS.get(mode, 150)
 
-    # Smaller context window = faster prefill on Apple Silicon
-    num_ctx = 512 if num_predict <= 150 else 768
+    # CRITICAL FIX: Do NOT change num_ctx dynamically! 
+    # Ollama unloads and reloads the entire model if num_ctx changes between requests.
+    # A constant num_ctx ensures the model stays pinned in RAM (keep_alive works).
+    # Prefill speed depends on the prompt length, not the max context size.
+    num_ctx = 4096
 
     payload = {
         "model": model,
@@ -383,6 +386,7 @@ def _call_ollama(
         }
     }
 
+    logger.info("AI_REQUEST_BEGIN")
     logger.info(
         "Ollama request: model=%s mode=%s chars=%d num_predict=%d",
         model, mode, len(text), num_predict,
@@ -399,6 +403,7 @@ def _call_ollama(
         )
 
         response.raise_for_status()
+        logger.info("AI_REQUEST_SENT")
 
         # ── Stream tokens and accumulate ──────────────────────────────────────
         full_response = []
@@ -419,6 +424,7 @@ def _call_ollama(
 
         raw_result = "".join(full_response)
         cleaned_result = _clean_response(raw_result, mode)
+        logger.info("AI_RESPONSE_RECEIVED")
 
         elapsed = time.perf_counter() - start_time
         logger.info(

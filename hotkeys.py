@@ -23,8 +23,28 @@ from typing import Callable, Optional
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from clipboard_manager import ClipboardManager
-from platform_handler import copy_selection
 from logger import logger
+from platform_handler import IS_MACOS, copy_selection
+
+if IS_MACOS:
+    try:
+        import contextlib
+        from pynput._util import darwin
+        # PRE-COMPUTE the keyboard context on the MAIN THREAD to avoid TCC trace traps on macOS 14+
+        # when the pynput listener tries to call TISGetInputSourceProperty on a background thread.
+        with darwin.keycode_context() as _ctx:
+            _precomputed_ctx = _ctx
+
+        @contextlib.contextmanager
+        def _patched_keycode_context():
+            yield _precomputed_ctx
+
+        darwin.keycode_context = _patched_keycode_context
+        import pynput.keyboard._darwin as kb_darwin
+        kb_darwin.keycode_context = _patched_keycode_context
+        logger.debug("pynput keycode_context patched to avoid macOS background thread crash.")
+    except Exception as e:
+        logger.warning(f"Failed to patch pynput: {e}")
 
 
 class HotkeyBridge(QObject):
@@ -36,6 +56,9 @@ class HotkeyBridge(QObject):
     hotkey fires.  Qt's queued connection mechanism ensures the slot runs
     in the receiver's thread (the Qt event loop).
     """
+
+    # Emitted immediately when the hotkey is detected, before copying.
+    hotkey_pressed = pyqtSignal()
 
     # Emitted with the captured text after a successful hotkey + copy cycle.
     text_captured = pyqtSignal(str)
@@ -153,33 +176,49 @@ class HotkeyManager:
         """The actual work for the hotkey, running in a non-blocking thread."""
         try:
             logger.debug("Hotkey processing started in background thread.")
-
+            
             import uuid
-
+            import time
+            import platform_handler
+            
             # 1. Save what's currently on the clipboard.
             self._clipboard.save()
             previous = self._clipboard.saved_content or ""
+            logger.info("CLIPBOARD_BEFORE_CAPTURE=%r", previous)
             
             # 1.5 Inject a temporary unique marker to definitively detect if Cmd+C worked.
             temp_marker = f"__TEXTPOLISH_{uuid.uuid4().hex}__"
             self._clipboard.set(temp_marker)
+            logger.info("UUID_MARKER_INJECTED=%s", temp_marker)
+            logger.info("CLIPBOARD_AFTER_UUID_INJECTION=%r", self._clipboard.get())
+            logger.info("UUID_STATUS=%s", "Injected" if self._clipboard.get() == temp_marker else "Failed to Inject")
 
             # 2. Small delay to let any key-up events settle before we send Ctrl+C.
             time.sleep(0.05)
 
-            # 3. Simulate copy.
+            # 3. Simulate copy on the TARGET application.
             copy_selection()
+            
+            # CRITICAL FIX: Emit the hotkey_pressed signal ONLY AFTER copy_selection() finishes!
+            # If we emit it before, the main thread shows the Qt ToastOverlay, which forces macOS
+            # to make Python the active application, causing Cmd+C to be sent to Python instead of Chrome/etc.
+            self._bridge.hotkey_pressed.emit()
+            
+            logger.info("ACTIVE_APP_BEFORE_CAPTURE=%s", platform_handler._macos_active_app or "Unknown")
 
             # 4. Read clipboard with retry (wait for it to change from temp_marker)
             text = self._clipboard.read_after_copy(previous=temp_marker)
             
             logger.info("Clipboard after copy: '%s'", text)
+            logger.info("STILL_UUID=%s", "True" if text == temp_marker else "False")
+            logger.info("CLIPBOARD_CHANGED=%s", "True" if text != temp_marker and text != "" else "False")
 
             # 5. Signal Qt.
             if not text or len(text.strip()) < 3:
                 logger.warning("Selection validation failed: length %d, content: %r", len(text) if text else 0, text)
                 self._bridge.nothing_selected.emit()
             else:
+                logger.info("TEXT_CAPTURED")
                 logger.info("Captured %d chars for enhancement. Preview: %r", len(text), text[:50])
                 self._bridge.text_captured.emit(text)
 

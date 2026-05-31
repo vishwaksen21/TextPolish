@@ -1,10 +1,10 @@
 # TextPolish — Python Dependencies
 # Install with: pip install -r requirements.txt
 
-# ── UI framework ──────────────────────────────────────────────────────────────
+# ── UI framework ───────────────────────────────────────────────────────────────
 PyQt6>=6.6.0
 
-# ── Global hotkey detection (cross-platform) ──────────────────────────────────
+# ── Global hotkey detection (cross-platform) ───────────────────────────────────
 pynput>=1.7.6
 
 # ── Clipboard read / write ────────────────────────────────────────────────────
@@ -13,12 +13,17 @@ pyperclip>=1.8.2
 # ── Keyboard / mouse simulation (copy + paste) ────────────────────────────────
 pyautogui>=0.9.54
 
-# ── macOS screenshot prevention workaround (required by pyautogui on macOS) ──
-# Pillow is also used for icon image processing.
+# ── Image processing (icon generation, pyautogui dependency on macOS) ─────────
 Pillow>=10.0.0
 
 # ── AI backends ───────────────────────────────────────────────────────────────
 requests>=2.31.0                # Ollama local REST API
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
-packaging>=23.0                 # Version comparisons (used internally by deps)
+packaging>=23.0                 # Version comparisons
+
+# ── Windows-only: process/window management for focus restoration ──────────────
+# These are imported conditionally (only on Windows) but must be installed.
+# On macOS/Linux: pip will install them but they will never be imported.
+pywin32>=306; sys_platform == "win32"
+psutil>=5.9.0

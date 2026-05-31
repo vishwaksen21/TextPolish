@@ -73,7 +73,12 @@ class InstallWorker(QThread):
 from clipboard_manager import ClipboardManager
 from ai_processor    import AIProcessor
 from hotkeys         import HotkeyBridge, HotkeyManager
-from ui              import EnhancementPopup, SettingsWindow, SystemTrayIcon, AIWorker, ToastOverlay, CommandPalette, InstallerOverlay
+from ui              import (
+    EnhancementPopup, SettingsWindow, SystemTrayIcon, 
+    AIWorker, ToastOverlay, CommandPalette
+)
+from onboarding      import OnboardingWindow
+from permissions     import PermissionManager
 import platform_handler as ph
 
 
@@ -122,94 +127,6 @@ def run_ai_test(settings: Settings) -> None:
     print("  ✓ AI connection OK.\n")
 
 
-# ── macOS Accessibility guard ─────────────────────────────────────────────────
-
-def ensure_macos_accessibility(app: QApplication) -> None:
-    """
-    On macOS, check for Accessibility permission.  If not granted, show a
-    dialog explaining how to grant it and offer to open System Settings.
-    The user can still proceed (the hotkey just won't work until they grant it).
-    """
-    if not ph.IS_MACOS:
-        return
-
-    if ph.check_accessibility():
-        logger.info("macOS Accessibility permission: granted.")
-        return
-
-    logger.warning("macOS Accessibility permission NOT granted.")
-    msg = QMessageBox()
-    msg.setWindowTitle(f"{APP_NAME} — Accessibility Required")
-    msg.setIcon(QMessageBox.Icon.Warning)
-    msg.setText(
-        "<b>Accessibility permission is required</b> for TextPolish to detect "
-        "global hotkeys and simulate copy/paste.<br><br>"
-        "Please grant access in:<br>"
-        "<b>System Settings → Privacy &amp; Security → Accessibility</b><br><br>"
-        "Add <b>TextPolish</b> (or <b>python</b>) to the list and enable it."
-    )
-    msg.setStandardButtons(
-        QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Open
-    )
-    msg.button(QMessageBox.StandardButton.Open).setText("Open System Settings")
-    reply = msg.exec()
-    if reply == QMessageBox.StandardButton.Open:
-        ph.request_accessibility()
-
-
-# ── Ollama Startup Worker ─────────────────────────────────────────────────────
-
-class OllamaStartupWorker(QThread):
-    finished_ok = pyqtSignal()
-    model_missing = pyqtSignal(str)
-    error_occurred = pyqtSignal(str)
-    
-    def __init__(self, settings: Settings, parent=None):
-        super().__init__(parent)
-        self._settings = settings
-        
-    def run(self):
-        host = self._settings.ollama_host.rstrip('/')
-        model = self._settings.ollama_model
-        
-        # Initial check
-        try:
-            resp = requests.get(f"{host}/api/tags", timeout=2)
-            resp.raise_for_status()
-            logger.info("Ollama server detected.")
-            self._check_model(resp.json(), model)
-            return
-        except Exception:
-            logger.info("Ollama not running. Launching automatically...")
-            ph.start_ollama_app()
-            
-        # Polling loop
-        import time
-        max_retries = 15
-        for i in range(max_retries):
-            time.sleep(1)
-            try:
-                resp = requests.get(f"{host}/api/tags", timeout=2)
-                resp.raise_for_status()
-                logger.info("Ollama startup successful.")
-                self._check_model(resp.json(), model)
-                return
-            except Exception:
-                continue
-                
-        # If we reach here, it failed.
-        self.error_occurred.emit("Ollama local AI server could not be started automatically. Please launch Ollama manually.")
-        
-    def _check_model(self, data: dict, model: str):
-        available_models = [m.get("name", "") for m in data.get("models", [])]
-        if model not in available_models and f"{model}:latest" not in available_models:
-            logger.warning("Model '%s' not found.", model)
-            self.model_missing.emit(model)
-        else:
-            self.finished_ok.emit()
-
-
-
 # ── Auto Replacer ─────────────────────────────────────────────────────────────
 
 class CommandPaletteWorkflow(QObject):
@@ -235,7 +152,7 @@ class CommandPaletteWorkflow(QObject):
         self._palette.hidden.connect(self._on_palette_hidden)
         
     def show_capturing(self) -> None:
-        pass
+        self._toast.show_message("◴ Capturing Selection...", loading=True)
         
     def start_workflow(self, text: str) -> None:
         if self._worker is not None and self._worker.isRunning():
@@ -247,18 +164,22 @@ class CommandPaletteWorkflow(QObject):
         self._palette_is_hidden = False
         self._pending_paste = False
         self._toast.hide()
-        # Capture the active app bundle BEFORE the palette steals focus
-        ph.record_active_app()
+        # The active app bundle was ALREADY captured by platform_handler.copy_selection() 
+        # before any UI was shown. Do not re-record it here, or it will record TextPolish!
         self._palette.show_palette(selected_text=text)
         
     def _on_action_selected(self, mode: str, custom_instruction: str) -> None:
+        logger.info("MODE_SELECTED")
+        logger.info("START_REPLACEMENT")
         logger.info("Command Palette action selected: %s (custom: %s)", mode, custom_instruction)
-        self._toast.show_message("✦ Enhancing...", loading=True)
+        self._toast.show_message("✦ Enhancing with AI...", loading=True)
         
         self._worker = AIWorker(self._processor, self._current_text, mode, custom_instruction)
+        logger.info("AIWORKER_CREATED")
         self._worker.finished.connect(self._on_ai_finished)
         self._worker.error_occurred.connect(self._on_error)
         self._worker.start()
+        logger.info("AIWORKER_STARTED")
         
     def _on_cancelled(self) -> None:
         logger.info("Command Palette cancelled by user.")
@@ -272,11 +193,13 @@ class CommandPaletteWorkflow(QObject):
             return
 
         self._clipboard.set(enhanced_text)
+        logger.info("CLIPBOARD_UPDATED")
         logger.info("Enhanced text ready. Palette hidden: %s", self._palette_is_hidden)
 
         if self._palette_is_hidden:
-            # Palette already closed — paste immediately with a small focus-settle delay
-            QTimer.singleShot(250, self._perform_paste)
+            # Palette already closed — paste after focus-settle delay.
+            # 400ms gives macOS window manager time to return focus to the original app.
+            QTimer.singleShot(400, self._perform_paste)
         else:
             # Palette still animating — set flag so _on_palette_hidden triggers paste
             self._pending_paste = True
@@ -287,15 +210,24 @@ class CommandPaletteWorkflow(QObject):
         if self._pending_paste:
             self._pending_paste = False
             logger.info("Palette closed. Triggering paste now.")
-            # Give macOS 250ms to fully return focus to the original app
-            QTimer.singleShot(250, self._perform_paste)
+            # Give macOS 400ms to fully return focus to the original app after
+            # the palette window closes. The AppKit activation + window manager
+            # focus transfer needs this time to complete before we paste.
+            QTimer.singleShot(400, self._perform_paste)
 
     def _perform_paste(self) -> None:
         try:
+            self._toast.show_message("◴ Replacing Text...", loading=True)
+            # NOTE: Do NOT call QApplication.processEvents() here.
+            # It flushes pending Qt events which may include window-activation
+            # events that bring TextPolish back to the foreground right before
+            # Cmd+V is sent — causing the paste to land in TextPolish instead of Chrome.
+            
             ph.paste_text()
+            logger.info("PASTE_TRIGGERED")
             logger.info("Auto-replaced selected text successfully.")
             # Show toast 400ms after paste so it doesn't disrupt Cmd+V
-            QTimer.singleShot(400, lambda: self._toast.show_message("✓ Enhanced", success=True))
+            QTimer.singleShot(400, lambda: [self._toast.show_message("✓ Complete", success=True), logger.info("REPLACEMENT_COMPLETE")])
         finally:
             # Restore clipboard well after paste completes
             QTimer.singleShot(2000, self._restore_clipboard)
@@ -308,7 +240,13 @@ class CommandPaletteWorkflow(QObject):
     def _on_error(self, msg: str) -> None:
         self._toast.show_message("⚠ Error", error=True)
         logger.error("Workflow failed: %s", msg)
-        self._tray.notify(APP_NAME, f"AI Error: {msg[:50]}")
+        
+        if "DIAGNOSTIC RESULTS:" in msg:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(None, "Diagnostic Mode", msg)
+        else:
+            self._tray.notify(APP_NAME, f"AI Error: {msg[:50]}")
+            
         self._clipboard.restore()
         self._worker = None
 
@@ -343,15 +281,6 @@ class TextPolishApp:
         # Load Inter font if available.
         _load_font()
 
-        # ── macOS permission check ────────────────────────────────────────────
-        ensure_macos_accessibility(self._qapp)
-
-        # ── Ollama validation (Non-blocking) ──────────────────────────────────
-        self._startup_worker = OllamaStartupWorker(self._settings, self._qapp)
-        self._startup_worker.model_missing.connect(self._on_model_missing)
-        self._startup_worker.error_occurred.connect(self._on_ollama_error)
-        self._startup_worker.start()
-
         # ── UI components ─────────────────────────────────────────────────────
         self._tray    = SystemTrayIcon(self._settings)
         self._popup   = EnhancementPopup(self._settings, self._processor, self._clipboard)
@@ -366,6 +295,7 @@ class TextPolishApp:
 
     def _wire_signals(self) -> None:
         # Hotkey bridge → replacement logic
+        self._bridge.hotkey_pressed.connect(self._workflow.show_capturing)
         self._bridge.text_captured.connect(self._on_text_captured)
         self._bridge.nothing_selected.connect(self._on_nothing_selected)
         self._bridge.error_occurred.connect(self._on_hotkey_error)
@@ -377,6 +307,24 @@ class TextPolishApp:
 
     def run(self) -> int:
         """Start all services and enter the Qt event loop."""
+        if not self._settings.get("first_run_completed", False):
+            self._start_onboarding()
+        else:
+            self._finish_startup()
+
+        return self._qapp.exec()
+
+    def _start_onboarding(self) -> None:
+        self._onboarding = OnboardingWindow(self._settings, self._processor)
+        self._onboarding.setup_complete.connect(self._on_setup_complete)
+        self._onboarding.show()
+
+    def _on_setup_complete(self) -> None:
+        self._onboarding.deleteLater()
+        self._onboarding = None
+        self._finish_startup()
+
+    def _finish_startup(self) -> None:
         # Start hotkey listener.
         if self._settings.hotkey_enabled:
             self._hotkeys.start()
@@ -390,9 +338,18 @@ class TextPolishApp:
             f"Running in background. Press {self._settings.shortcut_display} "
             "to enhance selected text.",
         )
+        
+        # Start Ollama background process silently if missing
+        import threading
+        def background_ollama():
+            from installer import Installer
+            try:
+                Installer.start_ollama()
+            except:
+                pass
+        threading.Thread(target=background_ollama, daemon=True).start()
 
         logger.info("%s v%s started. Platform: %s", APP_NAME, __version__, ph.platform_name())
-        return self._qapp.exec()
 
     # ── Slots / handlers ──────────────────────────────────────────────────────
 
@@ -437,7 +394,28 @@ class TextPolishApp:
 
     def _on_hotkey_error(self, msg: str) -> None:
         logger.error("Hotkey error: %s", msg)
-        self._tray.notify(APP_NAME, f"Hotkey error: {msg[:80]}")
+        if "Accessibility" in msg or "pynput" in msg:
+            self._show_accessibility_dialog()
+        else:
+            self._tray.notify(APP_NAME, f"Hotkey error: {msg[:80]}")
+
+    def _show_accessibility_dialog(self) -> None:
+        msg = QMessageBox()
+        msg.setWindowTitle(f"{APP_NAME} — Permissions Revoked")
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setText(
+            "<b>macOS has revoked Accessibility permissions for TextPolish.</b><br><br>"
+            "This usually happens after an update. The global hotkey has been disabled.<br><br>"
+            "To fix this:<br>"
+            "1. Open System Settings<br>"
+            "2. Remove (minus button) the old TextPolish entry<br>"
+            "3. Add it back again and ensure the switch is on."
+        )
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Open)
+        msg.button(QMessageBox.StandardButton.Open).setText("Open System Settings")
+        
+        if msg.exec() == QMessageBox.StandardButton.Open:
+            PermissionManager.request_accessibility()
 
     def _quit(self) -> None:
         logger.info("Shutting down %s.", APP_NAME)
@@ -453,7 +431,8 @@ class TextPolishApp:
 
 def _load_font() -> None:
     """Attempt to load Inter from the assets directory."""
-    font_dir = Path(__file__).parent / "assets"
+    from utils import get_resource_path
+    font_dir = get_resource_path("assets")
     for ttf in font_dir.glob("Inter*.ttf"):
         QFontDatabase.addApplicationFont(str(ttf))
 

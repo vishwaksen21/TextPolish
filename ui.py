@@ -784,8 +784,18 @@ class SettingsWindow(QDialog):
         grp_layout.addRow("Backend:", lbl_provider)
 
         self._default_mode_combo = QComboBox()
-        self._default_mode_combo.addItems(["Professional", "Creative", "Technical", "Concise", "Academic"])
-        mode_idx = list(MODE_PROMPTS.keys()).index(self._settings.default_mode) if self._settings.default_mode in MODE_PROMPTS else 0
+        
+        # Populate dynamically from CommandPalette.MODES
+        # modes is a list of tuples: (display_label, icon, mode_id, section)
+        self._mode_keys = [m[2] for m in CommandPalette.MODES]
+        display_labels = [m[0] for m in CommandPalette.MODES]
+        self._default_mode_combo.addItems(display_labels)
+        
+        try:
+            mode_idx = self._mode_keys.index(self._settings.default_mode)
+        except ValueError:
+            mode_idx = 0
+            
         self._default_mode_combo.setCurrentIndex(mode_idx)
         grp_layout.addRow("Default mode:", self._default_mode_combo)
         layout.addWidget(grp)
@@ -949,7 +959,7 @@ class SettingsWindow(QDialog):
         self._settings.set("ai_provider",     "ollama")
         self._settings.set("ollama_host",     self._ollama_host.text().strip())
         self._settings.set("ollama_model",    self._ollama_model_edit.text().strip())
-        self._settings.set("default_mode",    list(MODE_PROMPTS.keys())[self._default_mode_combo.currentIndex()])
+        self._settings.set("default_mode",    self._mode_keys[self._default_mode_combo.currentIndex()])
         self._settings.set("hotkey",          self._hotkey_raw.text().strip() or self._hotkey_edit.text().strip())
         self._settings.set("shortcut_display",self._hotkey_edit.text().strip())
         self._settings.set("hotkey_enabled",  self._hotkey_enabled_cb.isChecked())
@@ -1011,7 +1021,8 @@ class SystemTrayIcon(QSystemTrayIcon):
 
     def _build_icon(self) -> None:
         """Create a programmatic icon if no icon file is found."""
-        icon_path = __import__("pathlib").Path(__file__).parent / "assets" / "icon.png"
+        from utils import get_resource_path
+        icon_path = get_resource_path("assets/icon.png")
         if icon_path.exists():
             self.setIcon(QIcon(str(icon_path)))
         else:
@@ -1559,6 +1570,7 @@ class CommandPalette(QWidget):
         """)
 
         self._list.itemDoubleClicked.connect(self._accept)
+        self._list.itemClicked.connect(self._accept)
         list_container_layout.addWidget(self._list)
         card_layout.addWidget(list_container)
 
