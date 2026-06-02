@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function FAQ() {
-  const shouldReduceMotion = useReducedMotion();
   const ease = [0.16, 1, 0.3, 1] as const;
 
   const faqs = [
@@ -31,50 +30,65 @@ export default function FAQ() {
     },
   ];
 
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [openIdx, setOpenIdx] = useState<number | null>(0); // Default to first item open
 
   return (
-    <section id="faq" className="py-20 bg-white border-b border-neutral-100/60">
-      <div className="max-w-[720px] mx-auto px-6">
-        {/* Section Header */}
+    <section id="faq" className="py-24 lg:py-32 bg-[#F5F5F7]">
+      <div className="max-w-[840px] mx-auto px-6">
+
+        {/* Centered Minimalist Header */}
         <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-          whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.4 }}
-          transition={{ duration: 0.55, ease }}
-          className="text-center space-y-3 mb-16"
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease }}
+          className="text-center mb-16"
         >
-          <h2 className="text-xs font-bold text-[#7C3AED] uppercase tracking-widest">FAQ</h2>
-          <p className="text-2xl sm:text-3xl font-extrabold text-[#0E0E11] tracking-tight">
-            Frequently Asked Questions
-          </p>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="h-[1px] w-6 bg-[#7C3AED]"></div>
+            <h2 className="text-sm font-semibold text-[#7C3AED] uppercase tracking-widest">
+              FAQ
+            </h2>
+            <div className="h-[1px] w-6 bg-[#7C3AED]"></div>
+          </div>
+          <h3 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight leading-tight mb-6">
+            Frequently Asked <br className="hidden sm:block" />
+            Questions
+          </h3>
         </motion.div>
 
-        {/* Accordions */}
-        <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-          whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.2 }}
-          transition={{ duration: 0.6, delay: 0.05, ease }}
-          className="space-y-4 text-left"
-        >
+        {/* Floating Island Accordions */}
+        <div className="space-y-4">
           {faqs.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
-              <div
+              <motion.div
                 key={idx}
-                className="bg-white border border-neutral-200/50 hover:border-neutral-200 rounded-2xl overflow-hidden transition-all duration-200"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.5, delay: idx * 0.05, ease }}
+                className={`relative bg-white rounded-[24px] transition-all duration-500 overflow-hidden ${isOpen
+                    ? "shadow-lg shadow-[#7C3AED]/5 border border-[#7C3AED]/20"
+                    : "shadow-sm hover:shadow-md border border-neutral-200/60"
+                  }`}
               >
                 <button
                   onClick={() => setOpenIdx(isOpen ? null : idx)}
-                  className="w-full flex items-center justify-between p-5 text-left font-bold text-sm text-[#0E0E11] focus:outline-none cursor-pointer select-none"
+                  className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none group"
                 >
-                  <span>{faq.q}</span>
-                  <ChevronDown
-                    className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-[#7C3AED]" : ""
-                    }`}
-                  />
+                  <span className={`text-lg md:text-xl font-bold tracking-tight transition-colors duration-300 pr-6 ${isOpen ? "text-neutral-900" : "text-neutral-700 group-hover:text-neutral-900"
+                    }`}>
+                    {faq.q}
+                  </span>
+
+                  {/* Premium Morphing Icon */}
+                  <div className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 ${isOpen
+                      ? "bg-[#EDE9FE] text-[#7C3AED] rotate-45"
+                      : "bg-neutral-50 text-neutral-400 group-hover:bg-neutral-100 group-hover:text-neutral-600"
+                    }`}>
+                    <Plus className="w-5 h-5 transition-transform duration-500" />
+                  </div>
                 </button>
 
                 <AnimatePresence initial={false}>
@@ -83,18 +97,22 @@ export default function FAQ() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease }}
+                      transition={{ duration: 0.4, ease }}
                     >
-                      <div className="px-5 pb-5 pt-0 text-xs sm:text-sm text-neutral-500 font-medium leading-relaxed border-t border-neutral-100/40">
-                        {faq.a}
+                      <div className="px-6 md:px-8 pb-8 pt-0">
+                        <div className="w-full h-px bg-neutral-100 mb-6" />
+                        <p className="text-base md:text-lg text-neutral-500 font-medium leading-relaxed">
+                          {faq.a}
+                        </p>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.div>
             );
           })}
-        </motion.div>
+        </div>
+
       </div>
     </section>
   );

@@ -2,80 +2,92 @@
 
 import React from "react";
 import { Shield, EyeOff, ServerCrash, Cpu } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function PrivacyFocus() {
-  const shouldReduceMotion = useReducedMotion();
   const ease = [0.16, 1, 0.3, 1] as const;
 
   const highlights = [
     {
-      icon: <EyeOff className="w-5 h-5 text-emerald-600" />,
-      title: "No Telemetry or Logs",
+      icon: <EyeOff className="w-6 h-6 text-emerald-600" />,
+      title: "Zero Telemetry",
       desc: "Your selected text and clipboard history never touch external databases, trackers, or telemetry pipelines. Complete digital anonymity.",
     },
     {
-      icon: <ServerCrash className="w-5 h-5 text-emerald-600" />,
-      title: "100% Offline Capable",
-      desc: "Run inference entirely offline without active internet connections or Wi-Fi configurations. Essential for high-security workplace policies.",
+      icon: <ServerCrash className="w-6 h-6 text-emerald-600" />,
+      title: "100% Offline",
+      desc: "Run inference entirely offline without active internet connections. Essential for high-security workplace policies and air-gapped systems.",
     },
     {
-      icon: <Cpu className="w-5 h-5 text-emerald-600" />,
-      title: "Local GPU Acceleration",
-      desc: "Runs locally utilizing Apple Silicon Unified Memory or Windows Nvidia RTX cores via Ollama. Blazing-fast generation without server wait times.",
+      icon: <Cpu className="w-6 h-6 text-emerald-600" />,
+      title: "Local Acceleration",
+      desc: "Runs strictly locally utilizing Apple Silicon Unified Memory or Windows Nvidia RTX cores. Blazing-fast generation without server wait times.",
     },
   ];
 
   return (
-    <section id="privacy" className="py-20 bg-emerald-50/20 border-b border-neutral-100/60">
-      <div className="max-w-[1100px] mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Side: Editorial Trust Statement */}
-          <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, x: -12 }}
-            whileInView={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
-            viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.35 }}
-            transition={{ duration: 0.6, ease }}
-            className="lg:col-span-5 text-left space-y-6"
-          >
-            <div className="inline-flex">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/60 border border-emerald-200/50 text-[11px] font-bold text-emerald-700 select-none uppercase tracking-wide">
-                <Shield className="w-3.5 h-3.5 fill-current" /> Privacy Shield
-              </span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0E0E11] tracking-tight leading-[1.1]">
-              Your data stays <br />
-              <span className="text-emerald-600">on your machine.</span>
-            </h2>
-            <p className="text-xs sm:text-sm text-neutral-500 font-medium leading-relaxed max-w-[380px]">
-              Modern AI tools depend on cloud pipelines that log, inspect, and train on your private thoughts. Avelyn turns this model on its head by compiling intelligence locally.
-            </p>
-          </motion.div>
+    <section id="privacy" className="py-24 bg-white relative overflow-hidden">
 
-          {/* Right Side: Features Grid */}
-          <div className="lg:col-span-7 space-y-6">
-            {highlights.map((item, idx) => (
-              <motion.div
-                key={item.title}
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-                whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.25 }}
-                transition={{ duration: 0.55, delay: idx * 0.06, ease }}
-                className="bg-white border border-neutral-200/40 rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row gap-4 items-start text-left"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                  {item.icon}
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="text-sm font-bold text-[#0E0E11]">{item.title}</h3>
-                  <p className="text-xs text-neutral-500 font-medium leading-relaxed">
-                    {item.desc}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+      {/* Ambient Emerald Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[600px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-[1200px] mx-auto px-6 relative z-10">
+
+        {/* Cinematic Centered Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease }}
+          className="text-center max-w-[700px] mx-auto mb-20 flex flex-col items-center"
+        >
+          {/* Large Authoritative Icon */}
+          <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100/60 flex items-center justify-center mb-8 shadow-sm">
+            <Shield className="w-8 h-8 text-emerald-600 fill-emerald-600/10" />
           </div>
+
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-neutral-900 tracking-tight leading-[1.05] mb-6">
+            Your data stays <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
+              strictly on your machine.
+            </span>
+          </h2>
+
+          <p className="text-lg text-neutral-500 font-medium leading-relaxed max-w-[540px]">
+            Modern AI tools depend on cloud pipelines that log, inspect, and train on your private thoughts. Avelyn turns this model on its head by computing everything locally.
+          </p>
+        </motion.div>
+
+        {/* 3-Column Premium Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          {highlights.map((item, idx) => (
+            <motion.div
+              key={item.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: idx * 0.1, ease }}
+              className="bg-[#F5F5F7] rounded-[32px] p-8 md:p-10 flex flex-col relative overflow-hidden group hover:bg-[#F0F0F3] transition-colors duration-500"
+            >
+              {/* Subtle hover gradient inside the card */}
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:to-emerald-500/[0.03] transition-colors duration-500 pointer-events-none" />
+
+              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm mb-8 relative z-10 transition-transform duration-500 group-hover:scale-105 group-hover:shadow-md">
+                {item.icon}
+              </div>
+
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold text-neutral-900 mb-3 tracking-tight">
+                  {item.title}
+                </h3>
+                <p className="text-sm sm:text-base text-neutral-500 font-medium leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </div>
+
       </div>
     </section>
   );

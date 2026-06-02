@@ -1,109 +1,135 @@
 "use client";
 
 import React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Shield, Sparkles, Sliders } from "lucide-react";
 
 export default function ProductShowcase() {
-  const shouldReduceMotion = useReducedMotion();
   const ease = [0.16, 1, 0.3, 1] as const;
 
-  const cards = [
-    {
-      badge: "Onboarding Wizard",
-      title: "First-Run Setup Wizard",
-      desc: "Getting started with local offline AI should be simple. Avelyn walks you through a premium, step-by-step setup wizard that guides you through model selection and global hotkey preferences.",
-      screenshot: "/screenshots/media__1780175716131.png",
-      span: "lg:col-span-6",
-      icon: <Sparkles className="w-4 h-4 text-[#7C3AED]" />
-    },
-    {
-      badge: "Security & Permissions",
-      title: "Self-Healing Permission Assistant",
-      desc: "No more troubleshooting terminal commands. Avelyn features a native helper to assist you with macOS Accessibility and Input Monitoring permissions so global paste events function securely and smoothly.",
-      screenshot: "/screenshots/media__1780177499012.png",
-      span: "lg:col-span-6",
-      icon: <Shield className="w-4 h-4 text-[#7C3AED]" />
-    },
-    {
-      badge: "Sleek Menu Bar Operation",
-      title: "Zero-Intrusion Menu Bar Experience",
-      desc: "Avelyn operates entirely in the background, living in your system tray / macOS Menu Bar. Trigger it with a keystroke, change quick-settings in two clicks, and keep your screen 100% focused on your actual work.",
-      screenshot: "/screenshots/media__1779910881149.png",
-      span: "lg:col-span-12",
-      icon: <Sliders className="w-4 h-4 text-[#7C3AED]" />,
-      isHorizontal: true
-    }
-  ];
-
   return (
-    <section className="py-20 bg-neutral-50/50 border-b border-neutral-100/60 text-neutral-800">
-      <div className="max-w-[1100px] mx-auto px-6">
-        {/* Section Header */}
+    <section className="py-24 bg-white overflow-hidden">
+      <div className="max-w-[1200px] mx-auto px-6">
+
+        {/* Minimalist Section Header */}
         <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-          whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.3 }}
-          transition={{ duration: 0.55, ease }}
-          className="text-center max-w-[600px] mx-auto space-y-4 mb-16"
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease }}
+          className="text-center max-w-[600px] mx-auto mb-20"
         >
-          <span className="text-xs font-bold text-[#7C3AED] uppercase tracking-widest bg-[#EDE9FE]/50 px-3.5 py-1 rounded-full border border-[#EDE9FE]">
-            Premium Design
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0E0E11] tracking-tight">
-            Designed to Feel Native
-          </h2>
-          <p className="text-sm text-neutral-500 font-medium leading-relaxed">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="h-[1px] w-8 bg-[#7C3AED]"></div>
+            <h2 className="text-sm font-semibold text-[#7C3AED] uppercase tracking-widest">
+              Native Experience
+            </h2>
+            <div className="h-[1px] w-8 bg-[#7C3AED]"></div>
+          </div>
+          <h3 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
+            Feels like it belongs <br className="hidden sm:block" />
+            on your Mac.
+          </h3>
+          <p className="text-lg text-neutral-500 font-medium leading-relaxed">
             Take a closer look at the actual product layout, designed to blend seamlessly with macOS Sonoma & Sequoia.
           </p>
         </motion.div>
 
-        {/* Dynamic Product Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {cards.map((card, idx) => (
-            <motion.div
-              key={card.title}
-              initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
-              whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-              viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, delay: idx * 0.06, ease }}
-              className={`${card.span} bg-white border border-neutral-200/50 rounded-2xl p-6 md:p-8 flex flex-col justify-between shadow-[0_1px_3px_rgba(0,0,0,0.01)] hover:shadow-lg hover:shadow-neutral-200/25 hover:border-neutral-300 transition-all duration-300 group`}
-            >
-              {/* Card Meta & Header */}
-              <div className="space-y-4 text-left">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#EDE9FE]/50 border border-[#EDE9FE] flex items-center justify-center">
-                    {card.icon}
-                  </div>
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
-                    {card.badge}
-                  </span>
-                </div>
+        {/* Premium Asymmetric Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
 
-                <div className="space-y-2">
-                  <h3 className="text-xl font-extrabold text-[#0E0E11] tracking-tight">
-                    {card.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-neutral-500 font-medium leading-relaxed max-w-[500px]">
-                    {card.desc}
-                  </p>
-                </div>
-              </div>
+          {/* FEATURE 1: Menu Bar (Full Width, Dark Mode Card) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7, ease }}
+            className="md:col-span-2 bg-[#0E0E11] rounded-[32px] p-8 md:p-12 lg:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative group"
+          >
+            {/* Subtle background glow */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#7C3AED]/20 blur-[120px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3 transition-transform duration-700 group-hover:scale-110" />
 
-              {/* Real App Screenshot displaying native container style */}
-              <div className="mt-8 overflow-hidden rounded-xl border border-neutral-200/60 bg-[#F5F5F7] p-2 select-none">
-                <div className="bg-white rounded-lg overflow-hidden border border-neutral-200/30 shadow-inner flex items-center justify-center">
-                  <img
-                    src={card.screenshot}
-                    alt={card.title}
-                    className={`w-full object-cover select-none pointer-events-none transition-transform duration-500 group-hover:scale-[1.01] ${
-                      card.isHorizontal ? "max-h-[140px] md:max-h-[180px] object-contain p-2" : "h-auto"
-                    }`}
-                  />
-                </div>
+            <div className="w-full md:w-1/2 space-y-6 relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10">
+                <Sliders className="w-6 h-6 text-[#7C3AED]" />
               </div>
-            </motion.div>
-          ))}
+              <h4 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                Zero-Intrusion <br /> Menu Bar Experience
+              </h4>
+              <p className="text-lg text-neutral-400 font-medium leading-relaxed max-w-[400px]">
+                Avelyn operates entirely in the background, living in your macOS Menu Bar. Trigger it with a keystroke, adjust settings in two clicks, and keep your screen 100% focused on your actual work.
+              </p>
+            </div>
+
+            <div className="w-full md:w-1/2 relative flex justify-center md:justify-end mt-8 md:mt-0">
+              <img
+                src="/screenshots/media__1779910881149.png"
+                alt="Menu Bar Operation"
+                className="w-full max-w-[450px] object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] transition-transform duration-700 group-hover:scale-105 select-none"
+              />
+            </div>
+          </motion.div>
+
+          {/* FEATURE 2: Setup Wizard (Half Width, Light Card) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7, delay: 0.1, ease }}
+            className="bg-[#F5F5F7] rounded-[32px] p-8 md:p-12 flex flex-col overflow-hidden relative group"
+          >
+            <div className="space-y-5 relative z-10 mb-12">
+              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm">
+                <Sparkles className="w-6 h-6 text-[#7C3AED]" />
+              </div>
+              <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
+                First-Run <br /> Setup Wizard
+              </h4>
+              <p className="text-base text-neutral-500 font-medium leading-relaxed">
+                Getting started with local offline AI should be simple. A premium, step-by-step setup wizard guides you perfectly through model selection and global hotkey preferences.
+              </p>
+            </div>
+
+            {/* Image bleeds off the bottom */}
+            <div className="mt-auto relative flex justify-center -mb-8 md:-mb-12">
+              <img
+                src="/screenshots/media__1780175716131.png"
+                alt="Onboarding Wizard"
+                className="w-full max-w-[380px] object-cover rounded-t-2xl drop-shadow-2xl border border-neutral-200/50 transition-transform duration-700 group-hover:-translate-y-3 select-none"
+              />
+            </div>
+          </motion.div>
+
+          {/* FEATURE 3: Permissions (Half Width, Light Card) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7, delay: 0.2, ease }}
+            className="bg-[#F5F5F7] rounded-[32px] p-8 md:p-12 flex flex-col overflow-hidden relative group"
+          >
+            <div className="space-y-5 relative z-10 mb-12">
+              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm">
+                <Shield className="w-6 h-6 text-[#7C3AED]" />
+              </div>
+              <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
+                Self-Healing <br /> Permission Assistant
+              </h4>
+              <p className="text-base text-neutral-500 font-medium leading-relaxed">
+                No more troubleshooting terminal commands. Avelyn features a native helper to assist you with macOS Accessibility and Input permissions so global paste events function securely.
+              </p>
+            </div>
+
+            {/* Image bleeds off the bottom */}
+            <div className="mt-auto relative flex justify-center -mb-8 md:-mb-12">
+              <img
+                src="/screenshots/media__1780177499012.png"
+                alt="Security & Permissions"
+                className="w-full max-w-[380px] object-cover rounded-t-2xl drop-shadow-2xl border border-neutral-200/50 transition-transform duration-700 group-hover:-translate-y-3 select-none"
+              />
+            </div>
+          </motion.div>
+
         </div>
       </div>
     </section>
