@@ -59,7 +59,7 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="pt-16 pb-24 lg:pt-20 lg:pb-32 bg-[#FAFAFA] overflow-hidden">
+    <section id="how-it-works" className="pt-12 pb-16 md:pt-20 md:pb-32 bg-[#FAFAFA] overflow-hidden">
       <div className="max-w-[1200px] mx-auto px-6">
 
         {/* Section Header */}
@@ -93,10 +93,10 @@ export default function HowItWorks() {
                   )}
 
                   {/* Tab Content */}
-                  <div className={`relative z-10 flex items-center gap-2 ${isActive ? "text-[#7C3AED]" : "text-neutral-500 hover:text-neutral-700"
+                  <div className={`relative z-10 flex items-center gap-1.5 sm:gap-2 ${isActive ? "text-[#7C3AED]" : "text-neutral-500 hover:text-neutral-700"
                     }`}>
                     {step.icon}
-                    <span className="hidden sm:block">{step.tabTitle}</span>
+                    <span className="text-xs sm:text-sm">{step.tabTitle}</span>
                   </div>
                 </button>
               );

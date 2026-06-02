@@ -49,7 +49,7 @@ export default function BetaAccess() {
     }
   };
   return (
-    <section id="beta" className="py-24 relative bg-[#FAFAFA] overflow-hidden border-t border-neutral-200/50">
+    <section id="beta" className="py-16 md:py-24 relative bg-[#FAFAFA] overflow-hidden border-t border-neutral-200/50">
 
       {/* Subtle background glow */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#7C3AED]/5 blur-[120px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />

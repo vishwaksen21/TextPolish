@@ -33,7 +33,7 @@ export default function FAQ() {
   const [openIdx, setOpenIdx] = useState<number | null>(0); // Default to first item open
 
   return (
-    <section id="faq" className="py-24 lg:py-32 bg-[#F5F5F7]">
+    <section id="faq" className="py-16 md:py-24 lg:py-32 bg-[#F5F5F7]">
       <div className="max-w-[840px] mx-auto px-6">
 
         {/* Centered Minimalist Header */}

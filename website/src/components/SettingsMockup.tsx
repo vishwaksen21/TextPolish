@@ -99,35 +99,35 @@ export default function SettingsMockup() {
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className={`w-full max-w-[760px] h-[520px] ${colors.appBg} rounded-2xl shadow-2xl shadow-black/10 flex overflow-hidden relative z-10 border border-neutral-200/50 transition-colors duration-500`}
+        className={`w-full max-w-[760px] h-[540px] sm:h-[520px] ${colors.appBg} rounded-2xl shadow-2xl shadow-black/10 flex flex-col sm:flex-row overflow-hidden relative z-10 border border-neutral-200/50 transition-colors duration-500`}
       >
 
         {/* SIDEBAR (Vibrancy effect) */}
-        <div className={`w-[220px] ${colors.sidebar} flex flex-col pt-4 pb-4 px-3 relative z-20`}>
+        <div className={`w-full sm:w-[220px] ${colors.sidebar} flex flex-col pt-3 pb-3 sm:pt-4 sm:pb-4 px-3 relative z-20 border-b sm:border-b-0 sm:border-r border-neutral-200/60`}>
 
           {/* Traffic Lights */}
-          <div className="flex gap-2 mb-8 pl-1">
+          <div className="hidden sm:flex gap-2 mb-8 pl-1">
             <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-black/10" />
             <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-black/10" />
             <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-black/10" />
           </div>
 
           {/* Search Bar */}
-          <div className="mb-4">
+          <div className="hidden sm:block mb-4">
             <div className={`w-full h-7 rounded-md ${theme === 'light' ? 'bg-neutral-200/50 text-neutral-500' : 'bg-black/20 text-neutral-400'} flex items-center px-2 text-[11px] font-medium border border-transparent`}>
               Search
             </div>
           </div>
 
           {/* Navigation */}
-          <div className="space-y-1 flex-1">
+          <div className="flex flex-row sm:flex-col overflow-x-auto scrollbar-none gap-1 sm:space-y-1 flex-1 w-full pb-1 sm:pb-0">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.name;
               return (
                 <button
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 text-left outline-none ${isActive ? colors.navActive : colors.navHover
+                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 text-left outline-none shrink-0 ${isActive ? colors.navActive : colors.navHover
                     }`}
                 >
                   <span className={isActive ? "text-[#7C3AED]" : ""}>{tab.icon}</span>
@@ -138,7 +138,7 @@ export default function SettingsMockup() {
           </div>
 
           {/* Auto-Save Status */}
-          <div className="flex items-center gap-2 px-2 mt-auto">
+          <div className="hidden sm:flex items-center gap-2 px-2 mt-auto">
             <div className={`w-1.5 h-1.5 rounded-full ${saveStatus === "Saved" ? "bg-neutral-300" : "bg-[#7C3AED] animate-pulse"}`} />
             <span className={`text-[10px] font-semibold ${colors.textMuted}`}>{saveStatus}</span>
           </div>
@@ -153,7 +153,7 @@ export default function SettingsMockup() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="flex-1 overflow-y-auto p-8 lg:p-10 scrollbar-none"
+              className="flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10 scrollbar-none"
             >
 
               <h2 className={`text-2xl font-bold ${colors.textMain} tracking-tight mb-6`}>
@@ -168,12 +168,12 @@ export default function SettingsMockup() {
                     <div className={`${colors.card} rounded-xl overflow-hidden`}>
 
                       {/* Status Row */}
-                      <div className="flex items-center justify-between p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
                         <div>
                           <div className={`text-sm font-semibold ${colors.textMain}`}>Local Engine Status</div>
                           <div className={`text-xs ${colors.textMuted} mt-0.5`}>Validate your Ollama connection</div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 self-start sm:self-auto">
                           <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isConnected ? "bg-emerald-100 text-emerald-700" : isTesting ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-500"
                             }`}>
                             {isConnected ? "Connected" : isTesting ? "Testing..." : "Standby"}
@@ -191,7 +191,7 @@ export default function SettingsMockup() {
                       <div className={`h-px w-full ${colors.divider}`} />
 
                       {/* Default Mode Row */}
-                      <div className="flex items-center justify-between p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
                         <div>
                           <div className={`text-sm font-semibold ${colors.textMain}`}>Default Mode</div>
                           <div className={`text-xs ${colors.textMuted} mt-0.5`}>Primary enhancement style</div>
@@ -199,7 +199,7 @@ export default function SettingsMockup() {
                         <select
                           value={mode}
                           onChange={(e) => { setMode(e.target.value); triggerAutoSave(); }}
-                          className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-40 outline-none`}
+                          className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-40 outline-none`}
                         >
                           <option>Professional</option>
                           <option>Fix Grammar</option>
@@ -228,25 +228,25 @@ export default function SettingsMockup() {
                             className="overflow-hidden"
                           >
                             <div className={`${colors.card} rounded-xl overflow-hidden`}>
-                              <div className="flex items-center justify-between p-4">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4">
                                 <div className={`text-sm font-medium ${colors.textMain}`}>Host URL</div>
                                 <input
                                   type="text"
                                   value={host}
                                   onChange={(e) => setHost(e.target.value)}
                                   onBlur={triggerAutoSave}
-                                  className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-48 outline-none text-right`}
+                                  className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`}
                                 />
                               </div>
                               <div className={`h-px w-full ${colors.divider}`} />
-                              <div className="flex items-center justify-between p-4">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4">
                                 <div className={`text-sm font-medium ${colors.textMain}`}>Default Model</div>
                                 <input
                                   type="text"
                                   value={model}
                                   onChange={(e) => setModel(e.target.value)}
                                   onBlur={triggerAutoSave}
-                                  className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-48 outline-none text-right`}
+                                  className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`}
                                 />
                               </div>
                             </div>
@@ -262,12 +262,12 @@ export default function SettingsMockup() {
                   <div className="space-y-6">
                     <div className={`${colors.card} rounded-xl overflow-hidden`}>
 
-                      <div className="flex items-center justify-between p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
                         <div>
                           <div className={`text-sm font-semibold ${colors.textMain}`}>Global Shortcut</div>
                           <div className={`text-xs ${colors.textMuted} mt-0.5`}>Trigger Avelyn from anywhere</div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 self-start sm:self-auto">
                           <kbd className={`px-2 py-1 rounded-md text-xs font-sans font-bold border shadow-sm ${theme === 'light' ? 'bg-white border-neutral-200 text-neutral-700' : 'bg-[#1E1E1E] border-white/10 text-neutral-300'}`}>⌘</kbd>
                           <kbd className={`px-2 py-1 rounded-md text-xs font-sans font-bold border shadow-sm ${theme === 'light' ? 'bg-white border-neutral-200 text-neutral-700' : 'bg-[#1E1E1E] border-white/10 text-neutral-300'}`}>⇧</kbd>
                           <kbd className={`px-2 py-1 rounded-md text-xs font-sans font-bold border shadow-sm ${theme === 'light' ? 'bg-white border-neutral-200 text-neutral-700' : 'bg-[#1E1E1E] border-white/10 text-neutral-300'}`}>E</kbd>

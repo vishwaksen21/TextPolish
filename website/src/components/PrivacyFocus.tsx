@@ -26,7 +26,7 @@ export default function PrivacyFocus() {
   ];
 
   return (
-    <section id="privacy" className="py-24 bg-white relative overflow-hidden">
+    <section id="privacy" className="py-16 md:py-24 bg-white relative overflow-hidden">
 
       {/* Ambient Emerald Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[600px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
@@ -39,7 +39,7 @@ export default function PrivacyFocus() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6, ease }}
-          className="text-center max-w-[700px] mx-auto mb-20 flex flex-col items-center"
+          className="text-center max-w-[700px] mx-auto mb-12 md:mb-20 flex flex-col items-center"
         >
           {/* Large Authoritative Icon */}
           <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100/60 flex items-center justify-center mb-8 shadow-sm">
@@ -67,7 +67,7 @@ export default function PrivacyFocus() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.6, delay: idx * 0.1, ease }}
-              className="bg-[#F5F5F7] rounded-[32px] p-8 md:p-10 flex flex-col relative overflow-hidden group hover:bg-[#F0F0F3] transition-colors duration-500"
+              className="bg-[#F5F5F7] rounded-[32px] p-6 md:p-10 flex flex-col relative overflow-hidden group hover:bg-[#F0F0F3] transition-colors duration-500"
             >
               {/* Subtle hover gradient inside the card */}
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:to-emerald-500/[0.03] transition-colors duration-500 pointer-events-none" />

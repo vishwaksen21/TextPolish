@@ -30,7 +30,7 @@ export default function FeaturesBento() {
   };
 
   return (
-    <section id="features" className="py-24 bg-[#FAFAFA]">
+    <section id="features" className="py-16 md:py-24 bg-[#FAFAFA]">
       <div className="max-w-[1200px] mx-auto px-6">
 
         {/* Minimalist Section Header */}
@@ -39,7 +39,7 @@ export default function FeaturesBento() {
           whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
           viewport={shouldReduceMotion ? undefined : { once: true, amount: 0.3 }}
           transition={{ duration: 0.6, ease }}
-          className="mb-16 md:mb-20"
+          className="mb-10 md:mb-20"
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="h-[1px] w-8 bg-[#7C3AED]"></div>

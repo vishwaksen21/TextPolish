@@ -8,7 +8,7 @@ export default function ProductShowcase() {
   const ease = [0.16, 1, 0.3, 1] as const;
 
   return (
-    <section className="py-24 bg-white overflow-hidden">
+    <section className="py-16 md:py-24 bg-white overflow-hidden">
       <div className="max-w-[1200px] mx-auto px-6">
 
         {/* Minimalist Section Header */}
@@ -44,7 +44,7 @@ export default function ProductShowcase() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.7, ease }}
-            className="md:col-span-2 bg-[#0E0E11] rounded-[32px] p-8 md:p-12 lg:p-16 flex flex-col md:flex-row items-center gap-12 overflow-hidden relative group"
+            className="md:col-span-2 bg-[#0E0E11] rounded-[32px] p-6 md:p-12 lg:p-16 flex flex-col md:flex-row items-center gap-6 md:gap-12 overflow-hidden relative group"
           >
             {/* Subtle background glow */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#7C3AED]/20 blur-[120px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3 transition-transform duration-700 group-hover:scale-110" />
@@ -76,7 +76,7 @@ export default function ProductShowcase() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.7, delay: 0.1, ease }}
-            className="bg-[#F5F5F7] rounded-[32px] p-8 md:p-12 flex flex-col overflow-hidden relative group"
+            className="bg-[#F5F5F7] rounded-[32px] p-6 md:p-12 flex flex-col overflow-hidden relative group"
           >
             <div className="space-y-5 relative z-10 mb-12">
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm">
@@ -106,7 +106,7 @@ export default function ProductShowcase() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.7, delay: 0.2, ease }}
-            className="bg-[#F5F5F7] rounded-[32px] p-8 md:p-12 flex flex-col overflow-hidden relative group"
+            className="bg-[#F5F5F7] rounded-[32px] p-6 md:p-12 flex flex-col overflow-hidden relative group"
           >
             <div className="space-y-5 relative z-10 mb-12">
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm">

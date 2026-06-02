@@ -43,7 +43,7 @@ export default function Footer() {
       <div className="max-w-[1280px] mx-auto px-6 relative z-10 flex flex-col">
 
         {/* --- TOP SECTION: CTA & Links --- */}
-        <div className="flex flex-col lg:flex-row justify-between gap-16 lg:gap-20 mb-12 md:mb-16">
+        <div className="flex flex-col lg:flex-row justify-between gap-10 lg:gap-20 mb-12 md:mb-16">
 
           {/* Left: Final Call to Action */}
           <div className="flex flex-col items-start max-w-sm">
@@ -72,7 +72,7 @@ export default function Footer() {
           </div>
 
           {/* Right: Clean, Spaced-out Links */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-10 md:gap-16 w-full lg:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-16 w-full lg:w-auto">
             {footerLinks.map((column) => (
               <div key={column.title} className="flex flex-col">
                 <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-widest mb-6">

@@ -24,7 +24,7 @@ export default function Hero() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-[#7C3AED]/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="mx-auto max-w-[1280px] px-6 relative z-10">
-        <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-16 items-center">
+        <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-center">
 
           {/* LEFT: Copy & CTAs */}
           <div className="max-w-[560px]">
@@ -50,7 +50,7 @@ export default function Hero() {
               animate={shouldReduceMotion ? undefined : "visible"}
               variants={fadeUp}
               transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl sm:text-6xl lg:text-[72px] font-extrabold text-neutral-900 tracking-tight leading-[1.05]"
+              className="text-4xl sm:text-6xl lg:text-[72px] font-extrabold text-neutral-900 tracking-tight leading-[1.05]"
             >
               Select text. <br />
               Improve it <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7C3AED] to-[#a06af9]">instantly.</span>
