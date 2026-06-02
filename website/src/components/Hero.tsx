@@ -19,7 +19,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-[#FAFAFA] pt-36 pb-12 sm:pt-40 md:pt-44 lg:pt-48 lg:pb-16">
+    <section className="relative overflow-hidden bg-[#FAFAFA] pt-28 pb-12 lg:pt-32 lg:pb-16">
       {/* Subtle background glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-[#7C3AED]/5 blur-[120px] rounded-full pointer-events-none" />
 
