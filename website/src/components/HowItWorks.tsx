@@ -89,7 +89,7 @@ export default function HowItWorks() {
         "Press Escape anytime to undo and restore original text instantly.",
         "Original clipboard history is fully restored after replacement."
       ],
-      screenshot: "/screenshots/step6_replace.png",
+      screenshot: "/images/step6.png",
       alt: "Avelyn automatically pasting polished text back in place"
     }
   ];
