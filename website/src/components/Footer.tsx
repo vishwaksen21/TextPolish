@@ -123,7 +123,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-4">
             <a
-              href="https://github.com/vishwaksen21/Avelyn"
+              href="https://github.com/vishwaksen21"
               className="p-2.5 rounded-full bg-white border border-neutral-200/60 text-neutral-400 hover:text-neutral-900 hover:border-neutral-300 hover:shadow-sm transition-all duration-300"
               aria-label="GitHub"
             >

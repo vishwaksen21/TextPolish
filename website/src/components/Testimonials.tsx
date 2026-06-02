@@ -171,8 +171,8 @@ export default function BetaAccess() {
               transition={{ duration: 0.6, delay: 0.1, ease }}
               className="bg-white border border-neutral-200/60 rounded-[24px] p-7 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between"
             >
-              <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-6">
-                <Activity className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 rounded-full bg-[#EDE9FE]/50 border border-[#7C3AED]/20 flex items-center justify-center mb-6">
+                <Activity className="w-5 h-5 text-[#7C3AED]" />
               </div>
               <div>
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1.5 block">
@@ -193,8 +193,8 @@ export default function BetaAccess() {
               transition={{ duration: 0.6, delay: 0.2, ease }}
               className="bg-white border border-neutral-200/60 rounded-[24px] p-7 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between"
             >
-              <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center mb-6">
-                <GitBranch className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-full bg-[#EDE9FE]/50 border border-[#7C3AED]/20 flex items-center justify-center mb-6">
+                <GitBranch className="w-5 h-5 text-[#7C3AED]" />
               </div>
               <div>
                 <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1.5 block">
