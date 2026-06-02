@@ -34,7 +34,7 @@ export default function FAQ() {
 
   return (
     <section id="faq" className="py-16 md:py-24 lg:py-32 bg-[#F5F5F7]">
-      <div className="max-w-[840px] mx-auto px-6">
+      <div className="max-w-[1200px] mx-auto px-6">
 
         {/* Centered Minimalist Header */}
         <motion.div
@@ -58,7 +58,7 @@ export default function FAQ() {
         </motion.div>
 
         {/* Floating Island Accordions */}
-        <div className="space-y-4">
+        <div className="max-w-[840px] mx-auto space-y-4">
           {faqs.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (

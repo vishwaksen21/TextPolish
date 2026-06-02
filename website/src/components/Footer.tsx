@@ -40,7 +40,7 @@ export default function Footer() {
       {/* Subtle Ambient Glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[300px] bg-[#7C3AED]/10 blur-[120px] rounded-t-full pointer-events-none" />
 
-      <div className="max-w-[1280px] mx-auto px-6 relative z-10 flex flex-col">
+      <div className="max-w-[1200px] mx-auto px-6 relative z-10 flex flex-col">
 
         {/* --- TOP SECTION: CTA & Links --- */}
         <div className="flex flex-col lg:flex-row justify-between gap-10 lg:gap-20 mb-12 md:mb-16">

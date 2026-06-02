@@ -21,7 +21,7 @@ export default function Navbar() {
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className={`pointer-events-auto flex flex-col px-5 sm:px-6 py-2.5 w-full max-w-[1080px] bg-white/60 backdrop-blur-2xl border border-neutral-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 ${
+        className={`pointer-events-auto flex flex-col px-5 sm:px-6 py-2.5 w-full max-w-[1200px] bg-white/60 backdrop-blur-2xl border border-neutral-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 ${
           isMobileMenuOpen ? "rounded-[24px] pb-6" : "rounded-full"
         }`}
       >

@@ -23,7 +23,7 @@ export default function Hero() {
       {/* Subtle background glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-[#7C3AED]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="mx-auto max-w-[1280px] px-6 relative z-10">
+      <div className="mx-auto max-w-[1200px] px-6 relative z-10">
         <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-center">
 
           {/* LEFT: Copy & CTAs */}
