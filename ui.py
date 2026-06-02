@@ -1324,13 +1324,13 @@ class SettingsWindow(QDialog):
         brand_row.setSpacing(10)
 
         logo_lbl = QLabel()
-        logo_lbl.setFixedSize(36, 36)
+        logo_lbl.setFixedSize(42, 42)
         if logo_path.exists():
             pm = QPixmap(str(logo_path))
             if not pm.isNull():
-                logo_lbl.setPixmap(pm.scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                logo_lbl.setPixmap(pm.scaled(42, 42, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         else:
-            logo_lbl.setPixmap(_paint_settings_icon("sparkles", "#7C3AED", 36))
+            logo_lbl.setPixmap(_paint_settings_icon("sparkles", "#7C3AED", 42))
 
         brand_text_w = QWidget()
         brand_text_l = QVBoxLayout(brand_text_w)
@@ -1338,9 +1338,9 @@ class SettingsWindow(QDialog):
         brand_text_l.setSpacing(1)
 
         name_lbl = QLabel("Avelyn")
-        name_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #111827;")
+        name_lbl.setStyleSheet("font-size: 18px; font-weight: 700; color: #111827;")
         subtitle_lbl = QLabel("AI Writing Assistant")
-        subtitle_lbl.setStyleSheet("font-size: 11px; color: #6B7280;")
+        subtitle_lbl.setStyleSheet("font-size: 12px; color: #6B7280;")
 
         brand_text_l.addWidget(name_lbl)
         brand_text_l.addWidget(subtitle_lbl)

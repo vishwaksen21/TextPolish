@@ -18,8 +18,8 @@ export default function Navbar() {
           className="flex items-center gap-2.5 select-none"
           aria-label="Avelyn"
         >
-          <Image src="/logo.png" alt="Avelyn" width={32} height={32} className="h-8 w-8" />
-          <span className="text-[15px] sm:text-base font-semibold tracking-tight text-neutral-950">
+          <Image src="/logo.png" alt="Avelyn" width={40} height={40} className="h-10 w-10" />
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-neutral-950">
             Avelyn
           </span>
         </a>
