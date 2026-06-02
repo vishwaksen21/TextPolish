@@ -61,9 +61,9 @@ export default function ProductShowcase() {
               </p>
             </div>
 
-            <div className="w-full md:w-1/2 relative flex justify-center md:justify-end mt-8 md:mt-0">
+            <div className="w-full md:w-1/2 relative flex justify-center md:justify-end mt-4 md:mt-0">
               <img
-                src="/screenshots/media__1779910881149.png"
+                src="/images/menu.png"
                 alt="Menu Bar Operation"
                 className="w-full max-w-[450px] object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] transition-transform duration-700 group-hover:scale-105 select-none"
               />
@@ -93,7 +93,7 @@ export default function ProductShowcase() {
             {/* Image bleeds off the bottom */}
             <div className="mt-auto relative flex justify-center -mb-8 md:-mb-12">
               <img
-                src="/screenshots/media__1780175716131.png"
+                src="/images/1.png"
                 alt="Onboarding Wizard"
                 className="w-full max-w-[380px] object-cover rounded-t-2xl drop-shadow-2xl border border-neutral-200/50 transition-transform duration-700 group-hover:-translate-y-3 select-none"
               />
@@ -121,9 +121,9 @@ export default function ProductShowcase() {
             </div>
 
             {/* Image bleeds off the bottom */}
-            <div className="mt-auto relative flex justify-center -mb-8 md:-mb-12">
+            <div className="mt-auto relative flex justify-center -mb-8 md:-mb-10">
               <img
-                src="/screenshots/media__1780177499012.png"
+                src="/images/2.png"
                 alt="Security & Permissions"
                 className="w-full max-w-[380px] object-cover rounded-t-2xl drop-shadow-2xl border border-neutral-200/50 transition-transform duration-700 group-hover:-translate-y-3 select-none"
               />

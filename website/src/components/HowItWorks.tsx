@@ -73,15 +73,15 @@ export default function HowItWorks() {
         </div>
 
         {/* Premium Horizontal "Sliding Pill" Navigation */}
-        <div className="flex justify-center mb-12 overflow-x-auto scrollbar-none pb-4 md:pb-0">
-          <div className="flex items-center p-1.5 bg-neutral-200/50 rounded-full border border-neutral-200/60 shadow-inner">
+        <div className="w-full flex overflow-x-auto scrollbar-none pb-4 md:pb-0 mb-12 justify-start md:justify-center px-4 md:px-0">
+          <div className="flex items-center shrink-0 min-w-max p-1.5 bg-neutral-200/50 rounded-full border border-neutral-200/60 shadow-inner">
             {steps.map((step, idx) => {
               const isActive = activeStep === idx;
               return (
                 <button
                   key={step.tabTitle}
                   onClick={() => setActiveStep(idx)}
-                  className="relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors duration-300 outline-none select-none"
+                  className="relative flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-colors duration-300 outline-none select-none shrink-0"
                 >
                   {/* Sliding Background Magic (Framer Motion) */}
                   {isActive && (
@@ -96,7 +96,7 @@ export default function HowItWorks() {
                   <div className={`relative z-10 flex items-center gap-1.5 sm:gap-2 ${isActive ? "text-[#7C3AED]" : "text-neutral-500 hover:text-neutral-700"
                     }`}>
                     {step.icon}
-                    <span className="text-xs sm:text-sm">{step.tabTitle}</span>
+                    <span>{step.tabTitle}</span>
                   </div>
                 </button>
               );
