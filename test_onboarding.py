@@ -3,7 +3,7 @@ import argparse
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
 from settings import Settings
-from main import TextPolishApp
+from main import AvelynApp
 
 def test_onboarding_flow():
     # 1. Simulate fresh install by clearing settings
@@ -11,7 +11,7 @@ def test_onboarding_flow():
     settings._config["first_run_completed"] = False
     settings.save()
     
-    app = TextPolishApp(argparse.Namespace())
+    app = AvelynApp(argparse.Namespace())
     
     # 2. Setup a timer to simulate user interaction
     def simulate_user():

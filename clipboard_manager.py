@@ -1,6 +1,6 @@
 """
-TextPolish — Clipboard Manager (FINAL OPTIMIZED VERSION)
-========================================================
+Avelyn — Clipboard Manager (FINAL OPTIMIZED VERSION)
+===================================================
 
 Handles:
 - clipboard save/restore
@@ -164,7 +164,7 @@ class ClipboardManager:
                 attempt,
                 len(current),
             )
-            logger.info(f"Polling attempt {attempt}: {current!r}")
+            logger.debug("Polling attempt %d: %r", attempt, current[:20])
 
             # Ignore empty whitespace-only content
             if not current.strip():
@@ -181,7 +181,7 @@ class ClipboardManager:
 
                 logger.debug(
                     "Clipboard preview: '%s'",
-                    current[:100],
+                    current[:20],
                 )
 
                 return current

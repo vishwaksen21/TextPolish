@@ -1,8 +1,8 @@
 """
-TextPolish — Settings
-=====================
+Avelyn — Settings
+=================
 Manages persistent application configuration stored at
-~/.textpolish/config.json. Provides typed accessors and auto-saves
+~/.avelyn/config.json. Provides typed accessors and auto-saves
 on every change.
 """
 
@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from logger import logger
 
 
-CONFIG_DIR  = Path.home() / ".textpolish"
+CONFIG_DIR  = Path.home() / ".avelyn"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 # ── Default configuration schema ─────────────────────────────────────────────
@@ -97,6 +97,8 @@ class Settings:
         return self._config.get(key, default if default is not None else DEFAULT_CONFIG.get(key))
 
     def set(self, key: str, value: Any) -> None:
+        if self._config.get(key) == value:
+            return
         self._config[key] = value
         self.save()
 

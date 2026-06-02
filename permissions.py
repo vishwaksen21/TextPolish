@@ -1,6 +1,6 @@
 """
-TextPolish — Permission Manager
-================================
+Avelyn — Permission Manager
+============================
 macOS: checks and requests Accessibility + Input Monitoring via TCC.
 Windows: no equivalent permission system — all checks return True.
 Linux: no equivalent — all checks return True.

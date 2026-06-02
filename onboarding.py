@@ -1,6 +1,6 @@
 """
-TextPolish — First-Run Setup Wizard
-===================================
+Avelyn — First-Run Setup Wizard
+===============================
 A multi-step onboarding flow to ensure all permissions and dependencies
 are resolved before the user attempts to use the application.
 
@@ -64,7 +64,7 @@ class OnboardingWindow(QWidget):
         super().__init__()
         self._settings = settings
         self._processor = processor
-        self.setWindowTitle("TextPolish Setup")
+        self.setWindowTitle("Avelyn Setup")
         self.setFixedSize(600, 450)
         
         # Center on screen
@@ -76,12 +76,26 @@ class OnboardingWindow(QWidget):
 
         # Header
         header = QFrame()
-        header.setStyleSheet("background: #13131A; border-bottom: 1px solid #2A2A38;")
+        header.setStyleSheet("background: #1B1E2D; border-bottom: 1px solid #2B2F40;")
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(20, 15, 20, 15)
         
-        title = QLabel("✦ TextPolish Setup")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #7C3AED; border: none;")
+        from utils import get_resource_path
+        logo_path = get_resource_path("public/logo.png")
+        title = QLabel()
+        if logo_path.exists():
+            title.setText(
+                "<table border='0' cellpadding='0' cellspacing='0'>"
+                "  <tr>"
+                f"    <td valign='middle'><img src='{logo_path.as_posix()}' height='20'></td>"
+                "    <td valign='middle' style='font-family: \"Inter\", \"Segoe UI\", system-ui, sans-serif; font-size: 16px; font-weight: 700; color: #FFFFFF; padding-left: 8px;'>Avelyn Setup</td>"
+                "  </tr>"
+                "</table>"
+            )
+        else:
+            title.setText("✦ Avelyn Setup")
+            title.setStyleSheet("font-size: 16px; font-weight: bold; color: #7C3AED; border: none;")
+        title.setStyleSheet("background: transparent; border: none;")
         h_layout.addWidget(title)
         
         self.step_label = QLabel("Step 1 of 1")
@@ -192,17 +206,25 @@ class OnboardingWindow(QWidget):
         p = self._create_page()
         l = p.layout()
         l.addStretch()
-        self._add_title(l, "Welcome to TextPolish")
+        from utils import get_resource_path
+        logo_path = get_resource_path("public/logo.png")
+        if logo_path.exists():
+            logo_pix = QPixmap(str(logo_path))
+            logo_label = QLabel()
+            logo_label.setPixmap(logo_pix.scaledToHeight(48, Qt.TransformationMode.SmoothTransformation))
+            logo_label.setStyleSheet("background: transparent; margin-bottom: 16px;")
+            l.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._add_title(l, "Welcome to Avelyn")
         if IS_MACOS:
             body = (
-                "TextPolish is a powerful AI assistant that lives in your menu bar.\n\n"
+                "Avelyn is a powerful AI assistant that lives in your menu bar.\n\n"
                 "To magically read and replace text across all your apps, we need to set up "
                 "a few macOS permissions and download the local AI model.\n\n"
                 "This setup will only take a minute."
             )
         else:
             body = (
-                "TextPolish is a powerful AI assistant that lives in your system tray.\n\n"
+                "Avelyn is a powerful AI assistant that lives in your system tray.\n\n"
                 "To read and replace text across all your apps, we need to download "
                 "the local AI model. No special permissions are required on Windows.\n\n"
                 "This setup will only take a minute."
@@ -216,7 +238,7 @@ class OnboardingWindow(QWidget):
         l = p.layout()
         self._add_title(l, "Accessibility Permission")
         self._add_text(l, 
-            "TextPolish needs Accessibility access to simulate the 'Copy' and 'Paste' "
+            "Avelyn needs Accessibility access to simulate the 'Copy' and 'Paste' "
             "keyboard shortcuts (Cmd+C / Cmd+V) when you trigger an enhancement.\n"
         )
         
@@ -241,7 +263,7 @@ class OnboardingWindow(QWidget):
         l = p.layout()
         self._add_title(l, "Global Hotkeys")
         self._add_text(l, 
-            "TextPolish needs to listen for your global shortcut (Ctrl+Shift+E) "
+            "Avelyn needs to listen for your global shortcut (Ctrl+Shift+E) "
             "even when it's running in the background. "
             "macOS calls this 'Input Monitoring'."
         )
@@ -267,7 +289,7 @@ class OnboardingWindow(QWidget):
         l = p.layout()
         self._add_title(l, "Local AI Engine")
         self._add_text(l,
-            "TextPolish runs entirely on your computer using Ollama. "
+            "Avelyn runs entirely on your computer using Ollama. "
             "This keeps your data 100% private and offline."
         )
 
@@ -310,7 +332,7 @@ class OnboardingWindow(QWidget):
         l.addStretch()
         self._add_title(l, "✓ You're all set!")
         self._add_text(l, 
-            f"TextPolish is running in your menu bar.\n\n"
+            f"Avelyn is running in your menu bar.\n\n"
             f"Select any text in any app, and press {self._settings.shortcut_display} "
             f"to bring up the Command Palette."
         )

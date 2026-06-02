@@ -1,6 +1,6 @@
 """
-TextPolish — Platform Handler
-==============================
+Avelyn — Platform Handler
+=========================
 Handles:
 - Copy selected text          (macOS: osascript, Windows: pynput Ctrl+C)
 - Paste enhanced text         (macOS: osascript, Windows: win32gui + pynput Ctrl+V)
@@ -54,16 +54,16 @@ def get_frontmost_app_diagnostics() -> dict:
             if app:
                 bid  = app.bundleIdentifier() or "Unknown"
                 name = app.localizedName()     or "Unknown"
-                is_tp = (bid == "com.vishwaksen.textpolish" or "TextPolish" in name)
+                is_tp = (bid == "com.vishwaksen.avelyn" or "Avelyn" in name)
                 return {
                     "bundle_id":    bid,
                     "name":         name,
-                    "is_textpolish": is_tp,
+                    "is_avelyn":     is_tp,
                     "is_active":    app.isActive(),
                 }
         except Exception as e:
             return {"error": str(e)}
-        return {"bundle_id": "None", "name": "None", "is_textpolish": False, "is_active": False}
+        return {"bundle_id": "None", "name": "None", "is_avelyn": False, "is_active": False}
 
     if IS_WINDOWS:
         try:
@@ -78,24 +78,24 @@ def get_frontmost_app_diagnostics() -> dict:
                     name = proc.name()
                 except Exception:
                     name = "Unknown"
-                is_tp = "TextPolish" in name or "textpolish" in name.lower()
+                is_tp = "Avelyn" in name or "avelyn" in name.lower()
                 return {
                     "hwnd":         hwnd,
                     "name":         name,
                     "pid":          pid,
-                    "is_textpolish": is_tp,
+                    "is_avelyn":     is_tp,
                 }
         except Exception as e:
             return {"error": str(e)}
-        return {"hwnd": 0, "name": "Unknown", "is_textpolish": False}
+        return {"hwnd": 0, "name": "Unknown", "is_avelyn": False}
 
-    return {"name": "Unknown", "is_textpolish": False}
+    return {"name": "Unknown", "is_avelyn": False}
 
 
 def record_active_app() -> None:
     """
     Snapshot the currently frontmost app so focus can be restored before pasting.
-    Call BEFORE showing any TextPolish window that will steal focus.
+    Call BEFORE showing any Avelyn window that will steal focus.
 
     macOS:   stores bundle identifier string
     Windows: stores HWND integer
@@ -144,7 +144,7 @@ def copy_selection() -> None:
         logger.info("ACTIVE_APP_BEFORE_CAPTURE_BUNDLE=%s", app_info_before.get("bundle_id") or app_info_before.get("hwnd"))
         logger.info("ACTIVE_APP=%s", app_info_before.get("name"))
         logger.info("ACTIVE_BUNDLE_ID=%s", app_info_before.get("bundle_id") or app_info_before.get("hwnd"))
-        logger.info("IS_TEXTPOLISH_BEFORE_CAPTURE=%s",     app_info_before.get("is_textpolish"))
+        logger.info("IS_AVELYN_BEFORE_CAPTURE=%s",     app_info_before.get("is_avelyn"))
 
         # ── Record active app BEFORE any UI is shown ──────────────────────────
         app_name = app_info_before.get("name")
@@ -185,6 +185,43 @@ def copy_selection() -> None:
             with kb.pressed(Key.cmd):
                 kb.press('c')
                 kb.release('c')
+
+            # --- DIAGNOSTICS START ---
+            import subprocess
+            import pyperclip
+            
+            # Immediately run osascript to trigger Cmd+C or attempt automation
+            cmd = ['osascript', '-e', 'tell application "System Events" to keystroke "c" using command down']
+            res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            logger.info("osascript return code: %d", res.returncode)
+            logger.info("osascript stderr: %s", res.stderr.strip() if res.stderr else "")
+            
+            # Measure clipboard contents over time
+            time.sleep(0.1)
+            clip_100 = pyperclip.paste() or ""
+            logger.info("Clipboard contents 100ms later: %r", clip_100[:20])
+            logger.debug("Clipboard contents 100ms later (full): %r", clip_100)
+            
+            time.sleep(0.2) # 100ms + 200ms = 300ms
+            clip_300 = pyperclip.paste() or ""
+            logger.info("Clipboard contents 300ms later: %r", clip_300[:20])
+            logger.debug("Clipboard contents 300ms later (full): %r", clip_300)
+            
+            time.sleep(0.2) # 300ms + 200ms = 500ms
+            clip_500 = pyperclip.paste() or ""
+            logger.info("Clipboard contents 500ms later: %r", clip_500[:20])
+            logger.debug("Clipboard contents 500ms later (full): %r", clip_500)
+            
+            # Log Active app info
+            app_diagnostics = get_frontmost_app_diagnostics()
+            app_name = app_diagnostics.get("name", "Unknown")
+            bundle_id = app_diagnostics.get("bundle_id", "Unknown")
+            is_antigravity = (bundle_id == "com.google.antigravity-ide" or "Antigravity" in app_name)
+            
+            logger.info("Active application name: %s", app_name)
+            logger.info("Active bundle identifier: %s", bundle_id)
+            logger.info("Whether the selected app is Antigravity IDE: %s", is_antigravity)
+            # --- DIAGNOSTICS END ---
         else:
             logger.debug("Sending Ctrl+C via pynput.")
             with kb.pressed(Key.ctrl):
@@ -197,7 +234,7 @@ def copy_selection() -> None:
         logger.info("=== CAPTURE PHASE: AFTER COPY ===")
         logger.info("ACTIVE_APP_AFTER_CAPTURE_NAME=%s",   app_info_after.get("name"))
         logger.info("ACTIVE_APP_AFTER_CAPTURE_BUNDLE=%s", app_info_after.get("bundle_id") or app_info_after.get("hwnd"))
-        logger.info("IS_TEXTPOLISH_AFTER_CAPTURE=%s",     app_info_after.get("is_textpolish"))
+        logger.info("IS_AVELYN_AFTER_CAPTURE=%s",     app_info_after.get("is_avelyn"))
 
     except Exception as exc:
         logger.error("copy_selection failed: %s", exc)
@@ -221,7 +258,7 @@ def paste_text() -> None:
         logger.info("=== PASTE PHASE: BEFORE FOCUS RESTORATION ===")
         logger.info("ACTIVE_APP_BEFORE_PASTE_NAME=%s",   app_info_before.get("name"))
         logger.info("ACTIVE_APP_BEFORE_PASTE_BUNDLE=%s", app_info_before.get("bundle_id") or app_info_before.get("hwnd"))
-        logger.info("IS_TEXTPOLISH_BEFORE_PASTE=%s",     app_info_before.get("is_textpolish"))
+        logger.info("IS_AVELYN_BEFORE_PASTE=%s",     app_info_before.get("is_avelyn"))
 
         restore_success = False
 
@@ -229,15 +266,36 @@ def paste_text() -> None:
         if IS_MACOS and _macos_active_app:
             logger.info("ACTIVE_APP_BEFORE_PASTE=%s", _macos_active_app)
             try:
-                logger.debug("Reactivating original app via AppKit: %s", _macos_active_app)
-                from AppKit import NSWorkspace, NSApplicationActivateIgnoringOtherApps
-                apps = NSWorkspace.sharedWorkspace().runningApplications()
-                for app in apps:
-                    if app.bundleIdentifier() == _macos_active_app:
-                        restore_success = app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
-                        break
+                activated = False
+
+                # 1. Try standard AppKit first (highly reliable, no Automation permission needed)
+                try:
+                    logger.debug("Running AppKit activateWithOptions_")
+                    from AppKit import NSWorkspace, NSApplicationActivateIgnoringOtherApps
+                    apps = NSWorkspace.sharedWorkspace().runningApplications()
+                    for app in apps:
+                        if app.bundleIdentifier() == _macos_active_app:
+                            activated = app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
+                            logger.debug("AppKit activateWithOptions_ returned: %s", activated)
+                            break
+                except Exception as e:
+                    logger.debug("AppKit activation failed: %s", e)
+
+                # 2. If AppKit fails to activate, try osascript as a fallback
+                if not activated:
+                    logger.debug("Running osascript activation fallback")
+                    import subprocess
+                    script = f'tell application id "{_macos_active_app}" to activate'
+                    res = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, check=False)
+                    if res.returncode == 0:
+                        activated = True
+                        logger.debug("osascript activation successful.")
+                    else:
+                        logger.debug("osascript activation failed (code %d): %s", res.returncode, res.stderr)
+
+                restore_success = activated
             except Exception as e:
-                logger.debug("Failed to reactivate app via AppKit: %s", e)
+                logger.debug("Failed to reactivate app via AppKit/osascript: %s", e)
 
         elif IS_WINDOWS and _windows_active_hwnd:
             logger.info("ACTIVE_HWND_BEFORE_PASTE=%d", _windows_active_hwnd)
@@ -273,7 +331,7 @@ def paste_text() -> None:
         logger.info("=== PASTE PHASE: AFTER FOCUS RESTORATION (RIGHT BEFORE PASTE) ===")
         logger.info("ACTIVE_APP_AFTER_PASTE_NAME=%s",   app_info_after.get("name"))
         logger.info("ACTIVE_APP_AFTER_PASTE_BUNDLE=%s", app_info_after.get("bundle_id") or app_info_after.get("hwnd"))
-        logger.info("IS_TEXTPOLISH_AFTER_PASTE=%s",     app_info_after.get("is_textpolish"))
+        logger.info("IS_AVELYN_AFTER_PASTE=%s",     app_info_after.get("is_avelyn"))
 
         # ── Send paste keystroke ──────────────────────────────────────────────
         kb = _get_keyboard()
@@ -363,7 +421,7 @@ def set_launch_at_startup(
                 f'''
                 tell application "System Events"
                     make login item at end with properties {{
-                        name:"TextPolish",
+                        name:"Avelyn",
                         path:"{path}",
                         hidden:false
                     }}
@@ -373,7 +431,7 @@ def set_launch_at_startup(
                 else
                 '''
                 tell application "System Events"
-                    delete (login items whose name is "TextPolish")
+                    delete (login items whose name is "Avelyn")
                 end tell
                 '''
             )
@@ -391,10 +449,10 @@ def set_launch_at_startup(
                 winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE
             ) as reg_key:
                 if enabled:
-                    winreg.SetValueEx(reg_key, "TextPolish", 0, winreg.REG_SZ, f'"{path}"')
+                    winreg.SetValueEx(reg_key, "Avelyn", 0, winreg.REG_SZ, f'"{path}"')
                 else:
                     try:
-                        winreg.DeleteValue(reg_key, "TextPolish")
+                        winreg.DeleteValue(reg_key, "Avelyn")
                     except FileNotFoundError:
                         pass
             success = True
@@ -403,10 +461,10 @@ def set_launch_at_startup(
             from pathlib import Path
             autostart_dir = Path.home() / ".config" / "autostart"
             autostart_dir.mkdir(parents=True, exist_ok=True)
-            entry = autostart_dir / "textpolish.desktop"
+            entry = autostart_dir / "avelyn.desktop"
             if enabled:
                 entry.write_text(
-                    f"[Desktop Entry]\nType=Application\nName=TextPolish\n"
+                    f"[Desktop Entry]\nType=Application\nName=Avelyn\n"
                     f"Exec={path}\nHidden=false\nNoDisplay=false\n"
                     f"X-GNOME-Autostart-enabled=true\n"
                 )

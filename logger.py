@@ -1,6 +1,6 @@
 """
-TextPolish — Logger
-===================
+Avelyn — Logger
+===============
 Centralized logging configuration. Writes DEBUG+ to a rotating log file
 and INFO+ to stdout. All other modules import `logger` from here.
 """
@@ -11,15 +11,15 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
-LOG_DIR = Path.home() / ".textpolish" / "logs"
+LOG_DIR = Path.home() / ".avelyn" / "logs"
 
 
-def setup_logger(name: str = "textpolish", debug: bool = False) -> logging.Logger:
+def setup_logger(name: str = "avelyn", debug: bool = False) -> logging.Logger:
     """
     Initialize and return the application logger.
 
     Args:
-        name:  Logger name (default: 'textpolish').
+        name:  Logger name (default: 'avelyn').
         debug: If True, sets console handler to DEBUG level.
 
     Returns:

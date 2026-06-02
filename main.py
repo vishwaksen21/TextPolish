@@ -1,6 +1,6 @@
 """
-TextPolish — Entry Point
-=========================
+Avelyn — Entry Point
+====================
 Bootstraps the entire application:
   1. Parses CLI flags (--debug, --test-clipboard, --test-ai).
   2. Initialises settings, clipboard manager, AI processor.
@@ -60,7 +60,7 @@ class InstallWorker(QThread):
             if not Installer.verify_installation(max_wait=30):
                 raise RuntimeError(
                     "Ollama server did not start in time.\n"
-                    "Please launch Ollama manually and restart TextPolish."
+                    "Please launch Ollama manually and restart Avelyn."
                 )
 
             # Step 4: Pull model
@@ -84,12 +84,12 @@ import platform_handler as ph
 
 # ── Version ───────────────────────────────────────────────────────────────────
 __version__ = "1.0.0"
-APP_NAME    = "TextPolish"
+APP_NAME    = "Avelyn"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="textpolish",
+        prog="avelyn",
         description="AI-powered global text enhancer.",
     )
     parser.add_argument("--debug",           action="store_true", help="Enable DEBUG logging.")
@@ -108,13 +108,13 @@ def run_clipboard_test() -> None:
     mgr.save()
     original = mgr.get()
     print(f"  Original clipboard: {repr(original[:40])}")
-    mgr.set("TextPolish clipboard test 🟣")
+    mgr.set("Avelyn clipboard test 🟣")
     result = mgr.get()
     print(f"  After set:         {repr(result)}")
     mgr.restore()
     restored = mgr.get()
     print(f"  After restore:     {repr(restored[:40])}")
-    assert result == "TextPolish clipboard test 🟣", "SET failed"
+    assert result == "Avelyn clipboard test 🟣", "SET failed"
     assert restored == original, "RESTORE failed"
     print("  ✓ All clipboard operations passed.\n")
 
@@ -159,13 +159,13 @@ class CommandPaletteWorkflow(QObject):
             logger.warning("Workflow is already running. Ignoring hotkey.")
             return
             
-        logger.info("Command Palette triggered for text: %r", text[:30])
+        logger.info("Command Palette triggered for text: %r", text[:20])
         self._current_text = text
         self._palette_is_hidden = False
         self._pending_paste = False
         self._toast.hide()
         # The active app bundle was ALREADY captured by platform_handler.copy_selection() 
-        # before any UI was shown. Do not re-record it here, or it will record TextPolish!
+        # before any UI was shown. Do not re-record it here, or it will record Avelyn!
         self._palette.show_palette(selected_text=text)
         
     def _on_action_selected(self, mode: str, custom_instruction: str) -> None:
@@ -220,8 +220,8 @@ class CommandPaletteWorkflow(QObject):
             self._toast.show_message("◴ Replacing Text...", loading=True)
             # NOTE: Do NOT call QApplication.processEvents() here.
             # It flushes pending Qt events which may include window-activation
-            # events that bring TextPolish back to the foreground right before
-            # Cmd+V is sent — causing the paste to land in TextPolish instead of Chrome.
+            # events that bring Avelyn back to the foreground right before
+            # Cmd+V is sent — causing the paste to land in Avelyn instead of Chrome.
             
             ph.paste_text()
             logger.info("PASTE_TRIGGERED")
@@ -253,7 +253,7 @@ class CommandPaletteWorkflow(QObject):
 
 # ── Application class ─────────────────────────────────────────────────────────
 
-class TextPolishApp:
+class AvelynApp:
     """
     Root application object.  Owns all components and wires them together.
     """
@@ -277,6 +277,8 @@ class TextPolishApp:
         # Apply stylesheet.
         from ui import get_qss
         self._qapp.setStyleSheet(get_qss(self._settings.theme))
+        self._current_theme = self._settings.theme
+        self._current_hotkey = self._settings.hotkey
 
         # Load Inter font if available.
         _load_font()
@@ -373,12 +375,19 @@ class TextPolishApp:
         self._settings_win.activateWindow()
 
     def _on_settings_changed(self) -> None:
-        """Reload hotkey listener and re-apply stylesheet after settings save."""
-        from ui import get_qss
-        self._qapp.setStyleSheet(get_qss(self._settings.theme))
-        # Restart hotkey with potentially new shortcut.
-        self._hotkeys.restart(self._settings.hotkey)
-        logger.info("Settings reloaded; hotkey restarted.")
+        """Reload hotkey listener and re-apply stylesheet after settings save if changed."""
+        theme = self._settings.theme
+        if theme != getattr(self, "_current_theme", None):
+            self._current_theme = theme
+            from ui import get_qss
+            self._qapp.setStyleSheet(get_qss(theme))
+            logger.info("Theme updated to: %s", theme)
+
+        hotkey = self._settings.hotkey
+        if hotkey != getattr(self, "_current_hotkey", None):
+            self._current_hotkey = hotkey
+            self._hotkeys.restart(hotkey)
+            logger.info("Settings reloaded; hotkey restarted with: %s", hotkey)
 
     def _on_text_captured(self, text: str) -> None:
         if self._settings.auto_replace:
@@ -412,11 +421,11 @@ class TextPolishApp:
         msg.setWindowTitle(f"{APP_NAME} — Permissions Revoked")
         msg.setIcon(QMessageBox.Icon.Critical)
         msg.setText(
-            "<b>macOS has revoked Accessibility permissions for TextPolish.</b><br><br>"
+            "<b>macOS has revoked Accessibility permissions for Avelyn.</b><br><br>"
             "This usually happens after an update. The global hotkey has been disabled.<br><br>"
             "To fix this:<br>"
             "1. Open System Settings<br>"
-            "2. Remove (minus button) the old TextPolish entry<br>"
+            "2. Remove (minus button) the old Avelyn entry<br>"
             "3. Add it back again and ensure the switch is on."
         )
         msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Open)
@@ -488,7 +497,7 @@ def main() -> None:
             if success:
                 overlay.show_success()
                 settings.set("first_run_completed", True)
-                logger.info("Installation complete. Launching TextPolish...")
+                logger.info("Installation complete. Launching Avelyn...")
                 # Show success for 1.5s then launch
                 QTimer.singleShot(1500, lambda: _launch_after_install(args))
             else:
@@ -506,7 +515,7 @@ def main() -> None:
 
         def _launch_after_install(launch_args) -> None:
             overlay.hide()
-            tp_app = TextPolishApp(launch_args)
+            tp_app = AvelynApp(launch_args)
             # app.exec() is already running; just start the app object
             _refs["tp_app"] = tp_app
 
@@ -522,11 +531,11 @@ def main() -> None:
             Installer.start_ollama()
         except Exception as exc:
             logger.warning("Could not auto-start Ollama: %s", exc)
-        app = TextPolishApp(args)
+        app = AvelynApp(args)
         sys.exit(app.run())
 
     else:
-        app = TextPolishApp(args)
+        app = AvelynApp(args)
         sys.exit(app.run())
 
 

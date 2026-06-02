@@ -1,4 +1,4 @@
-# TextPolish 🟣
+# Avelyn 🟣
 
 > **AI-powered global text enhancer** — Select any text, press a shortcut, and watch it transform into polished, professional prose instantly.
 
@@ -26,17 +26,21 @@ Works **system-wide** across browsers, VS Code, Word, Notepad, ChatGPT, and any 
 ## 📁 Project Structure
 
 ```
-textpolish/
+avelyn/
 ├── main.py               # Entry point
 ├── hotkeys.py            # Global hotkey listener (pynput)
 ├── clipboard_manager.py  # Clipboard read/write/restore
 ├── ai_processor.py       # Gemini + OpenAI + Ollama backends
 ├── ui.py                 # PyQt6 popup, settings, tray icon
-├── settings.py           # JSON config (~/.textpolish/config.json)
+├── settings.py           # JSON config (~/.avelyn/config.json)
 ├── platform_handler.py   # macOS / Windows platform hooks
 ├── logger.py             # Rotating file logger
-├── assets/
-│   └── icon.png          # App icon
+├── assets/               # Generated build outputs
+│   ├── icon.png          # Generated app icon
+│   ├── icon.icns         # Generated macOS app bundle icon
+│   └── icon.ico          # Generated Windows icon
+├── public/
+│   └── logo.png          # SINGLE SOURCE OF TRUTH for branding
 ├── requirements.txt
 └── README.md
 ```
@@ -55,8 +59,8 @@ textpolish/
 
 ```bash
 # Clone the repo (or download the ZIP and extract it)
-git clone https://github.com/yourname/textpolish.git
-cd textpolish
+git clone https://github.com/yourname/avelyn.git
+cd avelyn
 ```
 
 ### 3. Create a virtual environment
@@ -83,10 +87,10 @@ Either run the app and open **Settings → AI Provider**, or set it manually:
 
 ```bash
 # macOS / Linux
-echo '{"gemini_api_key": "YOUR_KEY_HERE"}' > ~/.textpolish/config.json
+echo '{"gemini_api_key": "YOUR_KEY_HERE"}' > ~/.avelyn/config.json
 
 # Windows PowerShell
-$dir = "$env:USERPROFILE\.textpolish"
+$dir = "$env:USERPROFILE\.avelyn"
 New-Item -ItemType Directory -Force -Path $dir
 '{"gemini_api_key": "YOUR_KEY_HERE"}' | Set-Content "$dir\config.json"
 ```
@@ -135,11 +139,11 @@ The app starts silently in the **system tray** (macOS menu bar / Windows taskbar
 ## 🍎 macOS Setup Notes
 
 ### Accessibility Permission (Required)
-TextPolish needs **Accessibility permission** to detect global hotkeys and simulate Ctrl+C / Ctrl+V.
+Avelyn needs **Accessibility permission** to detect global hotkeys and simulate Ctrl+C / Ctrl+V.
 
 1. Open **System Settings → Privacy & Security → Accessibility**
 2. Click the **+** button
-3. Add **Python** (or the TextPolish app bundle if built)
+3. Add **Python** (or the Avelyn app bundle if built)
 4. Toggle it **ON**
 
 The app will prompt you automatically on first launch.
@@ -155,7 +159,7 @@ Fully compatible. No special setup needed.
 Some antivirus tools flag `pyautogui` / `pynput` as suspicious (they simulate keystrokes). Add the project folder as an exclusion if needed.
 
 ### Launch at Startup
-Enable in **Settings → Hotkeys → Launch TextPolish at system login**. This adds a registry key under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+Enable in **Settings → Hotkeys → Launch Avelyn at system login**. This adds a registry key under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 
 ---
 
@@ -189,30 +193,30 @@ pip install pyinstaller
 pyinstaller \
   --onefile \
   --windowed \
-  --name "TextPolish" \
+  --name "Avelyn" \
   --icon assets/icon.icns \
   --add-data "assets:assets" \
   main.py
 ```
-Output: `dist/TextPolish.app`
+Output: `dist/Avelyn.app`
 
 ### Windows `.exe`
 ```powershell
 pyinstaller `
   --onefile `
   --windowed `
-  --name "TextPolish" `
+  --name "Avelyn" `
   --icon assets/icon.ico `
   --add-data "assets;assets" `
   main.py
 ```
-Output: `dist\TextPolish.exe`
+Output: `dist\Avelyn.exe`
 
 ---
 
 ## 🗂 Configuration File
 
-Located at `~/.textpolish/config.json`. Edited automatically by the Settings UI.
+Located at `~/.avelyn/config.json`. Edited automatically by the Settings UI.
 
 ```json
 {
@@ -243,7 +247,7 @@ User selects text anywhere
         ↓
 Presses Ctrl+Shift+E
         ↓
-TextPolish saves clipboard
+Avelyn saves clipboard
         ↓
 Simulates Ctrl+C → copies selection
         ↓

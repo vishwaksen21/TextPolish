@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-TextPolish Paste Pipeline Diagnostic
-======================================
-Run this INSIDE the packaged app context (copy to the same folder as TextPolish.app/Contents/MacOS/)
+Avelyn Paste Pipeline Diagnostic
+================================
+Run this INSIDE the packaged app context (copy to the same folder as Avelyn.app/Contents/MacOS/)
 or run directly with the venv python to compare.
 
 Usage:
@@ -106,7 +106,7 @@ else:
 
 print("\n[STEP 6] Setting clipboard to test content...")
 import pyperclip
-pyperclip.copy("TEXTPOLISH_PASTE_TEST_VALUE")
+pyperclip.copy("AVELYN_PASTE_TEST_VALUE")
 time.sleep(0.1)
 
 print("\n[STEP 7] Sending Cmd+V via pynput (packaged mode path)...")
@@ -158,7 +158,7 @@ print(f"Focus after restore:  {after_appkit.get('bundle_id')}")
 print(f"Focus returned:       {focus_returned}")
 print(f"restore_success API:  {restore_success}")
 print()
-print("KEY QUESTION: Did you see 'TEXTPOLISH_PASTE_TEST_VALUE'")
+print("KEY QUESTION: Did you see 'AVELYN_PASTE_TEST_VALUE'")
 print("pasted into Chrome after Step 7 (pynput)?")
 print("Or only after Step 8 (osascript)?")
 print("Or neither?")

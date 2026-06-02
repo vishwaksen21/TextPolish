@@ -1,6 +1,6 @@
 """
-TextPolish — AI Processor (FINAL OPTIMIZED VERSION)
-===================================================
+Avelyn — AI Processor (FINAL OPTIMIZED VERSION)
+==============================================
 
 Purpose:
 - AI prompt enhancement
@@ -28,7 +28,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from typing import Generator, Optional
+from typing import Generator, Optional, Callable
 
 import requests
 
@@ -41,7 +41,7 @@ from settings import Settings
 # ──────────────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """
-You are TextPolish.
+You are Avelyn.
 
 Your task is to transform text according to the selected mode.
 
@@ -338,6 +338,7 @@ def _call_ollama(
     host: str,
     model: str = "gemma3:4b",
     custom_instruction: Optional[str] = None,
+    cancellation_check: Optional[Callable[[], bool]] = None,
 ) -> Generator[str, None, None]:
 
     prompt = _build_prompt(text, mode, custom_instruction)
@@ -408,6 +409,11 @@ def _call_ollama(
         # ── Stream tokens and accumulate ──────────────────────────────────────
         full_response = []
         for raw_line in response.iter_lines():
+            if cancellation_check and cancellation_check():
+                logger.info("Ollama request cancelled cooperatively. Closing stream.")
+                response.close()
+                return
+
             if not raw_line:
                 continue
             try:
@@ -479,7 +485,7 @@ def _call_ollama(
 
 class AIProcessor:
     """
-    TextPolish AI rewrite engine.
+    Avelyn AI rewrite engine.
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -490,6 +496,7 @@ class AIProcessor:
         text: str,
         mode: Optional[str] = None,
         custom_instruction: Optional[str] = None,
+        cancellation_check: Optional[Callable[[], bool]] = None,
     ) -> Generator[str, None, None]:
 
         text = text.strip()
@@ -505,6 +512,7 @@ class AIProcessor:
             host=self._settings.ollama_host,
             model=self._settings.ollama_model,
             custom_instruction=custom_instruction,
+            cancellation_check=cancellation_check,
         )
 
     def test_connection(self) -> str:

@@ -1,20 +1,22 @@
 @echo off
 echo =========================================
-echo  Building TextPolish Windows .exe
+echo  Building Avelyn Windows .exe
 echo =========================================
 
 echo 🧹 Cleaning previous builds...
 rmdir /S /Q build
 rmdir /S /Q dist
 
-echo 🎨 Generating Windows icon (.ico)...
-python -c "from PIL import Image; import os; img = Image.open('assets/icon.png') if os.path.exists('assets/icon.png') else None; img.save('assets/icon.ico', format='ICO', sizes=[(256,256)]) if img else print('No icon.png found')"
+echo 🎨 Generating Windows icon (.ico) from public/logo.png...
+if not exist assets mkdir assets
+copy public\logo.png assets\icon.png /Y
+python -c "from PIL import Image; import os; img = Image.open('public/logo.png') if os.path.exists('public/logo.png') else None; img.save('assets/icon.ico', format='ICO', sizes=[(256,256)]) if img else print('No logo.png found')"
 
 echo 📦 Packaging with PyInstaller...
-pyinstaller --clean TextPolish.spec
+pyinstaller --clean Avelyn.spec
 
 echo =========================================
 echo ✅ Build Complete!
-echo You can find your standalone executable at: dist\TextPolish\TextPolish.exe
+echo You can find your standalone executable at: dist\Avelyn\Avelyn.exe
 echo =========================================
 pause

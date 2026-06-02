@@ -1,6 +1,6 @@
 """
-TextPolish — Installer
-======================
+Avelyn — Installer
+==================
 Handles auto-detection, download, installation, and verification of
 the Ollama binary and the configured AI model.
 
@@ -78,7 +78,7 @@ class Installer:
         # 3. Windows: user-level install path we control
         if IS_WINDOWS:
             candidate = os.path.expanduser(
-                r"~\AppData\Local\TextPolish\Ollama\ollama.exe"
+                r"~\AppData\Local\Avelyn\Ollama\ollama.exe"
             )
             if os.path.isfile(candidate):
                 return candidate
@@ -123,7 +123,7 @@ class Installer:
             )
         elif IS_WINDOWS:
             target_dir = os.path.expanduser(
-                r"~\AppData\Local\TextPolish\Ollama"
+                r"~\AppData\Local\Avelyn\Ollama"
             )
             zip_name  = "ollama-windows-amd64.zip"
             url       = OLLAMA_WIN_URL
@@ -206,7 +206,7 @@ class Installer:
         bin_path = Installer.get_ollama_path()
         if not bin_path:
             raise RuntimeError(
-                "Ollama binary not found. Please reinstall TextPolish."
+                "Ollama binary not found. Please reinstall Avelyn."
             )
 
         logger.info("Starting Ollama server: %s serve", bin_path)

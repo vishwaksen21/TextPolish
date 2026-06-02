@@ -1,6 +1,6 @@
 """
-TextPolish — Global Hotkey Manager
-====================================
+Avelyn — Global Hotkey Manager
+==============================
 Uses pynput to listen for a global keyboard shortcut across all applications.
 When the shortcut fires, it:
   1. Saves the current clipboard state.
@@ -184,16 +184,17 @@ class HotkeyManager:
             # 1. Save what's currently on the clipboard.
             self._clipboard.save()
             previous = self._clipboard.saved_content or ""
-            logger.info("CLIPBOARD_BEFORE_CAPTURE=%r", previous)
+            logger.debug("CLIPBOARD_BEFORE_CAPTURE_LEN=%d", len(previous))
+            logger.debug("CLIPBOARD_BEFORE_CAPTURE_PREVIEW=%r", previous[:20])
             
             # 1.5 Inject a temporary unique marker to definitively detect if Cmd+C worked.
-            temp_marker = f"__TEXTPOLISH_{uuid.uuid4().hex}__"
+            temp_marker = f"__AVELYN_{uuid.uuid4().hex}__"
             self._clipboard.set(temp_marker)
-            logger.info("UUID_MARKER_INJECTED=%s", temp_marker)
-            logger.info(f"UUID inserted: {temp_marker}")
-            logger.info("CLIPBOARD_AFTER_UUID_INJECTION=%r", self._clipboard.get())
-            logger.info(f"Clipboard immediately after UUID insert: {self._clipboard.get()}")
-            logger.info("UUID_STATUS=%s", "Injected" if self._clipboard.get() == temp_marker else "Failed to Inject")
+            logger.debug("UUID_MARKER_INJECTED=%s", temp_marker[:20])
+            logger.debug("UUID inserted: %s", temp_marker[:20])
+            logger.debug("CLIPBOARD_AFTER_UUID_INJECTION=%r", (self._clipboard.get() or "")[:20])
+            logger.debug("Clipboard immediately after UUID insert: %s", (self._clipboard.get() or "")[:20])
+            logger.debug("UUID_STATUS=%s", "Injected" if self._clipboard.get() == temp_marker else "Failed to Inject")
 
             # 2. Small delay to let any key-up events settle before we send Ctrl+C.
             time.sleep(0.05)
@@ -211,18 +212,18 @@ class HotkeyManager:
             # 4. Read clipboard with retry (wait for it to change from temp_marker)
             text = self._clipboard.read_after_copy(previous=temp_marker)
             
-            logger.info("Clipboard after copy: '%s'", text)
-            logger.info("STILL_UUID=%s", "True" if text == temp_marker else "False")
-            logger.info("CLIPBOARD_CHANGED=%s", "True" if text != temp_marker and text != "" else "False")
-            logger.info("COPY_SUCCESS=%s", "True" if text != temp_marker and text != "" else "False")
+            logger.debug("Clipboard after copy: '%s'", text[:20] if text else "")
+            logger.debug("STILL_UUID=%s", "True" if text == temp_marker else "False")
+            logger.debug("CLIPBOARD_CHANGED=%s", "True" if text != temp_marker and text != "" else "False")
+            logger.debug("COPY_SUCCESS=%s", "True" if text != temp_marker and text != "" else "False")
 
             # 5. Signal Qt.
             if not text or len(text.strip()) < 3:
-                logger.warning("Selection validation failed: length %d, content: %r", len(text) if text else 0, text)
+                logger.warning("Selection validation failed: length %d, content: %r", len(text) if text else 0, text[:20] if text else "")
                 self._bridge.nothing_selected.emit()
             else:
                 logger.info("TEXT_CAPTURED")
-                logger.info("Captured %d chars for enhancement. Preview: %r", len(text), text[:50])
+                logger.info("Captured %d chars for enhancement. Preview: %r", len(text), text[:20])
                 self._bridge.text_captured.emit(text)
 
         except Exception as exc:                          # noqa: BLE001

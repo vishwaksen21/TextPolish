@@ -217,8 +217,287 @@ QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }
 """
 
 
+SETTINGS_LIGHT_SCOPED_QSS = """
+QDialog#SettingsWindow {
+    background: #F7F7F8;
+}
+
+QWidget#SettingsSidebar {
+    background: #F7F7F8;
+    border-right: 1px solid #E5E7EB;
+}
+
+QListWidget#SettingsNav {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+QListWidget#SettingsNav::item {
+    padding: 10px 14px;
+    margin: 2px 0;
+    border-radius: 8px;
+    color: #4B5563;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QListWidget#SettingsNav::item:selected {
+    background: #F3EEFF;
+    color: #7C3AED;
+    border-left: 3px solid #7C3AED;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    font-weight: 600;
+}
+
+QListWidget#SettingsNav::item:hover:!selected {
+    background: rgba(0, 0, 0, 0.03);
+    color: #111827;
+}
+
+QWidget#SettingsContent {
+    background: #F7F7F8;
+}
+
+QLabel#SettingsTitle {
+    color: #111827;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QLabel#SettingsMuted {
+    color: #6B7280;
+    font-size: 12px;
+}
+
+QFrame#SettingsCard {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+}
+
+QFrame#SidebarPromoCard {
+    background: #F3EEFF;
+    border: 1px solid #E5D5FF;
+    border-radius: 12px;
+}
+
+QFrame#SettingsDivider {
+    background-color: #E5E7EB;
+    max-height: 1px;
+    border: none;
+}
+
+QToolButton#DisclosureButton {
+    background: transparent;
+    border: none;
+    color: #6B7280;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 0;
+}
+QToolButton#DisclosureButton:hover { color: #111827; }
+
+QPushButton#SecondaryBtn {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    color: #111827;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#SecondaryBtn:hover { background: #F8F8FA; border-color: #7C3AED; }
+
+QLineEdit#SettingsLineEdit {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 5px 8px;
+    color: #111827;
+    font-size: 12px;
+}
+QLineEdit#SettingsLineEdit:focus { border-color: #7C3AED; }
+
+QComboBox#SettingsCombo {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #111827;
+    font-size: 12px;
+}
+QComboBox#SettingsCombo:hover { border-color: #C5C7CB; }
+QComboBox#SettingsCombo:focus { border-color: #7C3AED; }
+
+QPushButton#AboutLink {
+    background: transparent;
+    border: none;
+    color: #7C3AED;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0;
+}
+QPushButton#AboutLink:hover {
+    text-decoration: underline;
+}
+
+QLabel#Keycap {
+    border: 1px solid #D1D5DB;
+    border-bottom: 2px solid #C4C4C4;
+    border-radius: 6px;
+    background: #FAFAFA;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+"""
+
+SETTINGS_DARK_SCOPED_QSS = """
+QDialog#SettingsWindow {
+    background: #1C1C1E;
+}
+
+QWidget#SettingsSidebar {
+    background: #1C1C1E;
+    border-right: 1px solid #2C2C2E;
+}
+
+QListWidget#SettingsNav {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+QListWidget#SettingsNav::item {
+    padding: 10px 14px;
+    margin: 2px 0;
+    border-radius: 8px;
+    color: #9090A8;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QListWidget#SettingsNav::item:selected {
+    background: rgba(255, 255, 255, 0.08);
+    color: #F0F0F8;
+    border-left: 3px solid #A78BFA;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    font-weight: 600;
+}
+
+QListWidget#SettingsNav::item:hover:!selected {
+    background: rgba(255, 255, 255, 0.03);
+    color: #F0F0F8;
+}
+
+QWidget#SettingsContent {
+    background: #1C1C1E;
+}
+
+QLabel#SettingsTitle {
+    color: #F0F0F8;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QLabel#SettingsMuted {
+    color: #9090A8;
+    font-size: 12px;
+}
+
+QFrame#SettingsCard {
+    background: #2C2C2E;
+    border: 1px solid #3C3C3E;
+    border-radius: 12px;
+}
+
+QFrame#SidebarPromoCard {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 12px;
+}
+
+QFrame#SettingsDivider {
+    background-color: #3C3C3E;
+    max-height: 1px;
+    border: none;
+}
+
+QToolButton#DisclosureButton {
+    background: transparent;
+    border: none;
+    color: #9090A8;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 0;
+}
+QToolButton#DisclosureButton:hover { color: #F0F0F8; }
+
+QPushButton#SecondaryBtn {
+    background: #2C2C2E;
+    border: 1px solid #3C3C3E;
+    color: #F0F0F8;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#SecondaryBtn:hover { background: #353538; border-color: #A78BFA; }
+
+QLineEdit#SettingsLineEdit {
+    background: #1C1C1E;
+    border: 1px solid #3C3C3E;
+    border-radius: 6px;
+    padding: 5px 8px;
+    color: #F0F0F8;
+    font-size: 12px;
+}
+QLineEdit#SettingsLineEdit:focus { border-color: #A78BFA; }
+
+QComboBox#SettingsCombo {
+    background: #1C1C1E;
+    border: 1px solid #3C3C3E;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #F0F0F8;
+    font-size: 12px;
+}
+QComboBox#SettingsCombo:hover { border-color: #4C4C4E; }
+QComboBox#SettingsCombo:focus { border-color: #A78BFA; }
+
+QPushButton#AboutLink {
+    background: transparent;
+    border: none;
+    color: #A78BFA;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0;
+}
+QPushButton#AboutLink:hover {
+    text-decoration: underline;
+}
+
+QLabel#Keycap {
+    border: 1px solid #4C4C4E;
+    border-bottom: 2px solid #5C5C5F;
+    border-radius: 6px;
+    background: #2C2C2E;
+    color: #F0F0F8;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+"""
+
+
 def get_qss(theme: str) -> str:
-    return DARK_QSS if theme == "dark" else LIGHT_QSS
+    base = DARK_QSS if theme == "dark" else LIGHT_QSS
+    scoped = SETTINGS_DARK_SCOPED_QSS if theme == "dark" else SETTINGS_LIGHT_SCOPED_QSS
+    return base + "\n" + scoped
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -664,6 +943,337 @@ class EnhancementPopup(QDialog):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SETTINGS WIDGETS & VECTOR ICONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _paint_settings_icon(kind: str, color: str = "#111827", size: int = 24) -> QPixmap:
+    pix = QPixmap(size, size)
+    pix.fill(Qt.GlobalColor.transparent)
+    
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    pen = QPen(QColor(color))
+    pen.setWidthF(1.5)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.setPen(pen)
+    
+    # Scale coordinates to fit the actual size nicely (padding included)
+    painter.scale(size / 24.0, size / 24.0)
+    
+    if kind == "sparkles":
+        path = QPainterPath()
+        # Large star
+        path.moveTo(12, 3)
+        path.quadTo(12, 12, 21, 12)
+        path.quadTo(12, 12, 12, 21)
+        path.quadTo(12, 12, 3, 12)
+        path.quadTo(12, 12, 12, 3)
+        
+        # Small star top right
+        path.moveTo(18, 5)
+        path.quadTo(18, 8, 21, 8)
+        path.quadTo(18, 8, 18, 11)
+        path.quadTo(18, 8, 15, 8)
+        path.quadTo(18, 8, 18, 5)
+        painter.drawPath(path)
+        
+    elif kind == "keyboard":
+        painter.drawRoundedRect(3, 5, 18, 14, 3, 3)
+        painter.drawLine(8, 15, 16, 15)
+        painter.drawPoint(6, 9)
+        painter.drawPoint(9, 9)
+        painter.drawPoint(12, 9)
+        painter.drawPoint(15, 9)
+        painter.drawPoint(18, 9)
+        painter.drawPoint(6, 12)
+        painter.drawPoint(18, 12)
+        
+    elif kind == "palette":
+        path = QPainterPath()
+        path.moveTo(12, 4)
+        path.cubicTo(18, 4, 21, 8, 21, 12)
+        path.cubicTo(21, 17, 17, 20, 12, 20)
+        path.cubicTo(9, 20, 7, 18, 5, 16)
+        path.cubicTo(3, 13, 6, 4, 12, 4)
+        painter.drawPath(path)
+        painter.drawPoint(10, 8)
+        painter.drawPoint(15, 9)
+        painter.drawPoint(16, 13)
+        painter.drawPoint(12, 16)
+        
+    elif kind == "clock":
+        painter.drawEllipse(3, 3, 18, 18)
+        painter.drawLine(12, 12, 12, 7)
+        painter.drawLine(12, 12, 16, 12)
+        
+    elif kind == "info":
+        painter.drawEllipse(3, 3, 18, 18)
+        painter.drawLine(12, 10, 12, 16)
+        painter.drawPoint(12, 7)
+        
+    elif kind == "shield":
+        path = QPainterPath()
+        path.moveTo(12, 4)
+        path.quadTo(19, 4, 19, 9)
+        path.quadTo(19, 17, 12, 21)
+        path.quadTo(5, 17, 5, 9)
+        path.quadTo(5, 4, 12, 4)
+        painter.drawPath(path)
+        
+    elif kind == "check":
+        path = QPainterPath()
+        path.moveTo(5, 12)
+        path.lineTo(10, 17)
+        path.lineTo(19, 6)
+        painter.drawPath(path)
+        
+    elif kind == "wave":
+        path = QPainterPath()
+        path.moveTo(4, 12)
+        path.quadTo(8, 6, 12, 12)
+        path.quadTo(16, 18, 20, 12)
+        painter.drawPath(path)
+        
+    elif kind == "server":
+        painter.drawRoundedRect(4, 5, 16, 4, 1, 1)
+        painter.drawRoundedRect(4, 10, 16, 4, 1, 1)
+        painter.drawRoundedRect(4, 15, 16, 4, 1, 1)
+        painter.drawPoint(12, 7)
+        painter.drawPoint(12, 12)
+        painter.drawPoint(12, 17)
+        
+    elif kind == "link":
+        painter.save()
+        painter.translate(9, 9)
+        painter.rotate(-45)
+        painter.drawRoundedRect(-6, -3, 12, 6, 3, 3)
+        painter.restore()
+        painter.save()
+        painter.translate(15, 15)
+        painter.rotate(-45)
+        painter.drawRoundedRect(-6, -3, 12, 6, 3, 3)
+        painter.restore()
+        
+    elif kind == "cube":
+        painter.drawLine(12, 12, 12, 20)
+        painter.drawLine(12, 4, 5, 8)
+        painter.drawLine(12, 4, 19, 8)
+        painter.drawLine(5, 8, 12, 12)
+        painter.drawLine(19, 8, 12, 12)
+        painter.drawLine(5, 8, 5, 16)
+        painter.drawLine(19, 8, 19, 16)
+        painter.drawLine(5, 16, 12, 20)
+        painter.drawLine(19, 16, 12, 20)
+        
+    elif kind == "sliders":
+        painter.drawLine(4, 8, 20, 8)
+        painter.drawEllipse(14, 6, 4, 4)
+        painter.drawLine(4, 12, 20, 12)
+        painter.drawEllipse(8, 10, 4, 4)
+        painter.drawLine(4, 16, 20, 16)
+        painter.drawEllipse(16, 14, 4, 4)
+        
+    elif kind == "chevron":
+        path = QPainterPath()
+        path.moveTo(9, 7)
+        path.lineTo(14, 12)
+        path.lineTo(9, 17)
+        painter.drawPath(path)
+        
+    else:
+        painter.drawEllipse(10, 10, 4, 4)
+        
+    painter.end()
+    return pix
+
+def _settings_nav_icon(icon_kind: str) -> QIcon:
+    return QIcon(_paint_settings_icon(icon_kind, "#4B5563", 16))
+
+def _theme_preview(mode: str) -> QIcon:
+    pix = QPixmap(96, 58)
+    pix.fill(Qt.GlobalColor.transparent)
+    
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    # ── Background colors ──
+    bg_color = QColor("#F3F4F6") if mode == "light" else QColor("#1F2937")
+    card_color = QColor("#FFFFFF") if mode == "light" else QColor("#2D3748")
+    sidebar_bg = QColor("#E5E7EB") if mode == "light" else QColor("#111827")
+    line_color = QColor("#D1D5DB") if mode == "light" else QColor("#4A5568")
+    
+    if mode == "system":
+        painter.setClipRect(0, 0, 96, 58)
+        
+        # Left diagonal half is light
+        path_light = QPainterPath()
+        path_light.moveTo(0, 0)
+        path_light.lineTo(96, 0)
+        path_light.lineTo(0, 58)
+        path_light.closeSubpath()
+        painter.fillPath(path_light, QColor("#F3F4F6"))
+        
+        # Right diagonal half is dark
+        path_dark = QPainterPath()
+        path_dark.moveTo(96, 58)
+        path_dark.lineTo(96, 0)
+        path_dark.lineTo(0, 58)
+        path_dark.closeSubpath()
+        painter.fillPath(path_dark, QColor("#1F2937"))
+        
+        # Split line and frame
+        painter.setPen(QPen(QColor("#9CA3AF"), 1))
+        painter.drawLine(96, 0, 0, 58)
+        painter.setPen(QPen(QColor("#9CA3AF"), 1.5))
+        painter.drawRoundedRect(2, 2, 92, 54, 4, 4)
+        
+        painter.end()
+        return QIcon(pix)
+        
+    # Paint standard solid light/dark preview
+    painter.setBrush(bg_color)
+    painter.setPen(QPen(line_color, 1))
+    painter.drawRoundedRect(2, 2, 92, 54, 4, 4)
+    
+    # Sidebar
+    painter.setBrush(sidebar_bg)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRoundedRect(2, 2, 26, 54, 4, 4)
+    painter.drawRect(24, 2, 4, 54) # Cover rounded corners
+    
+    # Sidebar border line
+    painter.setPen(QPen(line_color, 1))
+    painter.drawLine(28, 2, 28, 56)
+    
+    # Titlebar dots
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor("#EF4444"))
+    painter.drawEllipse(6, 6, 4, 4)
+    painter.setBrush(QColor("#F59E0B"))
+    painter.drawEllipse(12, 6, 4, 4)
+    painter.setBrush(QColor("#10B981"))
+    painter.drawEllipse(18, 6, 4, 4)
+    
+    # Content rows/card
+    painter.setPen(QPen(line_color, 1))
+    painter.setBrush(card_color)
+    painter.drawRoundedRect(34, 14, 52, 34, 2, 2)
+    
+    # Mock text rows inside card
+    painter.setPen(QPen(line_color, 1))
+    painter.drawLine(38, 20, 54, 20)
+    painter.drawLine(38, 26, 68, 26)
+    painter.drawLine(38, 32, 48, 32)
+    
+    # Sliders knobs representation
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor("#7C3AED"))
+    painter.drawEllipse(76, 18, 4, 4)
+    painter.drawEllipse(72, 30, 4, 4)
+    
+    painter.end()
+    return QIcon(pix)
+
+def _divider_line() -> QFrame:
+    line = QFrame()
+    line.setFrameShape(QFrame.Shape.HLine)
+    line.setFrameShadow(QFrame.Shadow.Plain)
+    line.setObjectName("SettingsDivider")
+    line.setStyleSheet("background: #E5E7EB; border: none; height: 1px; max-height: 1px;")
+    return line
+
+def _settings_group(widgets: list[QWidget]) -> QWidget:
+    card = QFrame()
+    card.setObjectName("SettingsCard")
+    layout = QVBoxLayout(card)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+    for i, w in enumerate(widgets):
+        layout.addWidget(w)
+        if i < len(widgets) - 1:
+            layout.addWidget(_divider_line())
+    return card
+
+def _keycap_label(text: str) -> QLabel:
+    lbl = QLabel(text)
+    lbl.setObjectName("KeycapLabel")
+    lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    lbl.setStyleSheet(
+        "font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; "
+        "color: #1F2937; background: #FAFAFA; border: 1px solid #D1D5DB; "
+        "border-bottom: 2.5px solid #C4C4C4; border-radius: 5px; "
+        "padding: 2px 6px; min-width: 14px; margin: 1px 0px;"
+    )
+    return lbl
+
+def _premium_row(
+    label_text: str,
+    sub_label: str = "",
+    icon_kind: str = "",
+    icon_color: str = "#7C3AED",
+    icon_bg_color: str = "#F3EEFF",
+    widget: Optional[QWidget] = None,
+    right_text: str = "",
+    show_arrow: bool = False,
+) -> QWidget:
+    row = QWidget()
+    row.setObjectName("SettingsRow")
+    l = QHBoxLayout(row)
+    l.setContentsMargins(14, 10, 14, 10)
+    l.setSpacing(12)
+
+    if icon_kind:
+        icon_wrapper = QWidget()
+        icon_wrapper.setFixedSize(30, 30)
+        icon_wrapper.setStyleSheet(
+            f"background-color: {icon_bg_color}; border-radius: 15px;"
+        )
+        iw_layout = QHBoxLayout(icon_wrapper)
+        iw_layout.setContentsMargins(0, 0, 0, 0)
+        iw_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(_paint_settings_icon(icon_kind, icon_color, 16))
+        iw_layout.addWidget(icon_lbl)
+        l.addWidget(icon_wrapper)
+
+    text_w = QWidget()
+    text_l = QVBoxLayout(text_w)
+    text_l.setContentsMargins(0, 0, 0, 0)
+    text_l.setSpacing(1)
+    
+    title = QLabel(label_text)
+    title.setObjectName("SettingsRowTitle")
+    title.setStyleSheet("font-size: 13px; font-weight: 600; color: #111827;")
+    text_l.addWidget(title)
+    
+    if sub_label:
+        desc = QLabel(sub_label)
+        desc.setObjectName("SettingsRowDesc")
+        desc.setStyleSheet("font-size: 11px; color: #6B7280;")
+        desc.setWordWrap(True)
+        text_l.addWidget(desc)
+        
+    l.addWidget(text_w, 1)
+
+    if widget is not None:
+        l.addWidget(widget)
+    elif right_text:
+        rt = QLabel(right_text)
+        rt.setStyleSheet("font-size: 13px; color: #6B7280; font-weight: 500;")
+        l.addWidget(rt)
+
+    if show_arrow:
+        arrow = QLabel()
+        arrow.setPixmap(_paint_settings_icon("chevron", "#9CA3AF", 12))
+        l.addWidget(arrow)
+
+    return row
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # SETTINGS WINDOW
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -684,7 +1294,8 @@ class SettingsWindow(QDialog):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        self.setWindowTitle("TextPolish — Settings")
+        self.setWindowTitle("Avelyn — Settings")
+        self.setObjectName("SettingsWindow")
         self.setWindowFlags(
             Qt.WindowType.Window | Qt.WindowType.WindowCloseButtonHint
         )
@@ -697,46 +1308,123 @@ class SettingsWindow(QDialog):
 
         # ── Sidebar ───────────────────────────────────────────────────────────
         sidebar = QWidget()
-        sidebar.setFixedWidth(180)
-        sidebar.setStyleSheet(
-            "background: #13131A; border-right: 1px solid #2A2A38;" if self._settings.theme == "dark"
-            else "background: #F0F0F5; border-right: 1px solid #D1D1D6;"
-        )
+        sidebar.setObjectName("SettingsSidebar")
+        sidebar.setFixedWidth(220)
         sb_layout = QVBoxLayout(sidebar)
-        sb_layout.setContentsMargins(12, 20, 12, 20)
-        sb_layout.setSpacing(4)
+        sb_layout.setContentsMargins(12, 16, 12, 16)
+        sb_layout.setSpacing(10)
 
-        logo_lbl = QLabel("✦  TextPolish")
-        logo_lbl.setStyleSheet(
-            "color: #7C3AED; font-size: 15px; font-weight: 700; background: transparent;"
-        )
-        sb_layout.addWidget(logo_lbl)
-        sb_layout.addSpacing(16)
+        from utils import get_resource_path
+        logo_path = get_resource_path("public/logo.png")
+        
+        brand = QWidget()
+        brand.setObjectName("SettingsBrand")
+        brand_row = QHBoxLayout(brand)
+        brand_row.setContentsMargins(8, 4, 8, 8)
+        brand_row.setSpacing(10)
+
+        logo_lbl = QLabel()
+        logo_lbl.setFixedSize(36, 36)
+        if logo_path.exists():
+            pm = QPixmap(str(logo_path))
+            if not pm.isNull():
+                logo_lbl.setPixmap(pm.scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        else:
+            logo_lbl.setPixmap(_paint_settings_icon("sparkles", "#7C3AED", 36))
+
+        brand_text_w = QWidget()
+        brand_text_l = QVBoxLayout(brand_text_w)
+        brand_text_l.setContentsMargins(0, 0, 0, 0)
+        brand_text_l.setSpacing(1)
+
+        name_lbl = QLabel("Avelyn")
+        name_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #111827;")
+        subtitle_lbl = QLabel("AI Writing Assistant")
+        subtitle_lbl.setStyleSheet("font-size: 11px; color: #6B7280;")
+
+        brand_text_l.addWidget(name_lbl)
+        brand_text_l.addWidget(subtitle_lbl)
+
+        brand_row.addWidget(logo_lbl)
+        brand_row.addWidget(brand_text_w, 1)
+
+        sb_layout.addWidget(brand)
+        sb_layout.addSpacing(4)
 
         self._sidebar = QListWidget()
+        self._sidebar.setObjectName("SettingsNav")
         self._sidebar.setFrameShape(QFrame.Shape.NoFrame)
-        self._sidebar.setStyleSheet(
-            "QListWidget { background: transparent; border: none; }"
-            "QListWidget::item { padding: 10px 12px; border-radius: 8px; color: #9090A8; }"
-            "QListWidget::item:selected { background: #2A1F4A; color: #A78BFA; }"
-            "QListWidget::item:hover:!selected { background: #1E1E26; color: #F0F0F8; }"
-        )
-        pages = ["🤖  AI Provider", "⌨  Hotkeys", "🎨  Appearance", "📜  History", "ℹ  About"]
-        for page in pages:
-            self._sidebar.addItem(page)
+        self._sidebar.setIconSize(QSize(16, 16))
+
+        pages = [
+            ("AI Provider", "sparkles"),
+            ("Hotkeys", "keyboard"),
+            ("Appearance", "palette"),
+            ("History", "clock"),
+            ("About", "info"),
+        ]
+        for label, icon_kind in pages:
+            item = QListWidgetItem(label)
+            item.setIcon(_settings_nav_icon(icon_kind))
+            self._sidebar.addItem(item)
         self._sidebar.setCurrentRow(0)
         self._sidebar.currentRowChanged.connect(self._on_page_changed)
         sb_layout.addWidget(self._sidebar)
-        sb_layout.addStretch()
+        sb_layout.addSpacing(12)
+
+        # Private & Local Card at the bottom of the sidebar
+        promo_card = QFrame()
+        promo_card.setObjectName("SidebarPromoCard")
+        promo_l = QVBoxLayout(promo_card)
+        promo_l.setContentsMargins(12, 12, 12, 12)
+        promo_l.setSpacing(6)
+
+        promo_header = QHBoxLayout()
+        promo_header.setSpacing(6)
+        shield_icon = QLabel()
+        shield_icon.setFixedSize(14, 14)
+        shield_icon.setPixmap(_paint_settings_icon("shield", "#7C3AED", 14))
+        promo_title = QLabel("Private & Local")
+        promo_title.setStyleSheet("font-size: 11px; font-weight: 700; color: #7C3AED;")
+        promo_header.addWidget(shield_icon)
+        promo_header.addWidget(promo_title, 1)
+
+        promo_desc = QLabel("Everything runs locally on your machine. Your data never leaves your device.")
+        promo_desc.setStyleSheet("font-size: 10px; color: #6B7280; line-height: 1.3;")
+        promo_desc.setWordWrap(True)
+
+        promo_link = QLabel("<a href='#' style='color: #7C3AED; font-weight: 700; text-decoration: none;'>Learn more ></a>")
+        promo_link.setStyleSheet("font-size: 10px; font-weight: 700; color: #7C3AED;")
+
+        promo_l.addLayout(promo_header)
+        promo_l.addWidget(promo_desc)
+        promo_l.addWidget(promo_link)
+        sb_layout.addWidget(promo_card)
+        sb_layout.addSpacing(8)
+
+        # Footer Row with settings sliders/gear and version tag
+        footer = QWidget()
+        footer_row = QHBoxLayout(footer)
+        footer_row.setContentsMargins(8, 0, 8, 0)
+        footer_row.setSpacing(6)
+
+        gear_icon = QLabel()
+        gear_icon.setFixedSize(14, 14)
+        gear_icon.setPixmap(_paint_settings_icon("sliders", "#9CA3AF", 14))
 
         ver_lbl = QLabel("v1.0.0")
-        ver_lbl.setStyleSheet("color: #4A4A5A; font-size: 11px; background: transparent;")
-        sb_layout.addWidget(ver_lbl)
+        ver_lbl.setStyleSheet("font-size: 11px; color: #9CA3AF; font-weight: 500;")
+
+        footer_row.addWidget(gear_icon)
+        footer_row.addWidget(ver_lbl)
+        footer_row.addStretch()
+        sb_layout.addWidget(footer)
 
         # ── Content stack ─────────────────────────────────────────────────────
         content = QWidget()
+        content.setObjectName("SettingsContent")
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(28, 24, 28, 24)
+        content_layout.setContentsMargins(24, 20, 24, 20)
         content_layout.setSpacing(16)
 
         self._stack = QStackedWidget()
@@ -746,127 +1434,316 @@ class SettingsWindow(QDialog):
         self._stack.addWidget(self._page_history())
         self._stack.addWidget(self._page_about())
 
-        # Save / Close buttons
-        btn_row = QHBoxLayout()
-        save_btn = QPushButton("Save Changes")
-        save_btn.setObjectName("settingsSaveBtn")
-        save_btn.clicked.connect(self._on_save)
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.close)
-        btn_row.addStretch()
-        btn_row.addWidget(close_btn)
-        btn_row.addWidget(save_btn)
-
         content_layout.addWidget(self._stack)
-        content_layout.addLayout(btn_row)
 
         outer.addWidget(sidebar)
         outer.addWidget(content, 1)
+
+        # ── Auto-save connections ─────────────────────────────────────────────
+        self._default_mode_combo.currentIndexChanged.connect(self._auto_save)
+        self._ollama_host.editingFinished.connect(self._auto_save)
+        self._ollama_model_edit.editingFinished.connect(self._auto_save)
+        self._hotkey_enabled_cb.toggled.connect(self._auto_save)
+        self._hotkey_edit.editingFinished.connect(self._auto_save)
+        self._hotkey_raw.editingFinished.connect(self._auto_save)
+        self._startup_cb.toggled.connect(self._auto_save)
+        self._theme_combo.currentIndexChanged.connect(self._auto_save)
+        self._notif_cb.toggled.connect(self._auto_save)
 
     # ── Pages ─────────────────────────────────────────────────────────────────
 
     def _page_ai(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setSpacing(16)
+        layout.setSpacing(14)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl = QLabel("AI Provider")
-        lbl.setStyleSheet("font-size: 20px; font-weight: 700; color: #F0F0F8; background: transparent;")
-        layout.addWidget(lbl)
+        title = QLabel("AI Provider")
+        title.setObjectName("SettingsTitle")
+        layout.addWidget(title)
 
-        # Provider selector
-        grp = QGroupBox("Provider")
-        grp_layout = QFormLayout(grp)
+        hint = QLabel("Configure how Avelyn connects to your local AI model.")
+        hint.setObjectName("SettingsMuted")
+        layout.addWidget(hint)
+
+        # 1. Connection Status Card
+        conn_row = QWidget()
+        conn_l = QHBoxLayout(conn_row)
+        conn_l.setContentsMargins(0, 0, 0, 0)
+        conn_l.setSpacing(10)
+
+        test_btn = QPushButton("Test Connection")
+        test_btn.setObjectName("SecondaryBtn")
+        test_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        test_btn.setIcon(QIcon(_paint_settings_icon("wave", "#111827", 14)))
+        test_btn.clicked.connect(self._on_test_connection)
+
+        self._status_dot = QLabel("●")
+        self._status_dot.setStyleSheet("color: #9CA3AF; font-size: 14px;")
         
-        lbl_provider = QLabel("Ollama (Local Offline)")
-        lbl_provider.setStyleSheet("color: #7C3AED; font-weight: 600;")
-        grp_layout.addRow("Backend:", lbl_provider)
+        self._test_result = QLabel("Not Tested")
+        self._test_result.setObjectName("SettingsMuted")
+        self._test_result.setStyleSheet("color: #6B7280; font-size: 12px;")
+        
+        conn_l.addWidget(self._status_dot)
+        conn_l.addWidget(self._test_result, 1)
+        conn_l.addWidget(test_btn)
 
+        self._conn_card = _premium_row(
+            label_text="Connected",
+            sub_label="Avelyn is ready to enhance your writing.",
+            icon_kind="check",
+            icon_color="#10B981",
+            icon_bg_color="#DEF7EC",
+            widget=conn_row
+        )
+        layout.addWidget(_settings_group([self._conn_card]))
+
+        # 2. Default Mode Card
         self._default_mode_combo = QComboBox()
-        
-        # Populate dynamically from CommandPalette.MODES
-        # modes is a list of tuples: (display_label, icon, mode_id, section)
+        self._default_mode_combo.setObjectName("SettingsCombo")
         self._mode_keys = [m[2] for m in CommandPalette.MODES]
         display_labels = [m[0] for m in CommandPalette.MODES]
         self._default_mode_combo.addItems(display_labels)
-        
         try:
             mode_idx = self._mode_keys.index(self._settings.default_mode)
         except ValueError:
             mode_idx = 0
-            
         self._default_mode_combo.setCurrentIndex(mode_idx)
-        grp_layout.addRow("Default mode:", self._default_mode_combo)
-        layout.addWidget(grp)
 
-        # Ollama Configuration
-        ollama_grp = QGroupBox("Ollama Settings")
-        ol_layout = QFormLayout(ollama_grp)
+        default_mode_card = _premium_row(
+            label_text="Default Mode",
+            sub_label="This is the default action selected when Avelyn opens.",
+            icon_kind="sparkles",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._default_mode_combo
+        )
+        layout.addWidget(_settings_group([default_mode_card]))
+
+        # 3. Advanced Settings Block
+        adv_btn = QToolButton()
+        adv_btn.setObjectName("DisclosureButton")
+        adv_btn.setText("▶  Advanced Settings")
+        adv_btn.setCheckable(True)
+        adv_btn.setChecked(False)
+        adv_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        adv_panel = QFrame()
+        adv_panel.setObjectName("SettingsCard")
+        adv_panel.hide()
+        adv_l = QVBoxLayout(adv_panel)
+        adv_l.setContentsMargins(0, 4, 0, 4)
+        adv_l.setSpacing(0)
+
+        # Provider row
+        provider_row = _premium_row(
+            label_text="Provider",
+            right_text="Ollama (Local)",
+            icon_kind="server",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            show_arrow=True
+        )
+        
+        # Host row
         self._ollama_host = QLineEdit(self._settings.ollama_host)
+        self._ollama_host.setObjectName("SettingsLineEdit")
+        self._ollama_host.setFixedWidth(200)
+        host_row = _premium_row(
+            label_text="Host",
+            icon_kind="link",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._ollama_host,
+            show_arrow=True
+        )
+
+        # Model row
         self._ollama_model_edit = QLineEdit(self._settings.ollama_model)
-        self._ollama_model_edit.setPlaceholderText("e.g. gemma3:4b, mistral, llama3")
-        ol_layout.addRow("Host:", self._ollama_host)
-        ol_layout.addRow("Model:", self._ollama_model_edit)
-        layout.addWidget(ollama_grp)
+        self._ollama_model_edit.setObjectName("SettingsLineEdit")
+        self._ollama_model_edit.setPlaceholderText("e.g. gemma3:4b")
+        self._ollama_model_edit.setFixedWidth(200)
+        model_row = _premium_row(
+            label_text="Model",
+            icon_kind="cube",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._ollama_model_edit,
+            show_arrow=True
+        )
 
-        # Test connection
-        test_btn = QPushButton("Test Connection")
-        test_btn.setObjectName("testBtn")
-        self._test_result = QLabel("")
-        self._test_result.setStyleSheet("color: #10B981; background: transparent; font-size: 12px;")
-        self._test_result.setWordWrap(True)
-        test_btn.clicked.connect(self._on_test_connection)
+        # Additional options row
+        additional_row = _premium_row(
+            label_text="Additional Options",
+            sub_label="Customize advanced model settings",
+            icon_kind="sliders",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            show_arrow=True
+        )
 
-        btn_row = QHBoxLayout()
-        btn_row.addWidget(test_btn)
-        btn_row.addWidget(self._test_result)
-        btn_row.addStretch()
-        layout.addLayout(btn_row)
+        adv_l.addWidget(provider_row)
+        adv_l.addWidget(_divider_line())
+        adv_l.addWidget(host_row)
+        adv_l.addWidget(_divider_line())
+        adv_l.addWidget(model_row)
+        adv_l.addWidget(_divider_line())
+        adv_l.addWidget(additional_row)
+
+        def _toggle_adv(checked: bool) -> None:
+            adv_btn.setText("▼  Advanced Settings" if checked else "▶  Advanced Settings")
+            adv_panel.setVisible(checked)
+
+        adv_btn.toggled.connect(_toggle_adv)
+
+        layout.addWidget(adv_btn)
+        layout.addWidget(adv_panel)
+
+        # 4. Footer Banner
+        footer_banner_row = _premium_row(
+            label_text="100% Local. 100% Private.",
+            sub_label="Avelyn never sends your data anywhere. All processing happens on your machine.",
+            icon_kind="shield",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF"
+        )
+        layout.addWidget(_settings_group([footer_banner_row]))
         layout.addStretch()
         return w
 
     def _page_hotkeys(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setSpacing(16)
+        layout.setSpacing(14)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl = QLabel("Hotkeys")
-        lbl.setStyleSheet("font-size: 20px; font-weight: 700; color: #F0F0F8; background: transparent;")
-        layout.addWidget(lbl)
+        title = QLabel("Hotkeys")
+        title.setObjectName("SettingsTitle")
+        layout.addWidget(title)
 
-        grp = QGroupBox("Global Shortcut")
-        g_layout = QFormLayout(grp)
+        hint = QLabel("Configure system-wide keyboard shortcuts for Avelyn.")
+        hint.setObjectName("SettingsMuted")
+        layout.addWidget(hint)
+
+        # 1. Global Shortcut Card
+        preview_row = QWidget()
+        preview_l = QHBoxLayout(preview_row)
+        preview_l.setContentsMargins(0, 0, 0, 0)
+        preview_l.setSpacing(8)
+
+        self._keycap_host = QWidget()
+        self._keycap_layout = QHBoxLayout(self._keycap_host)
+        self._keycap_layout.setContentsMargins(0, 0, 0, 0)
+        self._keycap_layout.setSpacing(6)
+        preview_l.addWidget(self._keycap_host, 1)
 
         self._hotkey_edit = QLineEdit(self._settings.shortcut_display)
-        self._hotkey_edit.setPlaceholderText("e.g. Ctrl+Shift+E")
-        hint = QLabel("Use standard key names: Ctrl, Alt, Shift, Cmd (macOS)\nExample: Ctrl+Shift+E")
-        hint.setStyleSheet("color: #9090A8; font-size: 11px; background: transparent;")
-        hint.setWordWrap(True)
+        self._hotkey_edit.setObjectName("SettingsLineEdit")
+        self._hotkey_edit.setPlaceholderText("Ctrl+Shift+E")
+        self._hotkey_edit.setFixedWidth(140)
+        preview_l.addWidget(self._hotkey_edit)
+
+        shortcut_card_row = _premium_row(
+            label_text="Global Shortcut",
+            sub_label="Visual keyboard keycaps representing the current trigger shortcut.",
+            icon_kind="keyboard",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=preview_row
+        )
+
+        self._hotkey_enabled_cb = QCheckBox("Enable Shortcut")
+        self._hotkey_enabled_cb.setChecked(self._settings.hotkey_enabled)
+        enabled_card_row = _premium_row(
+            label_text="Enable global hotkey",
+            sub_label="Allows Avelyn to capture your selected text system-wide.",
+            icon_kind="shield",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._hotkey_enabled_cb
+        )
+
+        self._startup_cb = QCheckBox("Launch on login")
+        self._startup_cb.setChecked(self._settings.launch_at_startup)
+        startup_card_row = _premium_row(
+            label_text="Launch at system login",
+            sub_label="Start Avelyn in your menu bar automatically when you log in.",
+            icon_kind="sliders",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._startup_cb
+        )
+
+        layout.addWidget(_settings_group([shortcut_card_row, enabled_card_row, startup_card_row]))
+
+        # Advanced disclosure
+        adv_btn = QToolButton()
+        adv_btn.setObjectName("DisclosureButton")
+        adv_btn.setText("▶  Advanced Hotkey Details")
+        adv_btn.setCheckable(True)
+        adv_btn.setChecked(False)
+        adv_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        adv_panel = QFrame()
+        adv_panel.setObjectName("SettingsCard")
+        adv_panel.hide()
+        adv_l = QVBoxLayout(adv_panel)
+        adv_l.setContentsMargins(0, 4, 0, 4)
+        adv_l.setSpacing(0)
 
         self._hotkey_raw = QLineEdit(self._settings.hotkey)
-        self._hotkey_raw.setPlaceholderText("pynput format: <ctrl>+<shift>+e")
-        raw_hint = QLabel("pynput format used internally. Leave blank to auto-convert from above.")
-        raw_hint.setStyleSheet("color: #9090A8; font-size: 11px; background: transparent;")
+        self._hotkey_raw.setObjectName("SettingsLineEdit")
+        self._hotkey_raw.setPlaceholderText("<ctrl>+<shift>+e")
+        self._hotkey_raw.setFixedWidth(200)
+        
+        raw_row = _premium_row(
+            label_text="Raw internal hotkey (pynput)",
+            sub_label="Leave blank to automatically convert from the display shortcut field.",
+            icon_kind="sliders",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._hotkey_raw
+        )
+        adv_l.addWidget(raw_row)
 
-        g_layout.addRow("Display label:", self._hotkey_edit)
-        g_layout.addRow("", hint)
-        g_layout.addRow("Raw pynput key:", self._hotkey_raw)
-        g_layout.addRow("", raw_hint)
+        def _toggle_adv(checked: bool) -> None:
+            adv_btn.setText("▼  Advanced Hotkey Details" if checked else "▶  Advanced Hotkey Details")
+            adv_panel.setVisible(checked)
 
-        self._hotkey_enabled_cb = QCheckBox("Enable global hotkey")
-        self._hotkey_enabled_cb.setChecked(self._settings.hotkey_enabled)
-        g_layout.addRow("", self._hotkey_enabled_cb)
+        adv_btn.toggled.connect(_toggle_adv)
+        layout.addWidget(adv_btn)
+        layout.addWidget(adv_panel)
 
-        layout.addWidget(grp)
+        # Keycap preview wiring
+        def _to_keycaps(text: str) -> list[str]:
+            parts = [p.strip() for p in text.split("+") if p.strip()]
+            mapped: list[str] = []
+            for ptxt in parts:
+                low = ptxt.lower()
+                if low in ("ctrl", "control"):
+                    mapped.append("⌃")
+                elif low in ("shift",):
+                    mapped.append("⇧")
+                elif low in ("alt", "option"):
+                    mapped.append("⌥")
+                elif low in ("cmd", "command", "meta"):
+                    mapped.append("⌘")
+                else:
+                    mapped.append(ptxt.upper() if len(ptxt) == 1 else ptxt)
+            return mapped or ["⌃", "⇧", "E"]
 
-        startup_grp = QGroupBox("Startup")
-        s_layout = QFormLayout(startup_grp)
-        self._startup_cb = QCheckBox("Launch TextPolish at system login")
-        self._startup_cb.setChecked(self._settings.launch_at_startup)
-        s_layout.addRow("", self._startup_cb)
-        layout.addWidget(startup_grp)
+        def _render_keycaps() -> None:
+            while self._keycap_layout.count():
+                item = self._keycap_layout.takeAt(0)
+                if item and item.widget():
+                    item.widget().deleteLater()
+            for cap in _to_keycaps(self._hotkey_edit.text()):
+                self._keycap_layout.addWidget(_keycap_label(cap))
+            self._keycap_layout.addStretch()
+
+        self._hotkey_edit.textChanged.connect(lambda _t: _render_keycaps())
+        _render_keycaps()
 
         layout.addStretch()
         return w
@@ -874,53 +1751,155 @@ class SettingsWindow(QDialog):
     def _page_appearance(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setSpacing(16)
+        layout.setSpacing(14)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl = QLabel("Appearance")
-        lbl.setStyleSheet("font-size: 20px; font-weight: 700; color: #F0F0F8; background: transparent;")
-        layout.addWidget(lbl)
+        title = QLabel("Appearance")
+        title.setObjectName("SettingsTitle")
+        layout.addWidget(title)
 
-        grp = QGroupBox("Theme")
-        g_layout = QFormLayout(grp)
+        hint = QLabel("Customize the visual style and notifications of Avelyn.")
+        hint.setObjectName("SettingsMuted")
+        layout.addWidget(hint)
+
+        # 1. Theme Preferences Group
+        tc_card = QFrame()
+        tc_card.setObjectName("SettingsCard")
+        tc_layout = QVBoxLayout(tc_card)
+        tc_layout.setContentsMargins(18, 16, 18, 16)
+        tc_layout.setSpacing(14)
+
+        tc_title = QLabel("Theme Preferences")
+        tc_title.setStyleSheet("font-size: 13px; font-weight: 600; color: #111827;")
+        tc_layout.addWidget(tc_title)
+
+        # Keep hidden combo for save compatibility
         self._theme_combo = QComboBox()
+        self._theme_combo.setObjectName("SettingsCombo")
         self._theme_combo.addItems(["Dark", "Light"])
         self._theme_combo.setCurrentIndex(0 if self._settings.theme == "dark" else 1)
-        g_layout.addRow("Color theme:", self._theme_combo)
+        self._theme_combo.hide()
 
-        self._notif_cb = QCheckBox("Show system notifications")
+        row = QHBoxLayout()
+        row.setSpacing(14)
+
+        light_btn = QToolButton()
+        light_btn.setObjectName("ThemeCard")
+        light_btn.setCheckable(True)
+        light_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        light_btn.setIcon(_theme_preview("light"))
+        light_btn.setIconSize(QSize(96, 58))
+        light_btn.setText("Light Mode")
+        light_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        dark_btn = QToolButton()
+        dark_btn.setObjectName("ThemeCard")
+        dark_btn.setCheckable(True)
+        dark_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        dark_btn.setIcon(_theme_preview("dark"))
+        dark_btn.setIconSize(QSize(96, 58))
+        dark_btn.setText("Dark Mode")
+        dark_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        system_btn = QToolButton()
+        system_btn.setObjectName("ThemeCard")
+        system_btn.setCheckable(False)
+        system_btn.setEnabled(False)
+        system_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        system_btn.setIcon(_theme_preview("system"))
+        system_btn.setIconSize(QSize(96, 58))
+        system_btn.setText("System Theme")
+        system_btn.setToolTip("System theme is not supported in this build.")
+
+        def _select_theme(mode: str) -> None:
+            if mode == "dark":
+                dark_btn.setChecked(True)
+                light_btn.setChecked(False)
+                self._theme_combo.setCurrentIndex(0)
+            else:
+                light_btn.setChecked(True)
+                dark_btn.setChecked(False)
+                self._theme_combo.setCurrentIndex(1)
+
+        light_btn.clicked.connect(lambda: _select_theme("light"))
+        dark_btn.clicked.connect(lambda: _select_theme("dark"))
+        _select_theme(self._settings.theme)
+
+        row.addWidget(light_btn)
+        row.addWidget(dark_btn)
+        row.addWidget(system_btn)
+        row.addStretch()
+        tc_layout.addLayout(row)
+        layout.addWidget(tc_card)
+
+        # 2. Notifications Group Card
+        self._notif_cb = QCheckBox("Show notifications")
         self._notif_cb.setChecked(self._settings.get("show_notifications", True))
-        g_layout.addRow("", self._notif_cb)
-        layout.addWidget(grp)
+        
+        notif_row = _premium_row(
+            label_text="System Notifications",
+            sub_label="Display menu bar notifications for shortcut triggers and updates.",
+            icon_kind="info",
+            icon_color="#7C3AED",
+            icon_bg_color="#F3EEFF",
+            widget=self._notif_cb
+        )
+        layout.addWidget(_settings_group([notif_row]))
         layout.addStretch()
         return w
 
     def _page_history(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setSpacing(12)
+        layout.setSpacing(14)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl = QLabel("Prompt History")
-        lbl.setStyleSheet("font-size: 20px; font-weight: 700; color: #F0F0F8; background: transparent;")
-        layout.addWidget(lbl)
+        title = QLabel("History")
+        title.setObjectName("SettingsTitle")
+        layout.addWidget(title)
+
+        history = self._settings.prompt_history
+        if not history:
+            empty_w = QWidget()
+            empty_l = QVBoxLayout(empty_w)
+            empty_l.setContentsMargins(0, 80, 0, 80)
+            empty_l.setSpacing(14)
+
+            icon_lbl = QLabel()
+            icon_lbl.setFixedSize(64, 64)
+            icon_lbl.setStyleSheet("background: #F3EEFF; border-radius: 32px;")
+            icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            icon_lbl.setPixmap(_paint_settings_icon("clock", "#7C3AED", 32))
+            
+            ttl = QLabel("No history yet")
+            ttl.setObjectName("SettingsHistoryTitle")
+            
+            desc = QLabel("Enhancements you apply system-wide will appear here.")
+            desc.setObjectName("SettingsMuted")
+            desc.setWordWrap(True)
+            desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            empty_l.addWidget(icon_lbl, 0, Qt.AlignmentFlag.AlignCenter)
+            empty_l.addWidget(ttl, 0, Qt.AlignmentFlag.AlignCenter)
+            empty_l.addWidget(desc, 0, Qt.AlignmentFlag.AlignCenter)
+            
+            layout.addWidget(empty_w)
+            layout.addStretch()
+            return w
 
         self._history_list = QListWidget()
-        history = self._settings.prompt_history
-        if history:
-            for entry in history:
-                ts   = entry.get("timestamp", "")[:19].replace("T", " ")
-                mode = entry.get("mode", "?")
-                orig = entry.get("original", "")[:60].replace("\n", " ")
-                item = QListWidgetItem(f"[{ts}]  {mode.upper()}  —  {orig}…")
-                self._history_list.addItem(item)
-        else:
-            self._history_list.addItem("No history yet.")
-
+        self._history_list.setObjectName("SettingsHistory")
+        for entry in history:
+            ts = entry.get("timestamp", "")[:19].replace("T", " ")
+            mode = entry.get("mode", "?")
+            orig = entry.get("original", "")[:60].replace("\n", " ")
+            item = QListWidgetItem(f"[{ts}]  {mode.upper()}  —  {orig}…")
+            self._history_list.addItem(item)
         layout.addWidget(self._history_list)
 
         clear_btn = QPushButton("Clear History")
-        clear_btn.setObjectName("cancelBtn")
+        clear_btn.setObjectName("SecondaryBtn")
+        clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         clear_btn.clicked.connect(self._on_clear_history)
         layout.addWidget(clear_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         return w
@@ -928,24 +1907,66 @@ class SettingsWindow(QDialog):
     def _page_about(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setSpacing(12)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        layout.setContentsMargins(0, 40, 0, 40)
 
-        logo = QLabel("✦  TextPolish")
-        logo.setStyleSheet("color: #7C3AED; font-size: 28px; font-weight: 800; background: transparent;")
+        from utils import get_resource_path
+        logo_path = get_resource_path("public/logo.png")
+
+        logo = QLabel()
+        logo.setFixedSize(56, 56)
+        if logo_path.exists():
+            pm = QPixmap(str(logo_path))
+            if not pm.isNull():
+                logo.setPixmap(pm.scaled(56, 56, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        else:
+            logo.setPixmap(_paint_settings_icon("sparkles", "#7C3AED", 56))
+
+        name = QLabel("Avelyn")
+        name.setObjectName("SettingsAboutName")
+
+        version = QLabel("Version 1.0.0")
+        version.setObjectName("SettingsAboutVersion")
+
         desc = QLabel(
-            "A cross-platform AI productivity assistant that enhances selected text\n"
-            "system-wide with a single keyboard shortcut.\n\n"
-            "Supports Gemini, OpenAI, and Ollama (offline).\n\n"
-            "Version 1.0.0 • MIT License\n"
-            "Built with Python, PyQt6, pynput, and pyperclip."
+            "A premium system-wide writing assistant powered by local AI.\n"
+            "Runs entirely locally on your machine for complete speed, privacy, and security."
         )
-        desc.setStyleSheet("color: #9090A8; font-size: 13px; line-height: 1.6; background: transparent;")
+        desc.setObjectName("SettingsAboutDesc")
         desc.setWordWrap(True)
+        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(logo)
-        layout.addSpacing(8)
-        layout.addWidget(desc)
+        # Premium Links Row
+        links = QWidget()
+        links_l = QHBoxLayout(links)
+        links_l.setContentsMargins(0, 16, 0, 0)
+        links_l.setSpacing(8)
+
+        def link_btn(label: str, url: str) -> QPushButton:
+            b = QPushButton(label)
+            b.setObjectName("AboutLink")
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(url)))
+            return b
+
+        dot1 = QLabel("·")
+        dot1.setStyleSheet("color: #6B7280; font-weight: bold; font-size: 14px;")
+        dot2 = QLabel("·")
+        dot2.setStyleSheet("color: #6B7280; font-weight: bold; font-size: 14px;")
+
+        links_l.addStretch()
+        links_l.addWidget(link_btn("Website", "https://avelyn.app"))
+        links_l.addWidget(dot1)
+        links_l.addWidget(link_btn("GitHub", "https://github.com/vishwaksen21/TextPolish"))
+        links_l.addWidget(dot2)
+        links_l.addWidget(link_btn("Privacy Policy", "https://avelyn.app/privacy"))
+        links_l.addStretch()
+
+        layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(name, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(version, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(desc, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(links, 0, Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
         return w
 
@@ -954,8 +1975,26 @@ class SettingsWindow(QDialog):
     @pyqtSlot(int)
     def _on_page_changed(self, idx: int) -> None:
         self._stack.setCurrentIndex(idx)
+        page = self._stack.currentWidget()
+        if page is None:
+            return
+        eff = page.graphicsEffect()
+        if eff is None:
+            from PyQt6.QtWidgets import QGraphicsOpacityEffect
+            eff = QGraphicsOpacityEffect(page)
+            page.setGraphicsEffect(eff)
+        try:
+            eff.setOpacity(0.0)  # type: ignore[attr-defined]
+        except Exception:
+            return
+        anim = QPropertyAnimation(eff, b"opacity", self)
+        anim.setDuration(160)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        anim.start()
 
-    def _on_save(self) -> None:
+    def _auto_save(self) -> None:
         self._settings.set("ai_provider",     "ollama")
         self._settings.set("ollama_host",     self._ollama_host.text().strip())
         self._settings.set("ollama_model",    self._ollama_model_edit.text().strip())
@@ -971,19 +2010,20 @@ class SettingsWindow(QDialog):
         set_launch_at_startup(self._startup_cb.isChecked())
 
         self.settings_changed.emit()
-        QMessageBox.information(self, "Saved", "Settings saved successfully.")
 
     def _on_test_connection(self) -> None:
         self._test_result.setText("Testing…")
-        self._test_result.setStyleSheet("color: #9090A8; background: transparent; font-size: 12px;")
+        self._status_dot.setStyleSheet("color: #F59E0B; font-size: 14px;") # Orange dot
         QApplication.processEvents()
         try:
             result = self._processor.test_connection()
-            self._test_result.setText(f"✓ {result[:80]}")
-            self._test_result.setStyleSheet("color: #10B981; background: transparent; font-size: 12px;")
+            self._test_result.setText(f"Connected — {result[:60]}")
+            self._test_result.setStyleSheet("color: #10B981; font-size: 12px; font-weight: 500;")
+            self._status_dot.setStyleSheet("color: #10B981; font-size: 14px;") # Green dot
         except Exception as exc:                          # noqa: BLE001
-            self._test_result.setText(f"✗ {exc}")
-            self._test_result.setStyleSheet("color: #EF4444; background: transparent; font-size: 12px;")
+            self._test_result.setText(f"Connection Failed: {exc}")
+            self._test_result.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: 500;")
+            self._status_dot.setStyleSheet("color: #EF4444; font-size: 14px;") # Red dot
 
     def _on_clear_history(self) -> None:
         reply = QMessageBox.question(
