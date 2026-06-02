@@ -495,7 +495,7 @@ export default function SettingsMockup() {
                 <div className="flex gap-4 pt-4 text-xs font-semibold text-[#7C3AED]">
                   <a href="https://avelyn.app" target="_blank" className="hover:underline">Website</a>
                   <span className="text-neutral-300 dark:text-neutral-700 select-none">·</span>
-                  <a href="https://github.com/vishwaksen21/TextPolish" target="_blank" className="hover:underline">GitHub</a>
+                  <a href="https://github.com/vishwaksen21/Avelyn" target="_blank" className="hover:underline">GitHub</a>
                   <span className="text-neutral-300 dark:text-neutral-700 select-none">·</span>
                   <a href="https://avelyn.app/privacy" target="_blank" className="hover:underline">Privacy</a>
                 </div>

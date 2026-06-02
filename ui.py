@@ -1957,7 +1957,7 @@ class SettingsWindow(QDialog):
         links_l.addStretch()
         links_l.addWidget(link_btn("Website", "https://avelyn.app"))
         links_l.addWidget(dot1)
-        links_l.addWidget(link_btn("GitHub", "https://github.com/vishwaksen21/TextPolish"))
+        links_l.addWidget(link_btn("GitHub", "https://github.com/vishwaksen21/Avelyn"))
         links_l.addWidget(dot2)
         links_l.addWidget(link_btn("Privacy Policy", "https://avelyn.app/privacy"))
         links_l.addStretch()

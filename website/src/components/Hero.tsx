@@ -85,7 +85,7 @@ export default function Hero() {
               className="mt-8 flex flex-wrap gap-4"
             >
               <a
-                href="https://github.com/vishwaksen21/TextPolish/releases"
+                href="https://github.com/vishwaksen21/Avelyn/releases"
                 className="inline-flex items-center justify-center rounded-full bg-neutral-950 px-7 py-4 text-base font-semibold text-white transition hover:bg-neutral-800"
               >
                 Download for macOS

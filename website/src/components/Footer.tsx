@@ -10,18 +10,18 @@ export default function Footer() {
     {
       title: "Product",
       links: [
-        { name: "Download macOS", href: "https://github.com/vishwaksen21/TextPolish/releases" },
+        { name: "Download macOS", href: "https://github.com/vishwaksen21/Avelyn/releases" },
         { name: "Setup Wizard", href: "#how-it-works" },
-        { name: "Changelog", href: "https://github.com/vishwaksen21/TextPolish/releases" },
+        { name: "Changelog", href: "https://github.com/vishwaksen21/Avelyn/releases" },
         { name: "Beta Program", href: "#" }
       ]
     },
     {
       title: "Resources",
       links: [
-        { name: "Documentation", href: "https://github.com/vishwaksen21/TextPolish/blob/main/README.md" },
-        { name: "GitHub Repository", href: "https://github.com/vishwaksen21/TextPolish" },
-        { name: "Local LLM Guide", href: "https://github.com/vishwaksen21/TextPolish#ollama-offline--local" },
+        { name: "Documentation", href: "https://github.com/vishwaksen21/Avelyn/blob/main/README.md" },
+        { name: "GitHub Repository", href: "https://github.com/vishwaksen21/Avelyn" },
+        { name: "Local LLM Guide", href: "https://github.com/vishwaksen21/Avelyn#ollama-offline--local" },
         { name: "Ollama Models", href: "https://ollama.com/library" }
       ]
     },
@@ -30,7 +30,7 @@ export default function Footer() {
       links: [
         { name: "Contact Support", href: "mailto:support@avelyn.app" },
         { name: "Privacy Policy", href: "#privacy" },
-        { name: "MIT License", href: "https://github.com/vishwaksen21/TextPolish/blob/main/LICENSE" },
+        { name: "MIT License", href: "https://github.com/vishwaksen21/Avelyn/blob/main/LICENSE" },
         { name: "System Status", href: "#" }
       ]
     }
@@ -53,7 +53,7 @@ export default function Footer() {
             {/* Social badges */}
             <div className="flex items-center gap-3.5 pt-1 text-neutral-400">
               <a
-                href="https://github.com/vishwaksen21/TextPolish"
+                href="https://github.com/vishwaksen21/Avelyn"
                 className="hover:text-[#0E0E11] transition-colors"
                 aria-label="Avelyn GitHub"
               >
