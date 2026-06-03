@@ -2297,6 +2297,11 @@ class InstallerOverlay(QWidget):
                 geo.y() + (geo.height() - self.height()) // 2,
             )
 
+    def closeEvent(self, event) -> None:
+        """Log and ignore close events — InstallerOverlay must never close during installation."""
+        from logger import logger as _log
+        _log.critical("INSTALLER OVERLAY RECEIVED CLOSE EVENT")
+        super().closeEvent(event)
 
 class ToastOverlay(QWidget):
     """A premium, animated frameless pill overlay to indicate activity."""

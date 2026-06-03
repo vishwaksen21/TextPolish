@@ -593,9 +593,12 @@ def main() -> None:
         # ── First-run installer flow ──────────────────────────────────────────
         logger.info("First run or Ollama missing. Triggering auto-installer...")
         app = QApplication(sys.argv)
+        app.setQuitOnLastWindowClosed(False)   # CRITICAL: keep process alive during installation
         overlay = InstallerOverlay()
         overlay.show()
         QApplication.processEvents()
+        logger.critical("INSTALLER: overlay shown")
+
 
         model_name = settings.ollama_model
         worker = InstallWorker(model_name)
@@ -606,13 +609,15 @@ def main() -> None:
 
         def _on_install_finished(success: bool, error_msg: str) -> None:
             if success:
+                logger.critical("INSTALLER: worker finished — success")
                 overlay.show_success()
                 settings.set("first_run_completed", True)
                 logger.info("Installation complete. Launching Avelyn...")
+                logger.critical("INSTALLER: launching AvelynApp")
                 # Show success for 1.5s then launch
                 QTimer.singleShot(1500, lambda: _launch_after_install(args))
             else:
-                logger.error("Installation failed: %s", error_msg)
+                logger.critical("INSTALLER: worker finished — FAILED: %s", error_msg)
                 overlay.show_error(error_msg)
 
         def _on_retry() -> None:
@@ -634,6 +639,7 @@ def main() -> None:
                 logger.info("STARTUP: AvelynApp created. Calling _finish_startup...")
                 tp_app._finish_startup()
                 logger.info("STARTUP: _finish_startup done. Hiding overlay...")
+                logger.critical("INSTALLER: overlay hide called")
                 overlay.hide()
                 # app.exec() is already running — store reference to keep alive
                 _refs["tp_app"] = tp_app
@@ -661,6 +667,7 @@ def main() -> None:
         overlay.retry_requested.connect(_on_retry)
         worker.finished.connect(_on_install_finished)
         worker.start()
+        logger.critical("INSTALLER: worker started")
         sys.exit(app.exec())
 
     elif needs_install and settings.get("first_run_completed"):
