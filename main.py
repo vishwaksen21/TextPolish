@@ -514,8 +514,9 @@ def main() -> None:
             worker2.start()
 
         def _launch_after_install(launch_args) -> None:
-            overlay.hide()
             tp_app = AvelynApp(launch_args)
+            tp_app._finish_startup()
+            overlay.hide()
             # app.exec() is already running; just start the app object
             _refs["tp_app"] = tp_app
 
