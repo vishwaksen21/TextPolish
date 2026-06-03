@@ -16,10 +16,30 @@ import time
 from typing import Optional
 
 from logger import logger
-from pynput.keyboard import Controller, Key
-_keyboard_controller = Controller()
 
-def _get_keyboard():
+# pynput keyboard controller — initialised defensively at module load.
+# On Windows, Controller() calls into Win32 keyboard APIs which can fail if
+# pynput DLLs are missing from the PyInstaller bundle or if a security tool
+# blocks the hook.  We must never let this crash at import time.
+try:
+    from pynput.keyboard import Controller as _KbController, Key
+    _keyboard_controller: _KbController | None = _KbController()
+    logger.debug("STARTUP: pynput keyboard Controller initialised OK")
+except Exception as _pynput_exc:
+    logger.warning(
+        "STARTUP WARN: pynput keyboard Controller init failed (%s). "
+        "Keyboard simulation (copy/paste) will be unavailable.",
+        _pynput_exc,
+    )
+    _keyboard_controller = None
+    try:
+        from pynput.keyboard import Key          # Key constants may still import
+    except Exception:
+        Key = None  # type: ignore[assignment]
+
+
+def _get_keyboard() -> _KbController | None:
+    """Return the shared keyboard controller, or None if unavailable."""
     return _keyboard_controller
 
 
@@ -205,8 +225,11 @@ def copy_selection() -> None:
             except Exception as exc:
                 logger.error("Error during physical modifier release check: %s", exc)
 
-        # ── Send copy keystroke ───────────────────────────────────────────────
+        # ── Send copy keystroke ──────────────────────────────────────────────────────
         kb = _get_keyboard()
+        if kb is None or Key is None:
+            logger.error("copy_selection: keyboard controller unavailable, skipping Ctrl/Cmd+C")
+            return
         kb.release(Key.ctrl)
         kb.release(Key.shift)
         kb.release(Key.alt)
@@ -365,8 +388,11 @@ def paste_text() -> None:
         logger.info("ACTIVE_APP_AFTER_PASTE_BUNDLE=%s", app_info_after.get("bundle_id") or app_info_after.get("hwnd"))
         logger.info("IS_AVELYN_AFTER_PASTE=%s",     app_info_after.get("is_avelyn"))
 
-        # ── Send paste keystroke ──────────────────────────────────────────────
+        # ── Send paste keystroke ─────────────────────────────────────────────────────
         kb = _get_keyboard()
+        if kb is None or Key is None:
+            logger.error("paste_text: keyboard controller unavailable, skipping Ctrl/Cmd+V")
+            return
         kb.release(Key.ctrl)
         kb.release(Key.shift)
         kb.release(Key.alt)

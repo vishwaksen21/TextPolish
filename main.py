@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import traceback as _traceback
 from pathlib import Path
 import requests
 
@@ -25,6 +26,28 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 from logger          import logger, setup_logger
 from settings        import Settings
 from installer import Installer
+
+
+# ── Fatal error dialog ────────────────────────────────────────────────────────
+
+def _show_fatal_error(title: str, message: str) -> None:
+    """
+    Display a visible error message box.
+    Safe to call at any point in startup — creates a QApplication if needed.
+    Never raises.
+    """
+    try:
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        msg = QMessageBox()
+        msg.setWindowTitle(title)
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setText(message)
+        msg.setDetailedText(message)
+        msg.exec()
+    except Exception:  # noqa: BLE001
+        pass  # If even the dialog fails, we already logged — don't recurse
 
 class InstallWorker(QThread):
     """
@@ -260,40 +283,108 @@ class AvelynApp:
 
     def __init__(self, args: argparse.Namespace) -> None:
         self._args = args
+        logger.info("STARTUP: AvelynApp init started")
 
         # ── Core services ─────────────────────────────────────────────────────
-        self._settings  = Settings()
-        self._clipboard = ClipboardManager()
-        self._processor = AIProcessor(self._settings)
+        logger.info("STARTUP: Loading settings...")
+        try:
+            self._settings = Settings()
+            logger.info("STARTUP: Settings loaded OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: Settings() raised: %s\n%s", exc, _traceback.format_exc())
+            raise
+
+        logger.info("STARTUP: Creating ClipboardManager...")
+        try:
+            self._clipboard = ClipboardManager()
+            logger.info("STARTUP: ClipboardManager created OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: ClipboardManager() raised: %s\n%s", exc, _traceback.format_exc())
+            raise
+
+        logger.info("STARTUP: Creating AIProcessor...")
+        try:
+            self._processor = AIProcessor(self._settings)
+            logger.info("STARTUP: AIProcessor created OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: AIProcessor() raised: %s\n%s", exc, _traceback.format_exc())
+            raise
 
         # ── Qt application ────────────────────────────────────────────────────
-        self._qapp = QApplication.instance()
-        if self._qapp is None:
-            self._qapp = QApplication(sys.argv)
-        self._qapp.setApplicationName(APP_NAME)
-        self._qapp.setApplicationVersion(__version__)
-        self._qapp.setQuitOnLastWindowClosed(False)   # Keep alive as tray app
+        logger.info("STARTUP: Acquiring QApplication...")
+        try:
+            self._qapp = QApplication.instance()
+            if self._qapp is None:
+                self._qapp = QApplication(sys.argv)
+            self._qapp.setApplicationName(APP_NAME)
+            self._qapp.setApplicationVersion(__version__)
+            self._qapp.setQuitOnLastWindowClosed(False)   # Keep alive as tray app
+            logger.info("STARTUP: QApplication ready (quitOnLastWindowClosed=False)")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: QApplication setup raised: %s\n%s", exc, _traceback.format_exc())
+            raise
 
-        # Apply stylesheet.
-        from ui import get_qss
-        self._qapp.setStyleSheet(get_qss(self._settings.theme))
-        self._current_theme = self._settings.theme
+        # Apply stylesheet — non-fatal if it fails
+        logger.info("STARTUP: Applying stylesheet (theme=%s)...", self._settings.theme)
+        try:
+            from ui import get_qss
+            self._qapp.setStyleSheet(get_qss(self._settings.theme))
+            logger.info("STARTUP: Stylesheet applied OK")
+        except Exception as exc:
+            logger.warning("STARTUP WARN: Stylesheet failed (non-fatal): %s", exc)
+        self._current_theme  = self._settings.theme
         self._current_hotkey = self._settings.hotkey
 
-        # Load Inter font if available.
-        _load_font()
+        # Load Inter font — non-fatal if it fails
+        logger.info("STARTUP: Loading fonts...")
+        try:
+            _load_font()
+            logger.info("STARTUP: Font loading OK")
+        except Exception as exc:
+            logger.warning("STARTUP WARN: Font loading failed (non-fatal): %s", exc)
 
         # ── UI components ─────────────────────────────────────────────────────
-        self._tray    = SystemTrayIcon(self._settings)
-        self._popup   = EnhancementPopup(self._settings, self._processor, self._clipboard)
-        self._workflow = CommandPaletteWorkflow(self._settings, self._processor, self._clipboard, self._tray)
+        logger.info("STARTUP: Creating SystemTrayIcon...")
+        try:
+            from PyQt6.QtWidgets import QSystemTrayIcon as _QSTI
+            if not _QSTI.isSystemTrayAvailable():
+                logger.warning("STARTUP WARN: System tray is NOT available on this system!")
+            self._tray = SystemTrayIcon(self._settings)
+            logger.info("STARTUP: SystemTrayIcon created OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: SystemTrayIcon() raised: %s\n%s", exc, _traceback.format_exc())
+            raise
+
+        logger.info("STARTUP: Creating EnhancementPopup...")
+        try:
+            self._popup = EnhancementPopup(self._settings, self._processor, self._clipboard)
+            logger.info("STARTUP: EnhancementPopup created OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: EnhancementPopup() raised: %s\n%s", exc, _traceback.format_exc())
+            raise
+
+        logger.info("STARTUP: Creating CommandPaletteWorkflow...")
+        try:
+            self._workflow = CommandPaletteWorkflow(self._settings, self._processor, self._clipboard, self._tray)
+            logger.info("STARTUP: CommandPaletteWorkflow created OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: CommandPaletteWorkflow() raised: %s\n%s", exc, _traceback.format_exc())
+            raise
+
         self._settings_win: SettingsWindow | None = None
 
         # ── Hotkey bridge (thread → Qt signal) ────────────────────────────────
-        self._bridge  = HotkeyBridge()
-        self._hotkeys = HotkeyManager(self._bridge, self._settings.hotkey, self._clipboard)
+        logger.info("STARTUP: Creating HotkeyBridge and HotkeyManager...")
+        try:
+            self._bridge  = HotkeyBridge()
+            self._hotkeys = HotkeyManager(self._bridge, self._settings.hotkey, self._clipboard)
+            logger.info("STARTUP: HotkeyBridge and HotkeyManager created OK")
+        except Exception as exc:
+            logger.critical("STARTUP FAIL: Hotkey setup raised: %s\n%s", exc, _traceback.format_exc())
+            raise
 
         self._wire_signals()
+        logger.info("STARTUP: AvelynApp init complete")
 
     def _wire_signals(self) -> None:
         # Hotkey bridge → replacement logic
@@ -334,32 +425,51 @@ class AvelynApp:
         self._finish_startup()
 
     def _finish_startup(self) -> None:
-        # Start hotkey listener.
-        if self._settings.hotkey_enabled:
-            self._hotkeys.start()
-        else:
-            logger.info("Hotkey listener disabled in settings.")
+        logger.info("STARTUP: _finish_startup called")
 
-        # Show tray icon.
-        self._tray.show()
-        self._tray.notify(
-            APP_NAME,
-            f"Running in background. Press {self._settings.shortcut_display} "
-            "to enhance selected text.",
-        )
-        
+        # Start hotkey listener — non-fatal if it fails
+        if self._settings.hotkey_enabled:
+            logger.info("STARTUP: Starting hotkey listener...")
+            try:
+                self._hotkeys.start()
+                logger.info("STARTUP: Hotkey listener started OK")
+            except Exception as exc:
+                logger.error("STARTUP WARN: Hotkey listener start failed (non-fatal): %s\n%s",
+                             exc, _traceback.format_exc())
+        else:
+            logger.info("STARTUP: Hotkey listener disabled in settings.")
+
+        # Show tray icon — non-fatal if it fails
+        logger.info("STARTUP: Calling tray.show()...")
+        try:
+            self._tray.show()
+            logger.info("STARTUP: tray.show() called OK")
+        except Exception as exc:
+            logger.error("STARTUP WARN: tray.show() failed (non-fatal): %s\n%s",
+                         exc, _traceback.format_exc())
+
+        try:
+            self._tray.notify(
+                APP_NAME,
+                f"Running in background. Press {self._settings.shortcut_display} "
+                "to enhance selected text.",
+            )
+        except Exception as exc:
+            logger.warning("STARTUP WARN: tray.notify() failed (non-fatal): %s", exc)
+
         # Start Ollama background process silently if missing
         import threading
         def background_ollama():
             from installer import Installer
             try:
                 Installer.start_ollama()
-            except:
+            except Exception:
                 pass
         threading.Thread(target=background_ollama, daemon=True).start()
 
-        logger.info("%s v%s started. Platform: %s", APP_NAME, __version__, ph.platform_name())
-        logger.info("PACKAGED_MODE=%s", getattr(sys, 'frozen', False))
+        logger.info("STARTUP: %s v%s started. Platform: %s", APP_NAME, __version__, ph.platform_name())
+        logger.info("STARTUP: PACKAGED_MODE=%s", getattr(sys, 'frozen', False))
+        logger.info("STARTUP: Startup complete")
 
     # ── Slots / handlers ──────────────────────────────────────────────────────
 
@@ -514,11 +624,38 @@ def main() -> None:
             worker2.start()
 
         def _launch_after_install(launch_args) -> None:
-            tp_app = AvelynApp(launch_args)
-            tp_app._finish_startup()
-            overlay.hide()
-            # app.exec() is already running; just start the app object
-            _refs["tp_app"] = tp_app
+            """Called by QTimer after installer succeeds. Any exception here is caught
+            and shown visibly — the process NEVER exits silently on failure."""
+            logger.info("STARTUP: _launch_after_install called")
+            try:
+                logger.info("STARTUP: Creating AvelynApp after installation...")
+                tp_app = AvelynApp(launch_args)
+                logger.info("STARTUP: AvelynApp created. Calling _finish_startup...")
+                tp_app._finish_startup()
+                logger.info("STARTUP: _finish_startup done. Hiding overlay...")
+                overlay.hide()
+                # app.exec() is already running — store reference to keep alive
+                _refs["tp_app"] = tp_app
+                logger.info("STARTUP: _launch_after_install complete.")
+            except Exception as exc:  # noqa: BLE001
+                err_detail = _traceback.format_exc()
+                logger.critical(
+                    "STARTUP CRASH in _launch_after_install: %s\n%s", exc, err_detail
+                )
+                log_path = Path.home() / ".avelyn" / "logs" / "app.log"
+                friendly = (
+                    f"Avelyn failed to start after installation.\n\n"
+                    f"Error: {exc}\n\n"
+                    f"Full traceback saved to:\n{log_path}"
+                )
+                # Show error inside the installer overlay (keeps app alive)
+                try:
+                    overlay.show_error(friendly)
+                except Exception:  # noqa: BLE001
+                    pass
+                # Also show a standalone message box in case the overlay is gone
+                _show_fatal_error("Avelyn — Startup Failed", friendly)
+                # Do NOT re-raise: keep app.exec() alive so the user sees the error
 
         overlay.retry_requested.connect(_on_retry)
         worker.finished.connect(_on_install_finished)
@@ -527,17 +664,41 @@ def main() -> None:
 
     elif needs_install and settings.get("first_run_completed"):
         # Ollama installed before but not running — just start it silently
-        logger.info("Ollama not running. Starting server silently...")
+        logger.info("STARTUP: Ollama not running. Starting server silently...")
         try:
             Installer.start_ollama()
         except Exception as exc:
-            logger.warning("Could not auto-start Ollama: %s", exc)
-        app = AvelynApp(args)
-        sys.exit(app.run())
+            logger.warning("STARTUP WARN: Could not auto-start Ollama: %s", exc)
+        try:
+            logger.info("STARTUP: Creating AvelynApp (silent-start path)...")
+            app = AvelynApp(args)
+            logger.info("STARTUP: AvelynApp created OK")
+            sys.exit(app.run())
+        except Exception as exc:
+            err_detail = _traceback.format_exc()
+            logger.critical("STARTUP CRASH (silent-start path): %s\n%s", exc, err_detail)
+            log_path = Path.home() / ".avelyn" / "logs" / "app.log"
+            _show_fatal_error(
+                "Avelyn — Startup Failed",
+                f"Avelyn failed to start.\n\nError: {exc}\n\nLog: {log_path}"
+            )
+            sys.exit(1)
 
     else:
-        app = AvelynApp(args)
-        sys.exit(app.run())
+        try:
+            logger.info("STARTUP: Creating AvelynApp (normal path)...")
+            app = AvelynApp(args)
+            logger.info("STARTUP: AvelynApp created OK")
+            sys.exit(app.run())
+        except Exception as exc:
+            err_detail = _traceback.format_exc()
+            logger.critical("STARTUP CRASH (normal path): %s\n%s", exc, err_detail)
+            log_path = Path.home() / ".avelyn" / "logs" / "app.log"
+            _show_fatal_error(
+                "Avelyn — Startup Failed",
+                f"Avelyn failed to start.\n\nError: {exc}\n\nLog: {log_path}"
+            )
+            sys.exit(1)
 
 
 if __name__ == "__main__":
