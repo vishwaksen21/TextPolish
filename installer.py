@@ -138,17 +138,47 @@ class Installer:
         zip_path = os.path.join(target_dir, zip_name)
 
         cb(5, "Downloading Ollama...")
-        logger.info("Downloading Ollama from %s", url)
+        logger.critical("INSTALLER: Download phase starting. Destination: %s", zip_path)
 
+        t_download_start = time.perf_counter()
         try:
-            def _reporthook(blocknum: int, blocksize: int, totalsize: int) -> None:
-                if totalsize > 0:
-                    downloaded = min(blocknum * blocksize, totalsize)
-                    # Scale download progress into 5-40%
-                    pct = 5 + int((downloaded / totalsize) * 35)
-                    cb(pct, "Downloading Ollama...")
+            logger.critical("INSTALLER: Opening URL: %s", url)
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Avelyn-Installer/1.0"}
+            )
+            with urllib.request.urlopen(req) as response:
+                logger.critical("INSTALLER: URL opened successfully. Status: %s", response.status)
+                totalsize = int(response.headers.get("Content-Length", 0))
+                logger.critical("INSTALLER: Total file size to download: %d bytes", totalsize)
+                
+                logger.critical("INSTALLER: Download started")
+                downloaded = 0
+                last_pct = -1
+                chunk_size = 65536 # 64KB
+                
+                with open(zip_path, "wb") as f:
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        
+                        if totalsize > 0:
+                            # Scale progress from 5% to 40%
+                            pct = 5 + int((downloaded / totalsize) * 35)
+                            if pct != last_pct:
+                                cb(pct, "Downloading Ollama...")
+                                logger.critical("INSTALLER: Download progress: %d%% (%d/%d bytes)", pct, downloaded, totalsize)
+                                last_pct = pct
 
-            urllib.request.urlretrieve(url, zip_path, _reporthook)
+            t_download_end = time.perf_counter()
+            logger.critical(
+                "INSTALLER: Download completed in %.3f seconds. Bytes written: %d",
+                t_download_end - t_download_start,
+                downloaded
+            )
 
         except urllib.error.URLError as exc:
             _safe_remove(zip_path)
@@ -160,7 +190,8 @@ class Installer:
             raise RuntimeError(f"Download failed: {exc}")
 
         cb(40, "Installing Ollama...")
-        logger.info("Extracting Ollama to %s", target_dir)
+        logger.critical("INSTALLER: Zip extraction started. Source: %s, Target: %s", zip_path, target_dir)
+        t_extract_start = time.perf_counter()
 
         try:
             # Remove stale app folder so extraction is clean
@@ -174,6 +205,9 @@ class Installer:
 
             if IS_MACOS:
                 os.chmod(final_bin, 0o755)
+
+            t_extract_end = time.perf_counter()
+            logger.critical("INSTALLER: Zip extraction completed in %.3f seconds.", t_extract_end - t_extract_start)
 
         except zipfile.BadZipFile:
             raise RuntimeError(
@@ -209,7 +243,8 @@ class Installer:
                 "Ollama binary not found. Please reinstall Avelyn."
             )
 
-        logger.info("Starting Ollama server: %s serve", bin_path)
+        logger.critical("INSTALLER: Ollama startup started. Command: %s serve", bin_path)
+        t_startup_start = time.perf_counter()
         try:
             startupinfo = None
             if IS_WINDOWS:
@@ -224,6 +259,8 @@ class Installer:
                 startupinfo=startupinfo,
                 env=dict(os.environ, OLLAMA_HOST="127.0.0.1:11434"),
             )
+            t_startup_end = time.perf_counter()
+            logger.critical("INSTALLER: Ollama startup completed in %.3f seconds (process spawned in background).", t_startup_end - t_startup_start)
         except Exception as exc:
             raise RuntimeError(f"Failed to start Ollama server: {exc}")
 

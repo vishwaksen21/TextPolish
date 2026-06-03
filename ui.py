@@ -1943,6 +1943,8 @@ class SettingsWindow(QDialog):
         links_l.setSpacing(8)
 
         def link_btn(label: str, url: str) -> QPushButton:
+            from PyQt6.QtCore import QUrl
+            from PyQt6.QtGui import QDesktopServices
             b = QPushButton(label)
             b.setObjectName("AboutLink")
             b.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -2130,9 +2132,9 @@ class SystemTrayIcon(QSystemTrayIcon):
         verb = "paused" if self._paused else "resumed"
         self.showMessage("Avelyn", f"Hotkey {verb}.", QSystemTrayIcon.MessageIcon.Information, 2000)
 
-    def notify(self, title: str, message: str) -> None:
+    def notify(self, title: str, message: str, msecs: int = 2500) -> None:
         if self._settings.get("show_notifications", True):
-            self.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, 2500)
+            self.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, msecs)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -90,9 +90,9 @@ class InstallWorker(QThread):
             Installer.pull_model(self._model_name, cb)
 
             self.finished.emit(True, "")
-        except Exception as exc:
+        except BaseException as exc:
             import traceback as _tb
-            logger.critical("INSTALLER CRASH: %s\n%s", exc, _tb.format_exc())
+            logger.critical("INSTALLER FATAL CRASH: %s\n%s", exc, _tb.format_exc())
             self.finished.emit(False, f"{exc}")
 from clipboard_manager import ClipboardManager
 from ai_processor    import AIProcessor
