@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Menu, X } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
@@ -14,6 +14,12 @@ export default function Navbar() {
     { name: "How It Works", href: "#how-it-works" },
     { name: "FAQ", href: "#faq" },
   ];
+
+  const scrollToBeta = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setIsMobileMenuOpen(false);
+    document.getElementById("beta")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="fixed top-0 inset-x-0 z-50 flex justify-center mt-6 px-4 pointer-events-none">
@@ -76,12 +82,12 @@ export default function Navbar() {
             {/* CTA */}
             <div className="flex items-center">
               <a
-                href="https://github.com/vishwaksen21/Avelyn/releases"
-                className="group flex items-center gap-1.5 rounded-full bg-[#0E0E11] pl-5 pr-6 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-black/10 transition-all duration-300 hover:bg-neutral-800 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] outline-none"
+                href="#beta"
+                onClick={scrollToBeta}
+                className="group flex items-center gap-1.5 rounded-full bg-[#0E0E11] pl-4 pr-5 py-2.5 text-[13px] font-semibold text-white shadow-sm shadow-black/10 transition-all duration-300 hover:bg-neutral-800 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] outline-none"
               >
-                <Download className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
-                <span className="hidden xs:inline">Download</span>
-                <span className="inline xs:hidden">App</span>
+                <Sparkles className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
+                <span>Beta Access</span>
               </a>
             </div>
 

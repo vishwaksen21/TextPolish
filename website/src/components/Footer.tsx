@@ -10,10 +10,10 @@ export default function Footer() {
     {
       title: "Product",
       links: [
-        { name: "Download macOS", href: "https://github.com/vishwaksen21/Avelyn/releases" },
+        { name: "Early Beta Access", href: "#beta" },
         { name: "Setup Wizard", href: "#how-it-works" },
-        { name: "Changelog", href: "https://github.com/vishwaksen21/Avelyn/releases" },
-        { name: "Beta Program", href: "#" }
+        { name: "GitHub Project", href: "https://github.com/vishwaksen21/Avelyn" },
+        { name: "Beta Program", href: "#beta" }
       ]
     },
     {
@@ -25,11 +25,12 @@ export default function Footer() {
       ]
     },
     {
-      title: "Legal",
+      title: "Contact & Legal",
       links: [
         { name: "Privacy Policy", href: "#privacy" },
         { name: "MIT License", href: "https://github.com/vishwaksen21/Avelyn/blob/main/LICENSE" },
-        { name: "Contact Support", href: "mailto:support@avelyn.app" }
+        { name: "chilukurvishwak21@gmail.com", href: "mailto:chilukurvishwak21@gmail.com" },
+        { name: "Tel: 7019151370", href: "tel:7019151370" }
       ]
     }
   ];
@@ -63,10 +64,14 @@ export default function Footer() {
             </h3>
 
             <a
-              href="https://github.com/vishwaksen21/Avelyn/releases"
+              href="#beta"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("beta")?.scrollIntoView({ behavior: "smooth" });
+              }}
               className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#0E0E11] px-6 py-3.5 text-sm font-semibold text-white shadow-xl shadow-black/10 transition-all hover:bg-neutral-800 hover:scale-[1.02] active:scale-[0.98]"
             >
-              Get Avelyn for macOS
+              Early Beta Access
               <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
             </a>
           </div>
@@ -132,7 +137,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="mailto:support@avelyn.app"
+              href="mailto:chilukurvishwak21@gmail.com"
               className="p-2.5 rounded-full bg-white border border-neutral-200/60 text-neutral-400 hover:text-neutral-900 hover:border-neutral-300 hover:shadow-sm transition-all duration-300"
               aria-label="Email Support"
             >
