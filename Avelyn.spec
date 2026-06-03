@@ -78,7 +78,7 @@ exe = EXE(
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None, # e.g. "Developer ID Application: Your Name (TeamID)"
-    entitlements_file='Avelyn.entitlements', # Will be passed when codesign_identity is set
+    entitlements_file='Avelyn.entitlements' if sys.platform == 'darwin' else None, # Will be passed when codesign_identity is set
     icon='assets/icon.icns' if sys.platform == 'darwin' else 'assets/icon.ico',
 )
 
