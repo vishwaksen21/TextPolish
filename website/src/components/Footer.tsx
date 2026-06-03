@@ -12,14 +12,12 @@ export default function Footer() {
       links: [
         { name: "Early Beta Access", href: "#beta" },
         { name: "Setup Wizard", href: "#how-it-works" },
-        { name: "GitHub Project", href: "https://github.com/vishwaksen21/Avelyn" },
         { name: "Beta Program", href: "#beta" }
       ]
     },
     {
       title: "Resources",
       links: [
-        { name: "Documentation", href: "https://github.com/vishwaksen21/Avelyn/blob/main/README.md" },
         { name: "Local LLM Guide", href: "https://github.com/vishwaksen21/Avelyn#ollama-offline--local" },
         { name: "Ollama Models", href: "https://ollama.com/library", external: true }
       ]
@@ -28,7 +26,6 @@ export default function Footer() {
       title: "Contact & Legal",
       links: [
         { name: "Privacy Policy", href: "#privacy" },
-        { name: "MIT License", href: "https://github.com/vishwaksen21/Avelyn/blob/main/LICENSE" },
         { name: "chilukurvishwak21@gmail.com", href: "mailto:chilukurvishwak21@gmail.com" },
         { name: "Tel: 7019151370", href: "tel:7019151370" }
       ]
