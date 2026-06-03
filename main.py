@@ -91,8 +91,9 @@ class InstallWorker(QThread):
 
             self.finished.emit(True, "")
         except Exception as exc:
-            logger.error("Installation failed: %s", exc)
-            self.finished.emit(False, str(exc))
+            import traceback as _tb
+            logger.critical("INSTALLER CRASH: %s\n%s", exc, _tb.format_exc())
+            self.finished.emit(False, f"{exc}")
 from clipboard_manager import ClipboardManager
 from ai_processor    import AIProcessor
 from hotkeys         import HotkeyBridge, HotkeyManager
