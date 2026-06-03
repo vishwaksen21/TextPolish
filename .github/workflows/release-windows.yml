@@ -37,14 +37,14 @@ jobs:
         run: |
           powershell Compress-Archive -Path dist/Avelyn -DestinationPath Avelyn-Windows-Beta-v1.zip
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create or Update GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          files: Avelyn-Windows-Beta-v1.zip
+          artifacts: "Avelyn-Windows-Beta-v1.zip"
           name: "Avelyn Windows Beta v1"
-          tag_name: "v1.0.0-beta"
-          draft: false
+          tag: "v1.0.0-beta"
+          allowUpdates: true
+          replacesArtifacts: true
           prerelease: true
-          body_path: RELEASE_NOTES.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          bodyFile: "RELEASE_NOTES.md"
+          token: ${{ secrets.GITHUB_TOKEN }}
