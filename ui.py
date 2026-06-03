@@ -682,7 +682,7 @@ class EnhancementPopup(QDialog):
         icon_lbl.setStyleSheet(
             "color: #7C3AED; font-size: 20px; background: transparent;"
         )
-        title_lbl = QLabel("TextPolish")
+        title_lbl = QLabel("Avelyn")
         title_lbl.setStyleSheet(
             "color: #F0F0F8; font-size: 16px; font-weight: 700; background: transparent;"
         )
@@ -2083,7 +2083,7 @@ class SystemTrayIcon(QSystemTrayIcon):
             p.drawPath(path)
             p.end()
             self.setIcon(QIcon(px))
-        self.setToolTip(f"TextPolish — {self._settings.shortcut_display}")
+        self.setToolTip(f"Avelyn — {self._settings.shortcut_display}")
 
     def _build_menu(self) -> None:
         menu = QMenu()
@@ -2093,7 +2093,7 @@ class SystemTrayIcon(QSystemTrayIcon):
             "QMenu::item:selected { background: #2A2A38; }"
         )
 
-        title_act = menu.addAction("✦  TextPolish")
+        title_act = menu.addAction("✦  Avelyn")
         title_act.setEnabled(False)
         menu.addSeparator()
 
@@ -2114,16 +2114,21 @@ class SystemTrayIcon(QSystemTrayIcon):
         self.setContextMenu(menu)
 
     def _on_activated(self, reason) -> None:
-        if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            # Single click → open settings on macOS, double-click on Windows.
-            self.open_settings_requested.emit()
+        if sys.platform == "darwin":
+            if reason == QSystemTrayIcon.ActivationReason.Trigger:
+                # Single click → open settings on macOS
+                self.open_settings_requested.emit()
+        else:
+            if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+                # Double click → open settings on Windows/Linux
+                self.open_settings_requested.emit()
 
     def _on_pause_toggle(self) -> None:
         self._paused = not self._paused
         self._pause_act.setText("▶  Resume" if self._paused else "⏸  Pause")
         self.pause_toggled.emit(self._paused)
         verb = "paused" if self._paused else "resumed"
-        self.showMessage("TextPolish", f"Hotkey {verb}.", QSystemTrayIcon.MessageIcon.Information, 2000)
+        self.showMessage("Avelyn", f"Hotkey {verb}.", QSystemTrayIcon.MessageIcon.Information, 2000)
 
     def notify(self, title: str, message: str) -> None:
         if self._settings.get("show_notifications", True):

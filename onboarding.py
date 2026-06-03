@@ -116,6 +116,19 @@ class OnboardingWindow(QWidget):
         self._build_model_page()
         self._build_complete_page()
 
+        # Save page widget references dynamically based on platform
+        self.welcome_page = self.stack.widget(0)
+        if IS_MACOS:
+            self.accessibility_page = self.stack.widget(1)
+            self.input_monitoring_page = self.stack.widget(2)
+            self.ollama_page = self.stack.widget(3)
+            self.model_page = self.stack.widget(4)
+            self.complete_page = self.stack.widget(5)
+        else:
+            self.ollama_page = self.stack.widget(1)
+            self.model_page = self.stack.widget(2)
+            self.complete_page = self.stack.widget(3)
+
         # Update total step count after building pages
         self.step_label.setText(f"Step 1 of {self.stack.count()}")
         
@@ -350,29 +363,25 @@ class OnboardingWindow(QWidget):
         self.poll_timer.stop()
         self.btn_next.setEnabled(True)
 
+        current_widget = self.stack.currentWidget()
+
         if IS_MACOS:
-            # macOS page order: 0=Welcome, 1=Accessibility, 2=InputMonitoring, 3=Ollama, 4=Model, 5=Complete
-            if idx == 1:   # Accessibility
+            if current_widget == getattr(self, "accessibility_page", None):
                 self.poll_timer.start()
                 self._poll_status()
-            elif idx == 2: # Input Monitoring
+            elif current_widget == getattr(self, "input_monitoring_page", None):
                 self.poll_timer.start()
                 self._poll_status()
-            elif idx == 3: # Ollama
-                self._check_ollama()
-            elif idx == 4: # Model
-                self._check_model()
-        else:
-            # Windows/Linux page order: 0=Welcome, 1=Ollama, 2=Model, 3=Complete
-            if idx == 1:   # Ollama
-                self._check_ollama()
-            elif idx == 2: # Model
-                self._check_model()
+
+        if current_widget == getattr(self, "ollama_page", None):
+            self._check_ollama()
+        elif current_widget == getattr(self, "model_page", None):
+            self._check_model()
 
     def _poll_status(self):
         """Only called on macOS (pages 1 and 2 only exist there)."""
-        idx = self.stack.currentIndex()
-        if idx == 1:  # Accessibility (macOS only)
+        current_widget = self.stack.currentWidget()
+        if current_widget == getattr(self, "accessibility_page", None):
             if PermissionManager.check_accessibility():
                 self.acc_status.setText("✓ Granted")
                 self.acc_status.setStyleSheet("color: #10B981; font-weight: bold; font-size: 14px; margin-top: 15px;")
@@ -381,7 +390,7 @@ class OnboardingWindow(QWidget):
                 self.acc_status.setText("⚠ Waiting for permission...")
                 self.acc_status.setStyleSheet("color: #FBBF24; font-weight: bold; font-size: 14px; margin-top: 15px;")
                 self.btn_next.setEnabled(False)
-        elif idx == 2:  # Input Monitoring (macOS only)
+        elif current_widget == getattr(self, "input_monitoring_page", None):
             if PermissionManager.check_input_monitoring():
                 self.input_status.setText("✓ Ready")
                 self.input_status.setStyleSheet("color: #10B981; font-weight: bold; font-size: 14px; margin-top: 15px;")
@@ -394,10 +403,10 @@ class OnboardingWindow(QWidget):
                 self.btn_next.setEnabled(False)
 
     def _retry_current_page(self):
-        idx = self.stack.currentIndex()
-        if idx == 3:
+        current_widget = self.stack.currentWidget()
+        if current_widget == getattr(self, "ollama_page", None):
             self._check_ollama()
-        elif idx == 4:
+        elif current_widget == getattr(self, "model_page", None):
             self._check_model()
 
     # (Removed _check_input_monitoring as it is now handled by _poll_status)

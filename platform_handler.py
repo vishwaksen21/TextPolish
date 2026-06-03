@@ -173,6 +173,38 @@ def copy_selection() -> None:
         logger.debug("Waiting for selection stabilization...")
         time.sleep(0.1)
 
+        # On Windows, wait until the user has released the physical hotkey modifier keys.
+        # This prevents physical keys from clashing with pynput's virtual keystrokes (e.g. sending Ctrl+Shift+C).
+        if IS_WINDOWS:
+            try:
+                import win32api
+                import win32con
+                
+                win32_modifiers = [
+                    win32con.VK_CONTROL,
+                    win32con.VK_SHIFT,
+                    win32con.VK_MENU,   # Alt
+                    win32con.VK_LWIN,   # Left Windows
+                    win32con.VK_RWIN,   # Right Windows
+                ]
+                
+                logger.debug("Waiting for physical modifier keys to be released...")
+                start_wait = time.perf_counter()
+                while time.perf_counter() - start_wait < 0.5:
+                    pressed = False
+                    for vk in win32_modifiers:
+                        if win32api.GetAsyncKeyState(vk) < 0:
+                            pressed = True
+                            break
+                    if not pressed:
+                        logger.debug("Physical modifiers released successfully.")
+                        break
+                    time.sleep(0.01)
+                else:
+                    logger.warning("Modifier release wait timed out after 500ms.")
+            except Exception as exc:
+                logger.error("Error during physical modifier release check: %s", exc)
+
         # ── Send copy keystroke ───────────────────────────────────────────────
         kb = _get_keyboard()
         kb.release(Key.ctrl)
