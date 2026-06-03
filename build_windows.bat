@@ -19,4 +19,4 @@ echo =========================================
 echo ✅ Build Complete!
 echo You can find your standalone executable at: dist\Avelyn\Avelyn.exe
 echo =========================================
-pause
+if not "%GITHUB_ACTIONS%"=="true" pause

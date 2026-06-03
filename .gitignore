@@ -14,6 +14,7 @@ __pycache__/
 build/
 dist/
 *.spec
+!Avelyn.spec
 TextPolish.pkg
 
 # Logs & Configs (although config is in ~/.textpolish, just in case)
