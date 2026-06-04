@@ -41,208 +41,94 @@ from settings import Settings
 # ──────────────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """
-You are Avelyn.
-
-Your task is to transform text according to the selected mode.
-
-Rules:
-- Return ONLY the final result.
-- Never explain what you changed.
-- Never include introductions.
-- Never include phrases like:
-  'Here's the rewritten version'
-  'Certainly'
-  'Sure'
-  'Output:'
-- Never use markdown unless explicitly required.
-- Preserve the user's intent.
-- Produce production-quality output.
+You are Avelyn. Output ONLY the finalized transformed text. No explanations, no introductions, no markdown, and preserve user intent.
 """
 
 MODE_PROMPTS = {
     "smart":
         """
-        Analyze the user's text and automatically determine the best transformation.
-
-        Examples:
-        - Prompt-like text → improve_prompt
-        - Email-like text → email
-        - Social post → linkedin
-        - Poor grammar → grammar
-        - General text → professional
-
-        Return only the transformed result.
+        Analyze the text and automatically apply the best transformation (e.g. improve_prompt, email, linkedin, grammar, professional).
         """,
 
     "improve_prompt":
         """
-        Convert the user's input into a concise, high-quality AI prompt.
-
-        Requirements:
-        - Preserve the original intent.
-        - Improve clarity and specificity.
-        - Add useful context only when necessary.
-        - Keep the prompt concise.
-        - Do not invent excessive details.
-        - Return only the improved prompt.
+        Convert the input into a clear, specific, and concise AI prompt.
         """,
 
     "engineer_prompt":
         """
-        Transform the user's input into a highly engineered, production-ready AI prompt.
-
-        Requirements:
-        - Preserve the original intent.
-        - Define a suitable expert role/persona.
-        - Specify the desired output format (like JSON, bullet points, etc.).
-        - Add constraints that improve response quality.
-        - Do not explain your changes.
-        - Return ONLY the engineered prompt.
+        Transform the input into a highly engineered prompt with a defined expert role/persona, output formatting, and quality constraints.
         """,
 
     "email":
         """
-        Rewrite the text as a professional email.
-
-        Requirements:
-        - Maintain the original intent.
-        - Use a clear subject line if appropriate.
-        - Improve grammar and tone.
-        - Keep the email concise and professional.
-        - Add greeting and closing only when needed.
-        - Return ONLY the email.
+        Rewrite the text as a professional, concise email with a clear subject line if appropriate.
         """,
 
     "translate":
         """
-        Translate the text into fluent English.
-
-        Requirements:
-        - Preserve meaning, tone, and context.
-        - Use natural and professional wording.
-        - Do not add explanations.
-        - Return ONLY the translated text.
+        Translate the text into fluent, natural English.
         """,
 
     "explain_code":
         """
-        Explain the provided code.
-
-        Requirements:
-        - Describe the purpose of the code.
-        - Explain key functions and logic.
-        - Keep the explanation concise and developer-friendly.
-        - Use bullet points when helpful.
-        - Return ONLY the explanation.
+        Provide a concise, developer-friendly explanation of the key functions and logic in this code.
         """,
 
     "grammar":
         """
-        Correct grammar, spelling, punctuation, and sentence structure.
-
-        Requirements:
-        - Preserve the original meaning.
-        - Preserve the original tone.
-        - Improve readability.
-        - Do not rewrite unnecessarily.
-        - Return ONLY the corrected text.
+        Correct grammar, spelling, punctuation, and structure while preserving meaning and tone.
         """,
 
     "professional":
         """
-        Rewrite the text in a professional and polished manner.
-
-        Requirements:
-        - Improve clarity and structure.
-        - Maintain the original meaning.
-        - Use confident and professional language.
-        - Remove unnecessary filler.
-        - Return ONLY the rewritten text.
+        Rewrite the text to be professional, clear, and polished.
         """,
 
     "linkedin":
         """
-        Rewrite the content as a professional LinkedIn post.
-
-        Requirements:
-        - Create a strong opening hook.
-        - Improve readability using short paragraphs.
-        - Maintain authenticity.
-        - End with a natural closing statement.
-        - Avoid excessive emojis.
-        - Return ONLY the LinkedIn post.
+        Rewrite the content as an engaging LinkedIn post with a strong hook, short paragraphs, and minimal emojis.
         """,
 
     "summarize":
         """
-        Summarize the text.
-
-        Requirements:
-        - Preserve key information.
-        - Remove repetition.
-        - Keep the summary concise.
-        - Return ONLY the summary.
+        Summarize the text concisely, removing repetition and preserving key information.
         """,
 
     "shorten":
         """
-        Rewrite the text in fewer words.
-
-        Requirements:
-        - Preserve meaning.
-        - Remove unnecessary details.
-        - Improve readability.
-        - Return ONLY the shortened version.
+        Rewrite the text in fewer words while preserving meaning and readability.
         """,
 
     "expand":
         """
-        Expand the text while preserving its meaning.
-
-        Requirements:
-        - Add clarity and useful detail.
-        - Improve flow and readability.
-        - Avoid repetition.
-        - Return ONLY the expanded version.
+        Expand the text with useful details to improve flow and clarity.
         """,
 
     "resume":
         """
-        Convert the input into ATS-friendly resume content.
-
-        Requirements:
-        - Use strong action verbs.
-        - Keep concise and measurable.
-        - Return ONLY the result.
+        Convert the input into ATS-friendly resume content using action verbs. Keep it concise.
         """,
 
     "tweet":
         """
         Rewrite as a concise, engaging social media post.
-
-        Requirements:
-        - Return ONLY the post.
         """,
 
     "meeting_notes":
         """
-        Convert the text into structured meeting notes.
-
-        Requirements:
-        - Include key points and action items.
-        - Return ONLY the notes.
+        Convert the text into structured meeting notes with key points and action items.
         """,
 
     "eli5":
         """
         Explain the content in simple terms that a beginner can understand.
-
-        Requirements:
-        - Return ONLY the explanation.
         """
 }
 
 def _build_prompt(text: str, mode: str, custom_instruction: Optional[str] = None) -> str:
+    from utils import PerfTracker
+    PerfTracker.prompt_build_start = time.perf_counter()
     if mode == "custom" and custom_instruction:
         mode_prompt = f"Follow this exact instruction to modify the text: {custom_instruction}"
     else:
@@ -251,7 +137,9 @@ def _build_prompt(text: str, mode: str, custom_instruction: Optional[str] = None
             MODE_PROMPTS["professional"]
         )
 
-    return f"{SYSTEM_PROMPT.strip()}\n\n{mode_prompt.strip()}\n\nINPUT:\n{text.strip()}\n\nOUTPUT:\n"
+    res = f"{SYSTEM_PROMPT.strip()}\n\n{mode_prompt.strip()}\n\nINPUT:\n{text.strip()}\n\nOUTPUT:\n"
+    PerfTracker.prompt_build_end = time.perf_counter()
+    return res
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -393,7 +281,8 @@ def _call_ollama(
         model, mode, len(text), num_predict,
     )
 
-    start_time = time.perf_counter()
+    from utils import PerfTracker
+    PerfTracker.ollama_start = time.perf_counter()
 
     try:
         response = requests.post(
@@ -423,16 +312,25 @@ def _call_ollama(
 
             token = chunk.get("response", "")
             if token:
+                if not PerfTracker.first_token:
+                    PerfTracker.first_token = time.perf_counter()
                 full_response.append(token)
+                
+                # Yield full accumulated cleaned text so far for live stream
+                accumulated_raw = "".join(full_response)
+                cleaned_result = _clean_response(accumulated_raw, mode)
+                yield cleaned_result
 
             if chunk.get("done", False):
                 break
+
+        PerfTracker.generation_end = time.perf_counter()
 
         raw_result = "".join(full_response)
         cleaned_result = _clean_response(raw_result, mode)
         logger.info("AI_RESPONSE_RECEIVED")
 
-        elapsed = time.perf_counter() - start_time
+        elapsed = time.perf_counter() - PerfTracker.ollama_start
         logger.info(
             "Ollama response: %.2fs latency, %d output chars",
             elapsed,
@@ -479,6 +377,50 @@ def _call_ollama(
         ) from exc
 
 
+def _local_fast_path(text: str, mode: str) -> Optional[str]:
+    """
+    Perform fast-path corrections locally for simple grammar/whitespace/capitalization issues
+    without calling the LLM, if applicable.
+    
+    Only applies to 'grammar' mode when changes are minor formatting cleanups.
+    """
+    if mode != "grammar":
+        return None
+        
+    cleaned = text.strip()
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    
+    # Capitalize start of sentences
+    sentences = re.split(r"(\s*[\.\!\?]+\s*)", cleaned)
+    for i in range(0, len(sentences), 2):
+        s = sentences[i]
+        if s:
+            first_idx = next((idx for idx, ch in enumerate(s) if ch.isalnum()), None)
+            if first_idx is not None:
+                sentences[i] = s[:first_idx] + s[first_idx].upper() + s[first_idx+1:]
+    cleaned = "".join(sentences)
+    
+    # Capitalize standalone 'i'
+    cleaned = re.sub(r"\bi\b", "I", cleaned)
+    cleaned = re.sub(r"\bi'm\b", "I'm", cleaned)
+    cleaned = re.sub(r"\bi'd\b", "I'd", cleaned)
+    cleaned = re.sub(r"\bi'll\b", "I'll", cleaned)
+    cleaned = re.sub(r"\bi've\b", "I've", cleaned)
+    
+    # Fix spacing before basic punctuation
+    cleaned = re.sub(r"\s+([,\.\?\!])", r"\1", cleaned)
+    
+    # Match semantic chars (lowercased without non-alphanumeric chars)
+    norm_orig = re.sub(r"[^a-zA-Z0-9]", "", text).lower()
+    norm_new = re.sub(r"[^a-zA-Z0-9]", "", cleaned).lower()
+    
+    if len(text) < 60 and norm_orig == norm_new:
+        logger.info("Local fast-path applied successfully.")
+        return cleaned
+        
+    return None
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
@@ -506,6 +448,16 @@ class AIProcessor:
 
         mode = mode or self._settings.default_mode
 
+        # Check local fast-path first
+        fast_result = _local_fast_path(text, mode)
+        if fast_result is not None:
+            from utils import PerfTracker
+            PerfTracker.ollama_start = time.perf_counter()
+            PerfTracker.first_token = PerfTracker.ollama_start
+            PerfTracker.generation_end = PerfTracker.ollama_start
+            yield fast_result
+            return
+
         yield from _call_ollama(
             text=text,
             mode=mode,
@@ -514,6 +466,26 @@ class AIProcessor:
             custom_instruction=custom_instruction,
             cancellation_check=cancellation_check,
         )
+
+    def warm_model(self) -> None:
+        """
+        Warm up the model at startup by loading it into RAM.
+        """
+        try:
+            url = f"{self._settings.ollama_host.rstrip('/')}/api/generate"
+            payload = {
+                "model": self._settings.ollama_model,
+                "prompt": "",
+                "keep_alive": "24h"
+            }
+            logger.info("Ollama model warming started...")
+            response = requests.post(url, json=payload, timeout=30)
+            if response.status_code == 200:
+                logger.info("Ollama model warmed successfully.")
+            else:
+                logger.warning("Ollama model warming returned status code %d", response.status_code)
+        except Exception as exc:
+            logger.warning("Ollama model warming failed (non-fatal): %s", exc)
 
     def test_connection(self) -> str:
         """

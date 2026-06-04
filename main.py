@@ -216,14 +216,18 @@ class CommandPaletteWorkflow(QObject):
             self._worker = None
             return
 
+        from utils import PerfTracker
+        import time
+        PerfTracker.clipboard_replace_start = time.perf_counter()
         self._clipboard.set(enhanced_text)
+        PerfTracker.clipboard_replace_end = time.perf_counter()
         logger.info("CLIPBOARD_UPDATED")
         logger.info("Enhanced text ready. Palette hidden: %s", self._palette_is_hidden)
 
         if self._palette_is_hidden:
             # Palette already closed — paste after focus-settle delay.
-            # 400ms gives macOS window manager time to return focus to the original app.
-            QTimer.singleShot(400, self._perform_paste)
+            # 100ms gives macOS window manager time to return focus to the original app.
+            QTimer.singleShot(100, self._perform_paste)
         else:
             # Palette still animating — set flag so _on_palette_hidden triggers paste
             self._pending_paste = True
@@ -234,10 +238,10 @@ class CommandPaletteWorkflow(QObject):
         if self._pending_paste:
             self._pending_paste = False
             logger.info("Palette closed. Triggering paste now.")
-            # Give macOS 400ms to fully return focus to the original app after
+            # Give macOS 100ms to fully return focus to the original app after
             # the palette window closes. The AppKit activation + window manager
             # focus transfer needs this time to complete before we paste.
-            QTimer.singleShot(400, self._perform_paste)
+            QTimer.singleShot(100, self._perform_paste)
 
     def _perform_paste(self) -> None:
         try:
@@ -250,6 +254,12 @@ class CommandPaletteWorkflow(QObject):
             ph.paste_text()
             logger.info("PASTE_TRIGGERED")
             logger.info("Auto-replaced selected text successfully.")
+            
+            from utils import PerfTracker
+            import time
+            PerfTracker.pipeline_end = time.perf_counter()
+            PerfTracker.log_summary()
+
             # Show toast 400ms after paste so it doesn't disrupt Cmd+V
             QTimer.singleShot(400, lambda: [self._toast.show_message("✓ Complete", success=True), logger.info("REPLACEMENT_COMPLETE")])
         finally:
@@ -458,12 +468,16 @@ class AvelynApp:
         except Exception as exc:
             logger.warning("STARTUP WARN: tray.notify() failed (non-fatal): %s", exc)
 
-        # Start Ollama background process silently if missing
+        # Start Ollama background process silently if missing and warm the model
         import threading
         def background_ollama():
             from installer import Installer
             try:
                 Installer.start_ollama()
+            except Exception:
+                pass
+            try:
+                self._processor.warm_model()
             except Exception:
                 pass
         threading.Thread(target=background_ollama, daemon=True).start()
@@ -491,8 +505,23 @@ class AvelynApp:
         if theme != getattr(self, "_current_theme", None):
             self._current_theme = theme
             from ui import get_qss
-            self._qapp.setStyleSheet(get_qss(theme))
+            qss = get_qss(theme)
+            self._qapp.setStyleSheet(qss)
             logger.info("Theme updated to: %s", theme)
+            
+            if self._settings_win and self._settings_win.isVisible():
+                current_page = self._settings_win._sidebar.currentRow()
+                self._settings_win.close()
+                self._settings_win.deleteLater()
+                
+                from ui import SettingsWindow
+                self._settings_win = SettingsWindow(self._settings, self._processor)
+                self._settings_win.setStyleSheet(qss)
+                self._settings_win.settings_changed.connect(self._on_settings_changed)
+                self._settings_win._sidebar.setCurrentRow(current_page)
+                self._settings_win.show()
+                self._settings_win.raise_()
+                self._settings_win.activateWindow()
 
         hotkey = self._settings.hotkey
         if hotkey != getattr(self, "_current_hotkey", None):

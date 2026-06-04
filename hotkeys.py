@@ -161,6 +161,9 @@ class HotkeyManager:
         Called by pynput in its own thread when the hotkey is pressed.
         Spawns a background thread immediately to prevent blocking the macOS Quartz Event Tap.
         """
+        from utils import PerfTracker
+        PerfTracker.reset()
+        
         with self._lock:
             if not self._enabled:
                 logger.debug("Hotkey fired but processing is paused.")
@@ -180,6 +183,7 @@ class HotkeyManager:
             import uuid
             import time
             import platform_handler
+            from utils import PerfTracker
             
             # 1. Save what's currently on the clipboard.
             self._clipboard.save()
@@ -200,7 +204,9 @@ class HotkeyManager:
             time.sleep(0.05)
 
             # 3. Simulate copy on the TARGET application.
+            PerfTracker.capture_start = time.perf_counter()
             copy_selection()
+            PerfTracker.capture_end = time.perf_counter()
             
             # CRITICAL FIX: Emit the hotkey_pressed signal ONLY AFTER copy_selection() finishes!
             # If we emit it before, the main thread shows the Qt ToastOverlay, which forces macOS
@@ -210,7 +216,9 @@ class HotkeyManager:
             logger.info("ACTIVE_APP_BEFORE_CAPTURE=%s", platform_handler._macos_active_app or "Unknown")
 
             # 4. Read clipboard with retry (wait for it to change from temp_marker)
+            PerfTracker.clip_read_start = time.perf_counter()
             text = self._clipboard.read_after_copy(previous=temp_marker)
+            PerfTracker.clip_read_end = time.perf_counter()
             
             logger.debug("Clipboard after copy: '%s'", text[:20] if text else "")
             logger.debug("STILL_UUID=%s", "True" if text == temp_marker else "False")

@@ -191,7 +191,7 @@ def copy_selection() -> None:
 
         # Allow selection to stabilize
         logger.debug("Waiting for selection stabilization...")
-        time.sleep(0.1)
+        time.sleep(0.05)
 
         # On Windows, wait until the user has released the physical hotkey modifier keys.
         # This prevents physical keys from clashing with pynput's virtual keystrokes (e.g. sending Ctrl+Shift+C).
@@ -240,43 +240,6 @@ def copy_selection() -> None:
             with kb.pressed(Key.cmd):
                 kb.press('c')
                 kb.release('c')
-
-            # --- DIAGNOSTICS START ---
-            import subprocess
-            import pyperclip
-            
-            # Immediately run osascript to trigger Cmd+C or attempt automation
-            cmd = ['osascript', '-e', 'tell application "System Events" to keystroke "c" using command down']
-            res = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            logger.info("osascript return code: %d", res.returncode)
-            logger.info("osascript stderr: %s", res.stderr.strip() if res.stderr else "")
-            
-            # Measure clipboard contents over time
-            time.sleep(0.1)
-            clip_100 = pyperclip.paste() or ""
-            logger.info("Clipboard contents 100ms later: %r", clip_100[:20])
-            logger.debug("Clipboard contents 100ms later (full): %r", clip_100)
-            
-            time.sleep(0.2) # 100ms + 200ms = 300ms
-            clip_300 = pyperclip.paste() or ""
-            logger.info("Clipboard contents 300ms later: %r", clip_300[:20])
-            logger.debug("Clipboard contents 300ms later (full): %r", clip_300)
-            
-            time.sleep(0.2) # 300ms + 200ms = 500ms
-            clip_500 = pyperclip.paste() or ""
-            logger.info("Clipboard contents 500ms later: %r", clip_500[:20])
-            logger.debug("Clipboard contents 500ms later (full): %r", clip_500)
-            
-            # Log Active app info
-            app_diagnostics = get_frontmost_app_diagnostics()
-            app_name = app_diagnostics.get("name", "Unknown")
-            bundle_id = app_diagnostics.get("bundle_id", "Unknown")
-            is_antigravity = (bundle_id == "com.google.antigravity-ide" or "Antigravity" in app_name)
-            
-            logger.info("Active application name: %s", app_name)
-            logger.info("Active bundle identifier: %s", bundle_id)
-            logger.info("Whether the selected app is Antigravity IDE: %s", is_antigravity)
-            # --- DIAGNOSTICS END ---
         else:
             logger.debug("Sending Ctrl+C via pynput.")
             with kb.pressed(Key.ctrl):
@@ -376,17 +339,11 @@ def paste_text() -> None:
         logger.info("FOCUS_RESTORE_SUCCESS=%s", restore_success)
 
         # Small clipboard stabilization delay
-        # macOS WindowServer requires ~400ms to complete the focus transition animation
+        # macOS WindowServer requires ~100ms to complete the focus transition animation
         if IS_MACOS:
-            time.sleep(0.40)
+            time.sleep(0.10)
         else:
-            time.sleep(0.15)
-
-        app_info_after = get_frontmost_app_diagnostics()
-        logger.info("=== PASTE PHASE: AFTER FOCUS RESTORATION (RIGHT BEFORE PASTE) ===")
-        logger.info("ACTIVE_APP_AFTER_PASTE_NAME=%s",   app_info_after.get("name"))
-        logger.info("ACTIVE_APP_AFTER_PASTE_BUNDLE=%s", app_info_after.get("bundle_id") or app_info_after.get("hwnd"))
-        logger.info("IS_AVELYN_AFTER_PASTE=%s",     app_info_after.get("is_avelyn"))
+            time.sleep(0.05)
 
         # ── Send paste keystroke ─────────────────────────────────────────────────────
         kb = _get_keyboard()
