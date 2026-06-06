@@ -222,6 +222,7 @@ class CommandPaletteWorkflow(QObject):
         self._clipboard.set(enhanced_text)
         PerfTracker.clipboard_replace_end = time.perf_counter()
         logger.info("CLIPBOARD_UPDATED")
+        logger.info("CLIPBOARD_WRITE_LENGTH %d", len(enhanced_text))
         logger.info("Enhanced text ready. Palette hidden: %s", self._palette_is_hidden)
 
         if self._palette_is_hidden:
@@ -482,11 +483,34 @@ class AvelynApp:
                 pass
         threading.Thread(target=background_ollama, daemon=True).start()
 
+        # ── Keep-alive timer: prevents M1 GPU idle sleep ──────────────────────
+        # macOS aggressively idles the M1 GPU/ANE compute blocks after ~60s of
+        # inactivity. Ollama keeps model weights in RAM (keep_alive=24h) but
+        # cannot prevent the compute units from sleeping, causing TTFT to spike
+        # from ~2s to 8–12s on the first request after idle.
+        # Pinging Ollama every 120s with a 1-token request keeps the compute
+        # path warm at the cost of ~0.5s of CPU every 2 minutes.
+        self._keepalive_timer = QTimer(self._qapp)
+        self._keepalive_timer.timeout.connect(self._keepalive_ping)
+        self._keepalive_timer.start(120_000)   # every 2 minutes
+        logger.info("STARTUP: Keep-alive timer started (120s interval)")
+
         logger.info("STARTUP: %s v%s started. Platform: %s", APP_NAME, __version__, ph.platform_name())
         logger.info("STARTUP: PACKAGED_MODE=%s", getattr(sys, 'frozen', False))
         logger.info("STARTUP: Startup complete")
 
     # ── Slots / handlers ──────────────────────────────────────────────────────
+
+    def _keepalive_ping(self) -> None:
+        """Send a minimal 1-token Ollama request to prevent M1 GPU idle sleep."""
+        import threading
+        def _ping():
+            try:
+                self._processor.warm_model()
+                logger.debug("Keepalive ping sent.")
+            except Exception as exc:
+                logger.debug("Keepalive ping failed (non-fatal): %s", exc)
+        threading.Thread(target=_ping, daemon=True).start()
 
     def _show_settings(self) -> None:
         if self._settings_win is None:

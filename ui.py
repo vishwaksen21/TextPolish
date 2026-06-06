@@ -984,11 +984,10 @@ QWidget#ModeItemWidget[selected="true"] {{
 }}
 
 QLabel#ModeItemIcon {{
-    color: {PRIMARY};
-    font-size: 14px;
     background: {PRIMARY_LIGHT};
     border-radius: 6px;
     border: none;
+    padding: 2px;
 }}
 
 QWidget#ModeItemWidget:hover QLabel#ModeItemIcon {{
@@ -996,7 +995,6 @@ QWidget#ModeItemWidget:hover QLabel#ModeItemIcon {{
 }}
 
 QWidget#ModeItemWidget[selected="true"] QLabel#ModeItemIcon {{
-    color: {PRIMARY};
     background: {SURFACE};
 }}
 
@@ -1019,13 +1017,18 @@ QWidget#ModeItemWidget[selected="true"] QLabel#ModeItemText {{
 
 QLabel#ModeItemEnter {{
     color: transparent;
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 500;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 2px 6px;
 }}
 
 QWidget#ModeItemWidget[selected="true"] QLabel#ModeItemEnter {{
-    color: {PRIMARY};
+    color: {TEXT_SECONDARY};
+    background: {SURFACE_ALT};
+    border: 1px solid {BORDER};
 }}
 
 QWidget#PaletteSectionHeaderWidget {{
@@ -1123,10 +1126,22 @@ class AIWorker(QThread):
         self._full_result = ""
 
     def run(self) -> None:
+        # BUG 4 FIX: _call_ollama yields N raw chunks then 1 final cleaned result.
+        # We track the last value — that is always the post-stream _clean_response() pass.
+        # chunk_received drives live display; finished() carries the authoritative result.
         try:
-            for cleaned_text in self._processor.enhance(self._text, self._mode, self._custom_instruction):
-                self._full_result = cleaned_text
-                self.chunk_received.emit(cleaned_text)
+            last_value = ""
+            for text_so_far in self._processor.enhance(
+                self._text, self._mode, self._custom_instruction
+            ):
+                last_value = text_so_far
+                self.chunk_received.emit(text_so_far)
+            # last_value is now the single post-stream cleaned result
+            self._full_result = last_value
+            logger.debug(
+                "AIWorker finished: final_chars=%d mode=%s",
+                len(self._full_result), self._mode,
+            )
             self.finished.emit(self._full_result)
         except Exception as exc:                          # noqa: BLE001
             logger.error("AIWorker error: %s", exc)
@@ -2057,7 +2072,7 @@ class SettingsWindow(QDialog):
         self._default_mode_combo = QComboBox()
         self._default_mode_combo.setObjectName("SettingsCombo")
         self._default_mode_combo.setFixedWidth(220)
-        self._mode_keys = [m[2] for m in CommandPalette.MODES]
+        self._mode_keys = [m[1] for m in CommandPalette.MODES]
         display_labels = [m[0] for m in CommandPalette.MODES]
         self._default_mode_combo.addItems(display_labels)
         try:
@@ -3055,23 +3070,107 @@ class CommandPalette(QWidget):
     cancelled       = pyqtSignal()
     hidden          = pyqtSignal()            # emitted after hide animation completes
 
-    # ── Mode registry ─────────────────────────────────────────────────────────
+    STATE_MAIN         = "main"
+    STATE_MORE_ACTIONS = "more_actions"
+    STATE_CODE_QUALITY = "code_quality"
+    STATE_LANGUAGES    = "languages"
+
+    CODE_QUALITY_OPTIONS = [
+        ("Fast",     "fast",     "Code Generation"),
+        ("Detailed", "detailed", "Code Generation"),
+    ]
+    # Each value is a complete SVG string at 24×24 that we scale to 16px.
+    ICON_SVG: dict[str, str] = {
+        "fast":     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+        "detailed": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/></svg>',
+        "smart": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>',
+        "professional": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>',
+        "improve_prompt": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>',
+        "grammar": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+        "generate_code": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "more_actions": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+        "eli5": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
+        "translate": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>',
+        "summarize": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+        "email": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
+        "linkedin": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>',
+        "meeting_notes": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>',
+        "shorten": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m7.5 4.21 4.5 2.6 4.5-2.6"/><path d="M7.5 19.79V14.6L3 12"/><path d="M21 12l-4.5 2.6v5.19"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>',
+        "resume": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M7 21v-1a5 5 0 0 1 10 0v1"/></svg>',
+        "explain_code": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+        "debug_code": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6z"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>',
+        # Language icons — monochrome code-bracket style
+        "python":     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "javascript": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "typescript": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "java":       '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "cplusplus":  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "c":          '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "csharp":     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "go":         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "rust":       '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "php":        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "kotlin":     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "swift":      '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        "dart":       '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+        # Fallback
+        "__default__": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>',
+    }
+
+    # Re-expose MODES for settings page compatibility
     MODES = [
-        # (display_label, icon, mode_id, section)
-        ("Smart Assist",       "◈", "smart",          "Quick Actions"),
-        ("Improve Writing",    "✦", "professional",   "Quick Actions"),
-        ("Improve Prompt",     "⌖", "improve_prompt", "Quick Actions"),
-        ("Fix Grammar",        "✓", "grammar",         "Quick Actions"),
-        ("Engineer Prompt",    "⚙", "engineer_prompt", "All Modes"),
-        ("Professional Email", "✉", "email",           "All Modes"),
-        ("Engaging Tweet",     "⤹", "tweet",           "All Modes"),
-        ("LinkedIn Post",      "≡", "linkedin",        "All Modes"),
-        ("Meeting Notes",      "☷", "meeting_notes",  "All Modes"),
-        ("Explain like I'm 5","⍰", "eli5",           "All Modes"),
-        ("Translate to English","↬","translate",       "All Modes"),
-        ("Explain Code",       "⟨⟩","explain_code",   "All Modes"),
-        ("Format Resume",      "☑", "resume",          "All Modes"),
-        ("Make Shorter",       "◂", "shorten",         "All Modes"),
+        ("Smart Assist",       "smart",          "Quick Actions"),
+        ("Improve Writing",    "professional",   "Quick Actions"),
+        ("Improve Prompt",     "improve_prompt", "Quick Actions"),
+        ("Fix Grammar",        "grammar",         "Quick Actions"),
+        ("Explain Like I'm 5", "eli5",           "More Actions"),
+        ("Translate",          "translate",      "More Actions"),
+        ("Summarize",          "summarize",      "More Actions"),
+        ("Professional Email", "email",          "More Actions"),
+        ("LinkedIn Post",      "linkedin",       "More Actions"),
+        ("Meeting Notes",      "meeting_notes",  "More Actions"),
+        ("Make Shorter",       "shorten",        "More Actions"),
+        ("Format Resume",      "resume",         "More Actions"),
+        ("Explain Code",       "explain_code",   "More Actions"),
+        ("Debug Code",         "debug_code",     "More Actions"),
+    ]
+
+    MAIN_MODES = [
+        ("Smart Assist",    "smart",          "Quick Actions"),
+        ("Improve Writing", "professional",   "Quick Actions"),
+        ("Improve Prompt",  "improve_prompt", "Quick Actions"),
+        ("Fix Grammar",     "grammar",         "Quick Actions"),
+        ("Generate Code",   "generate_code",   "Quick Actions"),
+        ("More Actions",    "more_actions",   "Options"),
+    ]
+
+    MORE_MODES = [
+        ("Explain Like I'm 5", "eli5",           "More Actions"),
+        ("Translate",          "translate",      "More Actions"),
+        ("Summarize",          "summarize",      "More Actions"),
+        ("Professional Email", "email",          "More Actions"),
+        ("LinkedIn Post",      "linkedin",       "More Actions"),
+        ("Meeting Notes",      "meeting_notes",  "More Actions"),
+        ("Make Shorter",       "shorten",        "More Actions"),
+        ("Format Resume",      "resume",         "More Actions"),
+        ("Explain Code",       "explain_code",   "More Actions"),
+        ("Debug Code",         "debug_code",     "More Actions"),
+    ]
+
+    LANGUAGES = [
+        ("Python",      "python",     "Select Language"),
+        ("JavaScript",  "javascript", "Select Language"),
+        ("Java",        "java",       "Select Language"),
+        ("C++",         "cplusplus",  "Select Language"),
+        ("C",           "c",          "Select Language"),
+        ("C#",          "csharp",     "Select Language"),
+        ("Go",          "go",         "Select Language"),
+        ("Rust",        "rust",       "Select Language"),
+        ("PHP",         "php",        "Select Language"),
+        ("Kotlin",      "kotlin",     "Select Language"),
+        ("Swift",       "swift",      "Select Language"),
+        ("Dart",        "dart",       "Select Language"),
+        ("TypeScript",  "typescript", "Select Language"),
     ]
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
@@ -3082,9 +3181,17 @@ class CommandPalette(QWidget):
             Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        # Detect theme from app palette for icon tinting
+        self._is_dark = QApplication.instance() is not None and (
+            QApplication.palette().window().color().lightness() < 128
+        )
+        self._icon_color = QColor("#A78BFA") if self._is_dark else QColor("#7C3AED")
+        self._icon_color_muted = QColor("#94A3B8") if self._is_dark else QColor("#64748B")
 
+        self._state = self.STATE_MAIN
         self._selected_text: str = ""
-        self._visible_modes = list(self.MODES)
+        self._selected_quality: str = "adaptive"   # fast | detailed | adaptive
+        self._visible_modes = list(self.MAIN_MODES)
 
         self._build_ui()
         self._build_animations()
@@ -3264,6 +3371,31 @@ class CommandPalette(QWidget):
         self._anim_in  = self._fade_in
         self._anim_out = self._fade_out
 
+    # ── SVG icon rendering ────────────────────────────────────────────────────
+
+    def _render_svg_icon(self, mode_id: str, size: int = 16, color: Optional[QColor] = None) -> QPixmap:
+        """Render a Lucide SVG string to a QPixmap, tinted with the given color."""
+        from PyQt6.QtSvg import QSvgRenderer
+        from PyQt6.QtGui import QPainter
+
+        svg_str = self.ICON_SVG.get(mode_id, self.ICON_SVG["__default__"])
+        if color is None:
+            color = self._icon_color
+
+        # Inject the stroke color into the SVG
+        hex_color = color.name()  # e.g. "#7C3AED"
+        svg_colored = svg_str.replace('stroke="currentColor"', f'stroke="{hex_color}"')
+        svg_bytes = svg_colored.encode("utf-8")
+
+        px = QPixmap(size, size)
+        px.fill(Qt.GlobalColor.transparent)
+        renderer = QSvgRenderer(svg_bytes)
+        painter = QPainter(px)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        renderer.render(painter)
+        painter.end()
+        return px
+
     # ── List population ───────────────────────────────────────────────────────
 
     def _make_section_header(self, text: str) -> QListWidgetItem:
@@ -3284,31 +3416,35 @@ class CommandPalette(QWidget):
         item.setSizeHint(QSize(0, 28))
         return item, widget
 
-    def _make_mode_item(self, label: str, icon: str, mode_id: str, selected: bool = False) -> tuple:
+    def _make_mode_item(self, label: str, mode_id: str, selected: bool = False) -> tuple:
         item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, mode_id)
 
         widget = QWidget()
         widget.setObjectName("ModeItemWidget")
-        
-        # Icon badge
-        icon_label = QLabel(icon)
-        icon_label.setObjectName("ModeItemIcon")
-        icon_label.setFixedSize(28, 28)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Label
+        # ── SVG icon badge ────────────────────────────────────────────────────
+        icon_badge = QLabel()
+        icon_badge.setObjectName("ModeItemIcon")
+        icon_badge.setFixedSize(30, 30)
+        icon_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        px = self._render_svg_icon(mode_id, size=16, color=self._icon_color)
+        icon_badge.setPixmap(px)
+        icon_badge.setScaledContents(False)
+
+        # ── Label ─────────────────────────────────────────────────────────────
         text_label = QLabel(label)
         text_label.setObjectName("ModeItemText")
 
-        # Enter hint
-        enter_hint = QLabel("⏎")
+        # ── Enter hint ────────────────────────────────────────────────────────
+        enter_hint = QLabel("Return")
         enter_hint.setObjectName("ModeItemEnter")
+        enter_hint.setVisible(selected)
 
         layout = QHBoxLayout(widget)
-        layout.setContentsMargins(10, 7, 10, 7)
+        layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(10)
-        layout.addWidget(icon_label)
+        layout.addWidget(icon_badge)
         layout.addWidget(text_label, 1)
         layout.addWidget(enter_hint)
 
@@ -3321,7 +3457,8 @@ class CommandPalette(QWidget):
         self._list.clear()
         current_section = None
 
-        for i, (label, icon, mode_id, section) in enumerate(self._visible_modes):
+        for i, entry in enumerate(self._visible_modes):
+            label, mode_id, section = entry[0], entry[1], entry[2]
             # Section header
             if section != current_section:
                 h_item, h_widget = self._make_section_header(section)
@@ -3330,7 +3467,7 @@ class CommandPalette(QWidget):
                 current_section = section
 
             selected = (self._list.count() == 1 and i == 0) or False
-            m_item, m_widget = self._make_mode_item(label, icon, mode_id, selected)
+            m_item, m_widget = self._make_mode_item(label, mode_id, selected)
             self._list.addItem(m_item)
             self._list.setItemWidget(m_item, m_widget)
 
@@ -3358,8 +3495,11 @@ class CommandPalette(QWidget):
 
     def show_palette(self, selected_text: str = "") -> None:
         self._selected_text = selected_text
+        self._state = self.STATE_MAIN
+        self._selected_quality = "adaptive"
         self._input.clear()
-        self._visible_modes = list(self.MODES)
+        self._input.setPlaceholderText("Ask AI or search actions...")
+        self._visible_modes = list(self.MAIN_MODES)
         self._populate_list()
 
         # Preview selected text
@@ -3418,13 +3558,22 @@ class CommandPalette(QWidget):
 
     def _on_search_changed(self, text: str) -> None:
         query = text.strip().lower()
+        if self._state == self.STATE_MAIN:
+            source = self.MAIN_MODES
+        elif self._state == self.STATE_MORE_ACTIONS:
+            source = self.MORE_MODES
+        elif self._state == self.STATE_CODE_QUALITY:
+            source = self.CODE_QUALITY_OPTIONS
+        else:
+            source = self.LANGUAGES
+
         if query:
             self._visible_modes = [
-                m for m in self.MODES
-                if query in m[0].lower() or query in m[2].lower()
+                m for m in source
+                if query in m[0].lower() or query in m[1].lower()
             ]
         else:
-            self._visible_modes = list(self.MODES)
+            self._visible_modes = list(source)
         self._populate_list()
 
     def _current_real_row(self) -> int:
@@ -3449,18 +3598,62 @@ class CommandPalette(QWidget):
 
     def _accept(self) -> None:
         custom_instr = self._input.text().strip()
-        if custom_instr and not any(
-            custom_instr.lower() in m[0].lower() for m in self.MODES
-        ):
-            self.action_selected.emit("custom", custom_instr)
-        else:
+
+        # ── Language selection: emit generate_code:{lang}:{quality} ───────────────
+        if self._state == self.STATE_LANGUAGES:
             row = self._list.currentRow()
             item = self._list.item(row)
             if item:
-                mode_id = item.data(Qt.ItemDataRole.UserRole)
-                if mode_id and mode_id != "__header__":
+                lang_id = item.data(Qt.ItemDataRole.UserRole)
+                if lang_id and lang_id != "__header__":
+                    mode_str = f"generate_code:{lang_id}:{self._selected_quality}"
+                    self.action_selected.emit(mode_str, "")
+                    self.hide_palette()
+            return
+
+        # ── Code quality selection: store quality, advance to language picker ─
+        if self._state == self.STATE_CODE_QUALITY:
+            row = self._list.currentRow()
+            item = self._list.item(row)
+            if item:
+                quality_id = item.data(Qt.ItemDataRole.UserRole)
+                if quality_id and quality_id != "__header__":
+                    self._selected_quality = quality_id
+                    self._state = self.STATE_LANGUAGES
+                    self._input.clear()
+                    self._input.setPlaceholderText("Select programming language...")
+                    self._visible_modes = list(self.LANGUAGES)
+                    self._populate_list()
+            return
+
+        # ── Custom command (text typed, not matching an action name) ──────────
+        all_action_names = [m[0].lower() for m in self.MAIN_MODES + self.MORE_MODES]
+        if custom_instr and not any(custom_instr.lower() in name for name in all_action_names):
+            self.action_selected.emit("custom", custom_instr)
+            self.hide_palette()
+            return
+
+        # ── Main / More Actions list selection ─────────────────────────────
+        row = self._list.currentRow()
+        item = self._list.item(row)
+        if item:
+            mode_id = item.data(Qt.ItemDataRole.UserRole)
+            if mode_id and mode_id != "__header__":
+                if mode_id == "more_actions":
+                    self._state = self.STATE_MORE_ACTIONS
+                    self._input.clear()
+                    self._input.setPlaceholderText("Search more actions...")
+                    self._visible_modes = list(self.MORE_MODES)
+                    self._populate_list()
+                elif mode_id == "generate_code":
+                    self._state = self.STATE_CODE_QUALITY
+                    self._input.clear()
+                    self._input.setPlaceholderText("Fast or Detailed?")
+                    self._visible_modes = list(self.CODE_QUALITY_OPTIONS)
+                    self._populate_list()
+                else:
                     self.action_selected.emit(mode_id, "")
-        self.hide_palette()
+                    self.hide_palette()
 
     def eventFilter(self, obj: QObject, event) -> bool:
         if obj == self._input:
@@ -3484,7 +3677,24 @@ class CommandPalette(QWidget):
                     self._accept()
                     return True
                 elif key == Qt.Key.Key_Escape:
-                    self.cancelled.emit()
-                    self.hide_palette()
-                    return True
+                    if self._state == self.STATE_LANGUAGES:
+                        # Languages → Code Quality
+                        self._state = self.STATE_CODE_QUALITY
+                        self._input.clear()
+                        self._input.setPlaceholderText("Fast or Detailed?")
+                        self._visible_modes = list(self.CODE_QUALITY_OPTIONS)
+                        self._populate_list()
+                        return True
+                    elif self._state in (self.STATE_CODE_QUALITY, self.STATE_MORE_ACTIONS):
+                        # Code Quality / More Actions → Main
+                        self._state = self.STATE_MAIN
+                        self._input.clear()
+                        self._input.setPlaceholderText("Ask AI or search actions...")
+                        self._visible_modes = list(self.MAIN_MODES)
+                        self._populate_list()
+                        return True
+                    else:
+                        self.cancelled.emit()
+                        self.hide_palette()
+                        return True
         return super().eventFilter(obj, event)

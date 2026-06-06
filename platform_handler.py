@@ -240,6 +240,13 @@ def copy_selection() -> None:
             with kb.pressed(Key.cmd):
                 kb.press('c')
                 kb.release('c')
+            
+            # Re-inject osascript System Events fallback trigger immediately, without diagnostic sleeps
+            logger.debug("Sending Cmd+C via osascript fallback.")
+            subprocess.run(
+                ['osascript', '-e', 'tell application "System Events" to keystroke "c" using command down'],
+                capture_output=True, text=True, timeout=3
+            )
         else:
             logger.debug("Sending Ctrl+C via pynput.")
             with kb.pressed(Key.ctrl):
