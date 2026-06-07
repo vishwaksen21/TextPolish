@@ -45,6 +45,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # Misc
     "launch_at_startup":  False,
     "show_notifications": True,
+    "voice_commands_enabled": False,
+    "wake_word_enabled":      False,
+    "microphone_device":      "",
 }
 
 
@@ -176,3 +179,16 @@ class Settings:
     @property
     def first_run_completed(self) -> bool:
         return bool(self._config.get("first_run_completed", False))
+
+    @property
+    def voice_commands_enabled(self) -> bool:
+        return bool(self._config.get("voice_commands_enabled", False))
+
+    @property
+    def wake_word_enabled(self) -> bool:
+        return bool(self._config.get("wake_word_enabled", False))
+
+    @property
+    def microphone_device(self) -> str:
+        return str(self._config.get("microphone_device", ""))
+

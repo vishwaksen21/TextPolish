@@ -1628,6 +1628,20 @@ def _paint_settings_icon(kind: str, color: str = "#111827", size: int = 24) -> Q
         path.lineTo(9, 17)
         painter.drawPath(path)
         
+    elif kind == "mic":
+        # Draw the microphone body (capsule)
+        painter.drawRoundedRect(9, 5, 6, 9, 3, 3)
+        # Draw the stand (U-shape)
+        path = QPainterPath()
+        path.moveTo(6, 9)
+        path.lineTo(6, 11)
+        path.cubicTo(6, 16, 18, 16, 18, 11)
+        path.lineTo(18, 9)
+        painter.drawPath(path)
+        # Draw the base vertical line and horizontal bar
+        painter.drawLine(12, 15, 12, 19)
+        painter.drawLine(8, 19, 16, 19)
+        
     else:
         painter.drawEllipse(10, 10, 4, 4)
         
@@ -2011,6 +2025,17 @@ class SettingsWindow(QDialog):
         self._startup_cb.toggled.connect(self._auto_save)
         self._theme_combo.currentIndexChanged.connect(self._auto_save)
         self._notif_cb.toggled.connect(self._auto_save)
+        self._voice_commands_enabled_cb.toggled.connect(self._auto_save)
+        self._voice_commands_enabled_cb.toggled.connect(self._update_voice_ui_state)
+        self._wake_word_cb.toggled.connect(self._auto_save)
+        self._mic_combo.currentIndexChanged.connect(self._auto_save)
+
+        # Initialize voice UI state and dynamic status reporting
+        self._update_voice_ui_state()
+        app = QApplication.instance()
+        if app and hasattr(app, "voice_engine") and app.voice_engine:
+            self._voice_status_lbl.setText(getattr(app.voice_engine, "status_text", "Ready"))
+            app.voice_engine.status_changed.connect(self._voice_status_lbl.setText)
 
     # ── Pages ─────────────────────────────────────────────────────────────────
 
@@ -2268,7 +2293,83 @@ class SettingsWindow(QDialog):
             theme=self._settings.theme
         )
 
-        layout.addWidget(_settings_group([shortcut_card_row, enabled_card_row, startup_card_row]))
+        self._voice_commands_enabled_cb = QCheckBox()
+        self._voice_commands_enabled_cb.setFixedSize(20, 20)
+        self._voice_commands_enabled_cb.setChecked(self._settings.get("voice_commands_enabled", False))
+        voice_card_row = _premium_row(
+            label_text="Enable Voice Commands",
+            sub_label="Enable voice control (Push-To-Talk via Ctrl+Shift+V or Wake Word).",
+            icon_kind="mic",
+            icon_color=tokens["PRIMARY"],
+            icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._voice_commands_enabled_cb,
+            theme=self._settings.theme
+        )
+
+        layout.addWidget(_settings_group([shortcut_card_row, enabled_card_row, startup_card_row, voice_card_row]))
+
+        # Section 2: Voice Configuration
+        layout.addWidget(_section_header("Voice Configuration"))
+
+        self._wake_word_cb = QCheckBox()
+        self._wake_word_cb.setFixedSize(20, 20)
+        self._wake_word_cb.setChecked(self._settings.get("wake_word_enabled", False))
+        wake_word_row = _premium_row(
+            label_text="Enable Wake Word ('Hey Avelyn')",
+            sub_label="Listen continuously in the background for the wake word to trigger.",
+            icon_kind="shield",
+            icon_color=tokens["PRIMARY"],
+            icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._wake_word_cb,
+            theme=self._settings.theme
+        )
+
+        self._mic_combo = QComboBox()
+        self._mic_combo.setObjectName("SettingsComboBox")
+        mic_devices = []
+        try:
+            import sounddevice as sd
+            devs = sd.query_devices()
+            for dev in devs:
+                if dev.get('max_input_channels', 0) > 0:
+                    name = dev['name']
+                    if name not in mic_devices:
+                        mic_devices.append(name)
+        except Exception:
+            pass
+        if not mic_devices:
+            mic_devices = ["Default System Microphone"]
+        self._mic_combo.addItems(mic_devices)
+        cfg_mic = self._settings.get("microphone_device", "")
+        if cfg_mic in mic_devices:
+            self._mic_combo.setCurrentText(cfg_mic)
+        else:
+            self._mic_combo.setCurrentIndex(0)
+
+        mic_row = _premium_row(
+            label_text="Input Microphone",
+            sub_label="Select the audio device to use for voice commands.",
+            icon_kind="sliders",
+            icon_color=tokens["PRIMARY"],
+            icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._mic_combo,
+            theme=self._settings.theme
+        )
+
+        self._voice_status_lbl = QLabel("Inactive")
+        self._voice_status_lbl.setObjectName("SettingsMuted")
+        self._voice_status_lbl.setStyleSheet("font-weight: bold;")
+        status_row = _premium_row(
+            label_text="Voice Engine Status",
+            sub_label="Current status of the background voice listener.",
+            icon_kind="info",
+            icon_color=tokens["PRIMARY"],
+            icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._voice_status_lbl,
+            theme=self._settings.theme
+        )
+
+        layout.addWidget(_settings_group([wake_word_row, mic_row, status_row]))
 
         # Section 2: Advanced Integration
         layout.addWidget(_section_header("Advanced Integration"))
@@ -2658,11 +2759,20 @@ class SettingsWindow(QDialog):
         self._settings.set("launch_at_startup", self._startup_cb.isChecked())
         self._settings.set("theme",           "dark" if self._theme_combo.currentIndex() == 0 else "light")
         self._settings.set("show_notifications", self._notif_cb.isChecked())
+        self._settings.set("voice_commands_enabled", self._voice_commands_enabled_cb.isChecked())
+        self._settings.set("wake_word_enabled", self._wake_word_cb.isChecked())
+        self._settings.set("microphone_device", self._mic_combo.currentText())
 
         from platform_handler import set_launch_at_startup
         set_launch_at_startup(self._startup_cb.isChecked())
 
         self.settings_changed.emit()
+
+    def _update_voice_ui_state(self) -> None:
+        """Toggle enabled state of voice sub-settings depending on master toggle."""
+        enabled = self._voice_commands_enabled_cb.isChecked()
+        self._wake_word_cb.setEnabled(enabled)
+        self._mic_combo.setEnabled(enabled)
 
     def _on_test_connection(self) -> None:
         self._test_result.setText("Testing…")
@@ -3493,11 +3603,14 @@ class CommandPalette(QWidget):
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def show_palette(self, selected_text: str = "") -> None:
+    def show_palette(self, selected_text: str = "", prefill_query: str = "") -> None:
         self._selected_text = selected_text
         self._state = self.STATE_MAIN
         self._selected_quality = "adaptive"
-        self._input.clear()
+        if prefill_query:
+            self._input.setText(prefill_query)
+        else:
+            self._input.clear()
         self._input.setPlaceholderText("Ask AI or search actions...")
         self._visible_modes = list(self.MAIN_MODES)
         self._populate_list()

@@ -25,6 +25,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from clipboard_manager import ClipboardManager
 from logger import logger
 from platform_handler import IS_MACOS, copy_selection
+from settings import Settings
 
 if IS_MACOS:
     try:
@@ -69,6 +70,9 @@ class HotkeyBridge(QObject):
     # Emitted on any unexpected error.
     error_occurred = pyqtSignal(str)
 
+    # Emitted with the captured text after a successful PTT copy cycle.
+    ptt_text_captured = pyqtSignal(str)
+
 
 class HotkeyManager:
     """
@@ -89,10 +93,12 @@ class HotkeyManager:
         bridge: HotkeyBridge,
         hotkey: str = "<ctrl>+<shift>+e",
         clipboard_manager: Optional[ClipboardManager] = None,
+        settings: Optional[Settings] = None,
     ) -> None:
         self._bridge = bridge
         self._hotkey = hotkey
         self._clipboard = clipboard_manager or ClipboardManager()
+        self._settings = settings
         self._listener = None        # pynput GlobalHotKeys instance
         self._enabled = True         # Can be toggled to pause without stopping
         self._lock = threading.Lock()
@@ -109,12 +115,16 @@ class HotkeyManager:
             return
 
         hotkeys = {self._hotkey: self._on_hotkey_fired}
+        if self._settings and self._settings.get("voice_commands_enabled", False):
+            hotkeys["<ctrl>+<shift>+v"] = self._on_ptt_fired
 
         try:
             self._listener = kb.GlobalHotKeys(hotkeys)
             self._listener.daemon = True
             self._listener.start()
-            logger.info("Hotkey listener started: %s", self._hotkey)
+            logger.info("Hotkey listener started: %s (Voice PTT enabled: %s)", 
+                        self._hotkey, 
+                        self._settings.get("voice_commands_enabled", False) if self._settings else False)
         except Exception as exc:                          # noqa: BLE001
             logger.error("Failed to start hotkey listener: %s", exc)
             self._bridge.error_occurred.emit(
@@ -236,6 +246,58 @@ class HotkeyManager:
 
         except Exception as exc:                          # noqa: BLE001
             logger.error("Error in hotkey callback: %s", exc)
+            self._bridge.error_occurred.emit(str(exc))
+        finally:
+            with self._lock:
+                self._is_processing = False
+
+    def _on_ptt_fired(self) -> None:
+        """
+        Called by pynput when Ctrl+Shift+V is pressed.
+        Spawns a background thread immediately to run selection capture and start recording.
+        """
+        with self._lock:
+            if not self._enabled:
+                logger.debug("PTT fired but processing is paused.")
+                return
+            if self._is_processing:
+                logger.debug("PTT fired but already processing.")
+                return
+            self._is_processing = True
+
+        threading.Thread(target=self._process_ptt_task, daemon=True).start()
+
+    def _process_ptt_task(self) -> None:
+        """Copies selection and then triggers PTT."""
+        try:
+            logger.debug("PTT copy cycle started in background thread.")
+            import uuid
+            import time
+            import platform_handler
+
+            # 1. Save clipboard and inject UUID
+            self._clipboard.save()
+            temp_marker = f"__AVELYN_{uuid.uuid4().hex}__"
+            self._clipboard.set(temp_marker)
+
+            time.sleep(0.05)
+
+            # 2. Trigger Cmd+C
+            copy_selection()
+
+            # 3. Read clipboard
+            text = self._clipboard.read_after_copy(previous=temp_marker)
+
+            # 4. Signal Qt
+            if not text or text == temp_marker or len(text.strip()) < 3:
+                logger.warning("PTT Selection empty. Signaling nothing_selected.")
+                self._bridge.nothing_selected.emit()
+            else:
+                logger.info("PTT Selection captured: %d chars", len(text))
+                self._bridge.ptt_text_captured.emit(text)
+
+        except Exception as exc:
+            logger.error("Error in PTT task: %s", exc)
             self._bridge.error_occurred.emit(str(exc))
         finally:
             with self._lock:

@@ -21,15 +21,15 @@ export default function ProductShowcase() {
         >
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="h-[1px] w-8 bg-[#7C3AED]"></div>
-            <h2 className="text-sm font-semibold text-[#7C3AED] uppercase tracking-widest">
+            <span className="text-sm font-semibold text-[#7C3AED] uppercase tracking-widest">
               Native Experience
-            </h2>
+            </span>
             <div className="h-[1px] w-8 bg-[#7C3AED]"></div>
           </div>
-          <h3 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
             Feels like it belongs <br className="hidden sm:block" />
             on your Mac.
-          </h3>
+          </h2>
           <p className="text-lg text-neutral-500 font-medium leading-relaxed">
             Take a closer look at the actual product layout, designed to blend seamlessly with macOS Sonoma & Sequoia.
           </p>
@@ -53,9 +53,9 @@ export default function ProductShowcase() {
               <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10">
                 <Sliders className="w-6 h-6 text-[#7C3AED]" />
               </div>
-              <h4 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">
+              <h3 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">
                 Zero-Intrusion <br /> Menu Bar Experience
-              </h4>
+              </h3>
               <p className="text-lg text-neutral-400 font-medium leading-relaxed max-w-[400px]">
                 Avelyn operates entirely in the background, living in your macOS Menu Bar. Trigger it with a keystroke, adjust settings in two clicks, and keep your screen 100% focused on your actual work.
               </p>
@@ -82,9 +82,9 @@ export default function ProductShowcase() {
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm">
                 <Sparkles className="w-6 h-6 text-[#7C3AED]" />
               </div>
-              <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
+              <h3 className="text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
                 First-Run <br /> Setup Wizard
-              </h4>
+              </h3>
               <p className="text-base text-neutral-500 font-medium leading-relaxed">
                 Getting started with local offline AI should be simple. A premium, step-by-step setup wizard guides you perfectly through model selection and global hotkey preferences.
               </p>
@@ -112,9 +112,9 @@ export default function ProductShowcase() {
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-neutral-200/60 shadow-sm">
                 <Shield className="w-6 h-6 text-[#7C3AED]" />
               </div>
-              <h4 className="text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
+              <h3 className="text-2xl lg:text-3xl font-bold text-neutral-900 tracking-tight">
                 Self-Healing <br /> Permission Assistant
-              </h4>
+              </h3>
               <p className="text-base text-neutral-500 font-medium leading-relaxed">
                 No more troubleshooting terminal commands. Avelyn features a native helper to assist you with macOS Accessibility and Input permissions so global paste events function securely.
               </p>

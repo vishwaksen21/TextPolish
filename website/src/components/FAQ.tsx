@@ -46,15 +46,15 @@ export default function FAQ() {
         >
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="h-[1px] w-6 bg-[#7C3AED]"></div>
-            <h2 className="text-sm font-semibold text-[#7C3AED] uppercase tracking-widest">
+            <span className="text-sm font-semibold text-[#7C3AED] uppercase tracking-widest">
               FAQ
-            </h2>
+            </span>
             <div className="h-[1px] w-6 bg-[#7C3AED]"></div>
           </div>
-          <h3 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight leading-tight mb-6">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight leading-tight mb-6">
             Frequently Asked <br className="hidden sm:block" />
             Questions
-          </h3>
+          </h2>
         </motion.div>
 
         {/* Floating Island Accordions */}

@@ -64,12 +64,12 @@ export default function HowItWorks() {
 
         {/* Section Header */}
         <div className="text-center max-w-[600px] mx-auto mb-10">
-          <h2 className="text-xs font-bold text-[#7C3AED] uppercase tracking-widest mb-3">
+          <span className="text-xs font-bold text-[#7C3AED] uppercase tracking-widest mb-3 block">
             Product Walkthrough
-          </h2>
-          <h3 className="text-3xl md:text-4xl font-extrabold text-neutral-900 tracking-tight">
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-neutral-900 tracking-tight">
             See the Workflow in Action
-          </h3>
+          </h2>
         </div>
 
         {/* Premium Horizontal "Sliding Pill" Navigation */}
@@ -117,10 +117,10 @@ export default function HowItWorks() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                <h4 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4 tracking-tight">
+                <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4 tracking-tight">
                   <span className="text-neutral-300 mr-2">0{activeStep + 1}.</span>
                   {steps[activeStep].title}
-                </h4>
+                </h3>
                 <p className="text-sm md:text-base text-neutral-500 font-medium leading-relaxed">
                   {steps[activeStep].desc}
                 </p>

@@ -156,6 +156,9 @@ def run_ai_test(settings: Settings) -> None:
 class CommandPaletteWorkflow(QObject):
     """Handles the Command Palette UI and background text replacement."""
     
+    workflow_completed = pyqtSignal()
+    workflow_failed = pyqtSignal()
+    
     def __init__(self, settings: Settings, processor: AIProcessor, clipboard: ClipboardManager, tray: SystemTrayIcon) -> None:
         super().__init__()
         self._settings = settings
@@ -185,11 +188,10 @@ class CommandPaletteWorkflow(QObject):
             
         logger.info("Command Palette triggered for text: %r", text[:20])
         self._current_text = text
-        self._palette_is_hidden = False
         self._pending_paste = False
         self._toast.hide()
-        # The active app bundle was ALREADY captured by platform_handler.copy_selection() 
-        # before any UI was shown. Do not re-record it here, or it will record Avelyn!
+
+        self._palette_is_hidden = False
         self._palette.show_palette(selected_text=text)
         
     def _on_action_selected(self, mode: str, custom_instruction: str) -> None:
@@ -208,12 +210,20 @@ class CommandPaletteWorkflow(QObject):
     def _on_cancelled(self) -> None:
         logger.info("Command Palette cancelled by user.")
         self._restore_clipboard()
+        if getattr(self, "_voice_action_pending", False):
+            logger.warning("VOICE_COMMAND_FAILED: Cancelled by user")
+            self._voice_action_pending = False
+        self.workflow_failed.emit()
         
     def _on_ai_finished(self, enhanced_text: str) -> None:
         if not enhanced_text:
             self._toast.show_message("⚠ Empty response", error=True)
             self._clipboard.restore()
             self._worker = None
+            if getattr(self, "_voice_action_pending", False):
+                logger.warning("VOICE_COMMAND_FAILED: Empty response from AI")
+                self._voice_action_pending = False
+            self.workflow_failed.emit()
             return
 
         from utils import PerfTracker
@@ -262,7 +272,13 @@ class CommandPaletteWorkflow(QObject):
             PerfTracker.log_summary()
 
             # Show toast 400ms after paste so it doesn't disrupt Cmd+V
-            QTimer.singleShot(400, lambda: [self._toast.show_message("✓ Complete", success=True), logger.info("REPLACEMENT_COMPLETE")])
+            QTimer.singleShot(400, lambda: [
+                self._toast.show_message("✓ Complete", success=True),
+                logger.info("REPLACEMENT_COMPLETE"),
+                logger.info("VOICE_COMMAND_SUCCESS") if getattr(self, "_voice_action_pending", False) else None,
+                setattr(self, "_voice_action_pending", False),
+                self.workflow_completed.emit(),
+            ])
         finally:
             # Restore clipboard well after paste completes
             QTimer.singleShot(2000, self._restore_clipboard)
@@ -275,6 +291,10 @@ class CommandPaletteWorkflow(QObject):
     def _on_error(self, msg: str) -> None:
         self._toast.show_message("⚠ Error", error=True)
         logger.error("Workflow failed: %s", msg)
+        if getattr(self, "_voice_action_pending", False):
+            logger.warning("VOICE_COMMAND_FAILED: %s", msg)
+            self._voice_action_pending = False
+        self.workflow_failed.emit()
         
         if "DIAGNOSTIC RESULTS:" in msg:
             from PyQt6.QtWidgets import QMessageBox
@@ -389,11 +409,18 @@ class AvelynApp:
         logger.info("STARTUP: Creating HotkeyBridge and HotkeyManager...")
         try:
             self._bridge  = HotkeyBridge()
-            self._hotkeys = HotkeyManager(self._bridge, self._settings.hotkey, self._clipboard)
+            self._hotkeys = HotkeyManager(self._bridge, self._settings.hotkey, self._clipboard, settings=self._settings)
             logger.info("STARTUP: HotkeyBridge and HotkeyManager created OK")
         except Exception as exc:
             logger.critical("STARTUP FAIL: Hotkey setup raised: %s\n%s", exc, _traceback.format_exc())
             raise
+
+        # ── Voice commands handler ───────────────────────────────────────────
+        from voice_handler import VoiceHandler
+        self._voice_handler = VoiceHandler(self._settings)
+        self._voice_handler.action_selected.connect(self._on_voice_action_selected)
+        self._voice_handler.open_palette_requested.connect(self._on_voice_open_palette_requested)
+        self._voice_handler.notification_requested.connect(self._on_voice_notification_requested)
 
         self._wire_signals()
         logger.info("STARTUP: AvelynApp init complete")
@@ -404,11 +431,20 @@ class AvelynApp:
         self._bridge.text_captured.connect(self._on_text_captured)
         self._bridge.nothing_selected.connect(self._on_nothing_selected)
         self._bridge.error_occurred.connect(self._on_hotkey_error)
+        self._bridge.ptt_text_captured.connect(self._on_ptt_text_captured)
+
+        # Workflow finished connections
+        self._workflow.workflow_completed.connect(self._on_workflow_finished)
+        self._workflow.workflow_failed.connect(self._on_workflow_finished)
 
         # Tray → actions
         self._tray.open_settings_requested.connect(self._show_settings)
         self._tray.quit_requested.connect(self._quit)
         self._tray.pause_toggled.connect(self._hotkeys.set_enabled)
+
+    def _on_workflow_finished(self) -> None:
+        if hasattr(self, "_voice_handler") and self._voice_handler:
+            self._voice_handler.set_busy(False)
 
     def run(self) -> int:
         """Start all services and enter the Qt event loop."""
@@ -548,10 +584,16 @@ class AvelynApp:
                 self._settings_win.activateWindow()
 
         hotkey = self._settings.hotkey
-        if hotkey != getattr(self, "_current_hotkey", None):
+        voice_enabled = self._settings.voice_commands_enabled
+        if (hotkey != getattr(self, "_current_hotkey", None) or 
+            voice_enabled != getattr(self, "_current_voice_enabled", None)):
             self._current_hotkey = hotkey
+            self._current_voice_enabled = voice_enabled
             self._hotkeys.restart(hotkey)
-            logger.info("Settings reloaded; hotkey restarted with: %s", hotkey)
+            logger.info("Settings reloaded; hotkey listener restarted (PTT active: %s)", voice_enabled)
+
+        if hasattr(self, "_voice_handler") and self._voice_handler:
+            self._voice_handler.sync_with_settings()
 
     def _on_text_captured(self, text: str) -> None:
         if self._settings.auto_replace:
@@ -601,11 +643,76 @@ class AvelynApp:
     def _quit(self) -> None:
         logger.info("Shutting down %s.", APP_NAME)
         self._hotkeys.stop()
+        if hasattr(self, "_voice_handler") and self._voice_handler:
+            # Stop the engine directly — do NOT call sync_with_settings() here,
+            # because if voice_commands_enabled=True that would restart the engine.
+            if self._voice_handler.engine:
+                logger.info("VOICE_ENGINE_STOPPING")
+                self._voice_handler.engine.stop()
+                self._voice_handler.engine = None
         try:
             self._clipboard.restore()
         except Exception:
             pass
         self._qapp.quit()
+
+    def _on_ptt_text_captured(self, text: str) -> None:
+        logger.info("PTT selection text captured. Length: %d", len(text))
+        self._workflow._current_text = text
+        self._workflow._pending_paste = False
+        if hasattr(self, "_voice_handler") and self._voice_handler:
+            self._voice_handler.trigger_ptt()
+
+    def _on_voice_action_selected(self, mode_id: str) -> None:
+        logger.info("VOICE_ACTION_RECEIVED_IN_MAIN: %s", mode_id)
+        
+        # In wake-word flow, selection text might not have been captured yet
+        text = getattr(self._workflow, "_current_text", "")
+        if not text:
+            logger.info("VOICE_CAPTURE_SELECTION_START")
+            logger.info("Wake-word triggered action. Capturing selection synchronously...")
+            text = self._capture_text_synchronously()
+            if not text:
+                logger.warning("Wake-word triggered action but no text was selected.")
+                logger.warning("VOICE_COMMAND_FAILED: No text highlighted")
+                if hasattr(self, "_voice_handler") and self._voice_handler:
+                    self._voice_handler.set_busy(False)
+                self._tray.notify(APP_NAME, "Please highlight some text before speaking commands.")
+                return
+            logger.info("VOICE_CAPTURE_SELECTION_SUCCESS chars=%d", len(text))
+            self._workflow._current_text = text
+        else:
+            logger.info("VOICE_CAPTURE_SELECTION_SUCCESS chars=%d", len(text))
+            
+        self._workflow._palette_is_hidden = True
+        self._workflow._voice_action_pending = True  # Signal to _perform_paste to emit VOICE_COMMAND_SUCCESS
+        logger.info("VOICE_PIPELINE_FORWARDING mode=%s", mode_id)
+        self._workflow._on_action_selected(mode_id, "")
+
+    def _on_voice_open_palette_requested(self, text: str) -> None:
+        logger.info("Fallback: opening Command Palette prefilled with: %r", text)
+        self._workflow._palette_is_hidden = False
+        self._workflow._palette.show_palette(selected_text=self._workflow._current_text, prefill_query=text)
+
+    def _on_voice_notification_requested(self, title: str, message: str) -> None:
+        self._tray.notify(title, message)
+
+    def _capture_text_synchronously(self) -> Optional[str]:
+        import time
+        import uuid
+        import platform_handler
+        
+        self._clipboard.save()
+        temp_marker = f"__AVELYN_{uuid.uuid4().hex}__"
+        self._clipboard.set(temp_marker)
+        
+        time.sleep(0.05)
+        platform_handler.copy_selection()
+        
+        text = self._clipboard.read_after_copy(previous=temp_marker)
+        if not text or text == temp_marker:
+            return None
+        return text
 
 
 # ── Font loader ──────────────────────────────────────────────────────────────

@@ -35,7 +35,7 @@ export default function Navbar() {
         <div className="w-full flex items-center justify-between">
           {/* LEFT: Logo (Increased Size) */}
           <a
-            href="#"
+            href="/"
             className="group flex items-center gap-3 select-none outline-none"
             aria-label="Avelyn"
           >

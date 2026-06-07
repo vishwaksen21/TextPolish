@@ -10,9 +10,17 @@ export default function Footer() {
     {
       title: "Product",
       links: [
-        { name: "Early Beta Access", href: "#beta" },
-        { name: "Setup Wizard", href: "#how-it-works" },
-        { name: "Beta Program", href: "#beta" }
+        { name: "Early Beta Access", href: "/#beta" },
+        { name: "About Avelyn", href: "/about-avelyn" },
+        { name: "What is Avelyn?", href: "/what-is-avelyn" },
+        { name: "Avelyn AI Specs", href: "/avelyn-ai" }
+      ]
+    },
+    {
+      title: "Comparisons",
+      links: [
+        { name: "vs. ChatGPT", href: "/avelyn-vs-chatgpt" },
+        { name: "vs. Grammarly", href: "/avelyn-vs-grammarly" }
       ]
     },
     {
@@ -25,8 +33,8 @@ export default function Footer() {
     {
       title: "Contact & Legal",
       links: [
-        { name: "Privacy Policy", href: "#privacy" },
-        { name: "chilukurvishwak21@gmail.com", href: "mailto:chilukurvishwak21@gmail.com" },
+        { name: "Privacy Policy", href: "/#privacy" },
+        { name: "Email Support", href: "mailto:chilukurvishwak21@gmail.com" },
         { name: "Tel: 7019151370", href: "tel:7019151370" }
       ]
     }
@@ -55,10 +63,10 @@ export default function Footer() {
               </span>
             </div>
 
-            <h3 className="text-3xl md:text-4xl font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
+            <p className="text-3xl md:text-4xl font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
               Write better. <br />
               <span className="text-neutral-400">Never compromise privacy.</span>
-            </h3>
+            </p>
 
             <a
               href="#beta"
@@ -74,12 +82,12 @@ export default function Footer() {
           </div>
 
           {/* Right: Clean, Spaced-out Links */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-16 w-full lg:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 md:gap-16 w-full lg:w-auto">
             {footerLinks.map((column) => (
               <div key={column.title} className="flex flex-col">
-                <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-widest mb-6">
+                <span className="text-xs font-bold text-neutral-900 uppercase tracking-widest mb-6 block">
                   {column.title}
-                </h4>
+                </span>
                 <ul className="flex flex-col space-y-4">
                   {column.links.map((link) => (
                     <li key={link.name}>
