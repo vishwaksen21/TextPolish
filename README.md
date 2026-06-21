@@ -1,6 +1,6 @@
 # Avelyn 🟣
 
-> **AI-powered global text enhancer** — Select any text, press a shortcut, and watch it transform into polished, professional prose instantly.
+> **AI-powered global text enhancer** — Select any text, press a shortcut, and watch it transform into polished, professional prose instantly
 
 Works **system-wide** across browsers, VS Code, Word, Notepad, ChatGPT, and any editable text field on **macOS** and **Windows**.
 
