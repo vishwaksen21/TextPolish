@@ -15,39 +15,39 @@ export default function WhatIsAvelynPage() {
   const faqs = [
     {
       q: "What is Avelyn?",
-      a: "Avelyn is a privacy-first, local offline AI writing assistant specifically designed for macOS. It integrates system-wide, allowing you to highlight text in any application (like Chrome, Slack, Word, or VS Code), hit a customizable global keyboard shortcut, and refine or rewrite your prose instantly using local AI models."
+      a: "Avelyn is a hybrid, privacy-first AI writing assistant specifically designed for macOS. It integrates system-wide, allowing you to highlight text in any application (like Chrome, Slack, Word, or VS Code), hit a customizable global keyboard shortcut, and refine or rewrite your prose instantly using local offline models or secure cloud APIs."
     },
     {
       q: "Is the application safe to use?",
-      a: "Yes, this utility is highly secure. Unlike traditional cloud writing assistants that stream your highlighted inputs to remote servers, the tool operates entirely within a local sandbox on your machine. It only captures your highlighted text when the hotkey is pressed, processes it strictly in local memory, and updates your clipboard with zero external network request logging or telemetry."
+      a: "Yes, this utility is highly secure. Unlike traditional cloud writing assistants that stream your inputs to remote servers, Avelyn operates with zero background keylogging. In local mode, calculations run in-memory without network requests. In cloud mode, your API keys are stored locally and fully masked inside settings to prevent over-the-shoulder leaks."
     },
     {
       q: "Is it completely offline?",
-      a: "Yes. When configured with local offline servers like Ollama, the assistant operates 100% offline. No active internet connection is required to rewrite, format, translate, or proofread your text, making it ideal for air-gapped workstations or sensitive corporate environments."
+      a: "Yes. When configured with local offline engines like Ollama, the assistant operates 100% offline. No active internet connection is required to rewrite, format, translate, or proofread your text, making it ideal for air-gapped workstations or sensitive corporate environments."
     },
     {
-      q: "Does the macOS assistant use Ollama?",
-      a: "The tool defaults to Ollama for local offline LLM model execution. This allows you to host and run open-weights models like Llama 3, Mistral, and Gemma 3 on your Apple Silicon CPU or GPU. Alternatively, if you prefer not to host binaries locally, you can configure cloud API connections inside the Settings panel."
+      q: "How does the hybrid multi-provider architecture work?",
+      a: "Avelyn supports Local Ollama, Avelyn Cloud (OpenRouter), and Custom API endpoints. In 'Auto Provider' mode, it automatically routes tasks based on classification and text size (e.g. sending coding tasks to the Coding Provider, and long texts to the Writing Provider), with automatic fallbacks if a provider goes offline."
     },
     {
-      q: "How does the offline AI assistant function system-wide?",
-      a: "The utility uses standard macOS accessibility APIs to copy highlighted text when the global shortcut (Ctrl+Shift+E) is pressed. It displays a minimalist command palette next to your cursor, takes your selected rewrite instruction (Smart Assist, Fix Grammar, or custom prompt), processes the text via local Ollama inference, and pastes the result directly back in place."
+      q: "Can I cancel generations or customize context limits?",
+      a: "Yes. Avelyn includes immediate query cancellation to halt model streams instantly, saving local CPU/GPU cycles and API tokens. You can also configure the active context window size (such as 2,048 or 4,096 tokens) in settings to prevent system RAM pressure."
     },
     {
       q: "Why is the system different from cloud alternatives?",
-      a: "The system is different because it is built from the ground up for zero cloud dependency and complete data sovereignty. Unlike cloud assistants that transmit your keystrokes to third-party databases, this utility runs open LLMs natively on your Apple Silicon hardware, executes edits in-place inside a local sandbox, requires no subscriptions, and functions completely offline."
+      a: "The system is different because it is built from the ground up for complete data sovereignty, zero keylogging, and multi-provider flexibility. Rather than locking you into one vendor, Avelyn lets you combine local open weights models with secure pay-as-you-go cloud APIs."
     },
     {
       q: "What macOS versions are supported?",
       a: "The software supports macOS 13 (Ventura), macOS 14 (Sonoma), and macOS 15 (Sequoia) or newer. It is optimized to run on both Intel-based Macs and Apple Silicon machines (M1, M2, M3, M4 series), though Apple Silicon is highly recommended for faster token generation and lower memory latency during local LLM model execution."
     },
     {
-      q: "Can I run fine-tuned or custom model files?",
-      a: "Yes. Because the utility integrates directly with Ollama's local api server, you can load any custom Modelfile inside your local library. Once registered in Ollama, your custom fine-tuned model profile will automatically appear in the assistant's model dropdown list."
+      q: "Can I connect custom OpenAI-compatible models?",
+      a: "Yes. By choosing the 'Custom API' provider, you can connect LM Studio, vLLM, or any private OpenAI-compatible endpoint. Simply input your base URL, API key, and model ID inside the settings panel."
     },
     {
       q: "Is there any background network tracking?",
-      a: "Absolutely not. The application code is built with zero telemetry dependencies. It does not contain analytic tracking scripts, error reporting mechanisms that connect to external endpoints, or remote config fetching. Your texts, keyboard actions, and logs remain strictly on your local SSD."
+      a: "Absolutely not. The application code is built with zero telemetry dependencies. It does not contain analytic tracking scripts, error reporting mechanisms that connect to external endpoints, or remote config fetching. Your texts, keys, and logs remain strictly on your local device."
     }
   ];
 

@@ -20,6 +20,25 @@ export default function SettingsMockup() {
   const [hotkey, setHotkey] = useState("Ctrl+Shift+E");
   const [rawHotkey, setRawHotkey] = useState("<ctrl>+<shift>+e");
   const [saveStatus, setSaveStatus] = useState("Saved");
+  
+  const [revealHistory, setRevealHistory] = useState(false);
+  const [providerMode, setProviderMode] = useState("auto"); // "single" | "smart_router" | "auto"
+  const [singleProvider, setSingleProvider] = useState("ollama"); // "ollama" | "avelyn_cloud" | "custom_api"
+  const [cloudApiKey, setCloudApiKey] = useState("sk-or-v1-d6c91...");
+  const [cloudModel, setCloudModel] = useState("openai/gpt-4o-mini");
+  const [customPreset, setCustomPreset] = useState("OpenAI");
+  const [customBaseUrl, setCustomBaseUrl] = useState("https://api.openai.com/v1");
+  const [customApiKey, setCustomApiKey] = useState("");
+  const [customModel, setCustomModel] = useState("gpt-4o-mini");
+  const [fallbackEnabled, setFallbackEnabled] = useState(true);
+  const [fallbackChain, setFallbackChain] = useState("ollama, avelyn_cloud, custom_api");
+  
+  const [codingProvider, setCodingProvider] = useState("avelyn_cloud");
+  const [codingModel, setCodingModel] = useState("moonshotai/kimi-k2:free");
+  const [writingProvider, setWritingProvider] = useState("avelyn_cloud");
+  const [writingModel, setWritingModel] = useState("anthropic/claude-3.5-haiku");
+  const [reasoningProvider, setReasoningProvider] = useState("custom_api");
+  const [reasoningModel, setReasoningModel] = useState("gpt-4o-mini");
 
   const triggerAutoSave = () => {
     setSaveStatus("Saving...");
@@ -164,95 +183,230 @@ export default function SettingsMockup() {
 
                 {/* --- AI PROVIDER --- */}
                 {activeTab === "AI Provider" && (
-                  <div className="space-y-6">
-                    <div className={`${colors.card} rounded-xl overflow-hidden`}>
-
-                      {/* Status Row */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
-                        <div>
-                          <div className={`text-sm font-semibold ${colors.textMain}`}>Local Engine Status</div>
-                          <div className={`text-xs ${colors.textMuted} mt-0.5`}>Validate your Ollama connection</div>
-                        </div>
-                        <div className="flex items-center gap-3 self-start sm:self-auto">
-                          <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isConnected ? "bg-emerald-100 text-emerald-700" : isTesting ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-500"
-                            }`}>
-                            {isConnected ? "Connected" : isTesting ? "Testing..." : "Standby"}
-                          </div>
-                          <button
-                            onClick={handleTestConnection}
-                            disabled={isTesting}
-                            className={`flex items-center gap-1.5 text-xs font-semibold bg-neutral-900 text-white px-3 py-1.5 rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50`}
-                          >
-                            <Play className="w-3 h-3 fill-current" /> Test
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className={`h-px w-full ${colors.divider}`} />
-
-                      {/* Default Mode Row */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
-                        <div>
-                          <div className={`text-sm font-semibold ${colors.textMain}`}>Default Mode</div>
-                          <div className={`text-xs ${colors.textMuted} mt-0.5`}>Primary enhancement style</div>
-                        </div>
-                        <select
-                          value={mode}
-                          onChange={(e) => { setMode(e.target.value); triggerAutoSave(); }}
-                          className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-40 outline-none`}
+                  <div className="space-y-5">
+                    {/* Mode Selector Segmented Control */}
+                    <div className={`p-1 rounded-lg ${theme === 'light' ? 'bg-neutral-200/50' : 'bg-black/30'} flex`}>
+                      {[
+                        { id: "auto", label: "Auto Provider (Intelligent)" },
+                        { id: "smart_router", label: "Smart Router" },
+                        { id: "single", label: "Single Provider" },
+                      ].map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => { setProviderMode(m.id); triggerAutoSave(); }}
+                          className={`flex-1 text-center py-1.5 rounded-md text-[11px] font-bold transition-all duration-200 outline-none ${
+                            providerMode === m.id
+                              ? "bg-[#7C3AED] text-white shadow-sm"
+                              : theme === 'light'
+                              ? "text-neutral-600 hover:text-neutral-900"
+                              : "text-neutral-400 hover:text-neutral-200"
+                          }`}
                         >
-                          <option>Professional</option>
-                          <option>Fix Grammar</option>
-                          <option>Concise</option>
-                          <option>Explain</option>
-                        </select>
-                      </div>
+                          {m.label}
+                        </button>
+                      ))}
                     </div>
 
-                    {/* Advanced Section */}
-                    <div>
-                      <button
-                        onClick={() => setShowAdvancedAI(!showAdvancedAI)}
-                        className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${colors.textMuted} hover:${colors.textMain} transition-colors mb-3 outline-none`}
-                      >
-                        {showAdvancedAI ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                        Advanced Configuration
-                      </button>
+                    {/* Auto Mode Config Panel */}
+                    {providerMode === "auto" && (
+                      <div className={`${colors.card} rounded-xl p-5 space-y-3`}>
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 rounded-lg bg-[#7C3AED]/10 text-[#7C3AED] shrink-0 mt-0.5">
+                            <Sparkles className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className={`text-sm font-semibold ${colors.textMain}`}>Auto Provider Mode Active</h4>
+                            <p className={`text-xs ${colors.textMuted} mt-1 leading-relaxed`}>
+                              Avelyn dynamically routes tasks based on privacy, length, and task classification:
+                            </p>
+                            <ul className={`list-disc pl-4 text-[11px] ${colors.textMuted} mt-2.5 space-y-1.5`}>
+                              <li>Privacy-focused instructions are kept fully local via <strong>Ollama</strong>.</li>
+                              <li>Short text queries (&lt; 50 chars) process locally for absolute privacy.</li>
+                              <li>Coding scripts and syntax route automatically to the <strong>Coding Provider</strong>.</li>
+                              <li>Large documents (&gt; 2,000 chars) route to the <strong>Writing Provider</strong>.</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                      <AnimatePresence>
-                        {showAdvancedAI && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className={`${colors.card} rounded-xl overflow-hidden`}>
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4">
-                                <div className={`text-sm font-medium ${colors.textMain}`}>Host URL</div>
-                                <input
-                                  type="text"
-                                  value={host}
-                                  onChange={(e) => setHost(e.target.value)}
-                                  onBlur={triggerAutoSave}
-                                  className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`}
-                                />
+                    {/* Single Provider Panel */}
+                    {providerMode === "single" && (
+                      <div className="space-y-4">
+                        <div className={`${colors.card} rounded-xl p-4 space-y-3`}>
+                          <div className={`text-[10px] font-bold uppercase tracking-wider ${colors.textMuted}`}>Select Active Provider</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: "ollama", label: "Local Ollama" },
+                              { id: "avelyn_cloud", label: "Avelyn Cloud" },
+                              { id: "custom_api", label: "Custom API" }
+                            ].map((prov) => (
+                              <button
+                                key={prov.id}
+                                onClick={() => { setSingleProvider(prov.id); triggerAutoSave(); }}
+                                className={`py-1.5 px-2 text-[11px] font-bold rounded-lg border transition-all duration-200 text-center outline-none ${
+                                  singleProvider === prov.id
+                                    ? "border-[#7C3AED] bg-[#7C3AED]/5 text-[#7C3AED]"
+                                    : theme === 'light'
+                                    ? "border-neutral-200 hover:border-neutral-300 text-neutral-600 bg-neutral-50/50"
+                                    : "border-white/10 hover:border-white/20 text-neutral-400 bg-white/5"
+                                }`}
+                              >
+                                {prov.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Local Ollama Card */}
+                        {singleProvider === "ollama" && (
+                          <div className={`${colors.card} rounded-xl overflow-hidden`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-neutral-200/40">
+                              <div>
+                                <div className={`text-sm font-semibold ${colors.textMain}`}>Local Engine Connection</div>
+                                <div className={`text-xs ${colors.textMuted} mt-0.5`}>Validate your Ollama endpoint</div>
                               </div>
-                              <div className={`h-px w-full ${colors.divider}`} />
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4">
-                                <div className={`text-sm font-medium ${colors.textMain}`}>Default Model</div>
-                                <input
-                                  type="text"
-                                  value={model}
-                                  onChange={(e) => setModel(e.target.value)}
-                                  onBlur={triggerAutoSave}
-                                  className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`}
-                                />
+                              <div className="flex items-center gap-3">
+                                <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isConnected ? "bg-emerald-100 text-emerald-700" : isTesting ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-500"}`}>
+                                  {isConnected ? "Connected" : isTesting ? "Testing..." : "Standby"}
+                                </div>
+                                <button onClick={handleTestConnection} disabled={isTesting} className="flex items-center gap-1.5 text-xs font-semibold bg-neutral-900 text-white px-3 py-1.5 rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
+                                  <Play className="w-3 h-3 fill-current" /> Test
+                                </button>
                               </div>
                             </div>
-                          </motion.div>
+                            <div className="p-4 space-y-4">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className={`text-sm font-medium ${colors.textMain}`}>Host URL</div>
+                                <input type="text" value={host} onChange={(e) => setHost(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className={`text-sm font-medium ${colors.textMain}`}>Default Model</div>
+                                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                              </div>
+                            </div>
+                          </div>
                         )}
-                      </AnimatePresence>
+
+                        {/* Avelyn Cloud Card */}
+                        {singleProvider === "avelyn_cloud" && (
+                          <div className={`${colors.card} rounded-xl p-4 space-y-4`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <div className={`text-sm font-semibold ${colors.textMain}`}>API Key</div>
+                                <div className={`text-xs ${colors.textMuted} mt-0.5`}>Your OpenRouter API Key (sk-or-v1-...)</div>
+                              </div>
+                              <input type="password" value={cloudApiKey} onChange={(e) => setCloudApiKey(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <div className={`text-sm font-semibold ${colors.textMain}`}>Preferred Model</div>
+                                <div className={`text-xs ${colors.textMuted} mt-0.5`}>Select your cloud model override</div>
+                              </div>
+                              <select value={cloudModel} onChange={(e) => { setCloudModel(e.target.value); triggerAutoSave(); }} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none`}>
+                                <option value="openai/gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
+                                <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
+                                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free)</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Custom API Card */}
+                        {singleProvider === "custom_api" && (
+                          <div className={`${colors.card} rounded-xl p-4 space-y-4`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className={`text-sm font-medium ${colors.textMain}`}>Preset</div>
+                              <select value={customPreset} onChange={(e) => { setCustomPreset(e.target.value); triggerAutoSave(); }} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none`}>
+                                <option>OpenAI</option>
+                                <option>Anthropic</option>
+                                <option>LM Studio</option>
+                                <option>vLLM</option>
+                              </select>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className={`text-sm font-medium ${colors.textMain}`}>Base URL</div>
+                              <input type="text" value={customBaseUrl} onChange={(e) => setCustomBaseUrl(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className={`text-sm font-medium ${colors.textMain}`}>API Key</div>
+                              <input type="password" placeholder="Optional" value={customApiKey} onChange={(e) => setCustomApiKey(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className={`text-sm font-medium ${colors.textMain}`}>Model Name</div>
+                              <input type="text" value={customModel} onChange={(e) => setCustomModel(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Smart Router Panel */}
+                    {providerMode === "smart_router" && (
+                      <div className="space-y-4">
+                        <div className={`${colors.card} rounded-xl p-4 space-y-4`}>
+                          <div className={`text-[10px] font-bold uppercase tracking-wider ${colors.textMuted}`}>Route Overrides per Task Group</div>
+                          
+                          {/* Coding task override */}
+                          <div className="space-y-2 border-b border-neutral-200/40 pb-3">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-xs font-semibold ${colors.textMain}`}>Coding Tasks</span>
+                              <select value={codingProvider} onChange={(e) => { setCodingProvider(e.target.value); triggerAutoSave(); }} className={`text-[11px] font-medium ${colors.input} rounded-md px-2 py-1 outline-none`}>
+                                <option value="ollama">Ollama</option>
+                                <option value="avelyn_cloud">Avelyn Cloud</option>
+                                <option value="custom_api">Custom API</option>
+                              </select>
+                            </div>
+                            <input type="text" value={codingModel} onChange={(e) => setCodingModel(e.target.value)} onBlur={triggerAutoSave} className={`text-[11px] ${colors.input} rounded-md px-2 py-1 w-full outline-none`} placeholder="Model Override ID" />
+                          </div>
+
+                          {/* Writing task override */}
+                          <div className="space-y-2 border-b border-neutral-200/40 pb-3">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-xs font-semibold ${colors.textMain}`}>Writing Tasks</span>
+                              <select value={writingProvider} onChange={(e) => { setWritingProvider(e.target.value); triggerAutoSave(); }} className={`text-[11px] font-medium ${colors.input} rounded-md px-2 py-1 outline-none`}>
+                                <option value="ollama">Ollama</option>
+                                <option value="avelyn_cloud">Avelyn Cloud</option>
+                                <option value="custom_api">Custom API</option>
+                              </select>
+                            </div>
+                            <input type="text" value={writingModel} onChange={(e) => setWritingModel(e.target.value)} onBlur={triggerAutoSave} className={`text-[11px] ${colors.input} rounded-md px-2 py-1 w-full outline-none`} placeholder="Model Override ID" />
+                          </div>
+
+                          {/* Reasoning task override */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-xs font-semibold ${colors.textMain}`}>Reasoning Tasks</span>
+                              <select value={reasoningProvider} onChange={(e) => { setReasoningProvider(e.target.value); triggerAutoSave(); }} className={`text-[11px] font-medium ${colors.input} rounded-md px-2 py-1 outline-none`}>
+                                <option value="ollama">Ollama</option>
+                                <option value="avelyn_cloud">Avelyn Cloud</option>
+                                <option value="custom_api">Custom API</option>
+                              </select>
+                            </div>
+                            <input type="text" value={reasoningModel} onChange={(e) => setReasoningModel(e.target.value)} onBlur={triggerAutoSave} className={`text-[11px] ${colors.input} rounded-md px-2 py-1 w-full outline-none`} placeholder="Model Override ID" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Smart Fallback & Search Chain Priority */}
+                    <div className={`${colors.card} rounded-xl p-4 space-y-4`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className={`text-sm font-semibold ${colors.textMain}`}>Smart Fallback</div>
+                          <div className={`text-xs ${colors.textMuted} mt-0.5`}>Retry next provider automatically if primary fails</div>
+                        </div>
+                        <Toggle checked={fallbackEnabled} onChange={setFallbackEnabled} />
+                      </div>
+                      <div className={`h-px w-full ${colors.divider}`} />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <div className={`text-sm font-semibold ${colors.textMain}`}>Fallback Search Priority</div>
+                          <div className={`text-xs ${colors.textMuted} mt-0.5`}>Order of providers to search (comma-separated)</div>
+                        </div>
+                        <input type="text" value={fallbackChain} onChange={(e) => setFallbackChain(e.target.value)} onBlur={triggerAutoSave} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none text-left sm:text-right`} />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -341,14 +495,51 @@ export default function SettingsMockup() {
 
                 {/* --- HISTORY --- */}
                 {activeTab === "History" && (
-                  <div className="flex flex-col items-center justify-center h-[250px] space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center border border-neutral-200">
-                      <Clock className="w-6 h-6 text-neutral-400" />
-                    </div>
-                    <div className="text-center">
-                      <div className={`text-base font-bold ${colors.textMain}`}>No History</div>
-                      <div className={`text-sm ${colors.textMuted} mt-1`}>Enhancements will appear here.</div>
-                    </div>
+                  <div className="flex flex-col items-center justify-center min-h-[250px]">
+                    {!revealHistory ? (
+                      <div className="flex flex-col items-center justify-center text-center space-y-4 max-w-[280px]">
+                        <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center border border-amber-200 dark:border-amber-900/30 text-amber-600 dark:text-amber-400 shadow-sm animate-pulse">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className={`text-sm font-bold ${colors.textMain}`}>History Hidden for Privacy</h4>
+                          <p className={`text-[11px] ${colors.textMuted} mt-1 leading-relaxed`}>
+                            Your enhancement history is locked. Click the button below to decrypt and reveal history.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setRevealHistory(true)}
+                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[11px] font-bold py-2 px-4 rounded-lg shadow-md transition-colors"
+                        >
+                          Reveal History
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full space-y-3 px-1 max-h-[250px] overflow-y-auto scrollbar-none">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.textMuted}`}>Decrypted Prompt Logs</span>
+                          <button onClick={() => setRevealHistory(false)} className="text-[10px] text-[#7C3AED] font-bold hover:underline">Lock History</button>
+                        </div>
+                        {[
+                          { mode: "professional", date: "Just now", snippet: "Drafted professional email to engineering team" },
+                          { mode: "grammar", date: "2 mins ago", snippet: "Grammar review: fixed missing punctuation in report" },
+                          { mode: "explain_code", date: "15 mins ago", snippet: "Explained python decorator class implementation" }
+                        ].map((h, idx) => (
+                          <div key={idx} className={`${colors.card} p-3 rounded-lg flex items-center justify-between text-left`}>
+                            <div className="space-y-1">
+                              <div className={`text-[11px] font-semibold ${colors.textMain}`}>{h.snippet}</div>
+                              <div className="flex gap-2 text-[9px] font-medium text-neutral-400">
+                                <span className="bg-[#7C3AED]/10 text-[#7C3AED] px-1 rounded uppercase">{h.mode}</span>
+                                <span>{h.date}</span>
+                              </div>
+                            </div>
+                            <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

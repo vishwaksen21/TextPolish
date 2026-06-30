@@ -10,23 +10,27 @@ export default function FAQ() {
   const faqs = [
     {
       q: "Does it work offline?",
-      a: "Yes, 100%. When configured with Ollama (Local Offline), Avelyn performs all LLM calculations locally on your CPU or GPU without requiring any active internet connection.",
+      a: "Yes, 100%. When configured with Local Ollama, Avelyn performs all LLM calculations locally on your CPU or GPU without requiring an internet connection. It is ideal for air-gapped systems or secure environments.",
     },
     {
-      q: "Does it require Ollama?",
-      a: "Avelyn defaults to Ollama for privacy-first, offline execution. However, you can easily configure alternative standard API providers (like Gemini or OpenAI) inside the settings panel if you prefer not to host model binaries locally.",
+      q: "How does the hybrid multi-provider architecture work?",
+      a: "Avelyn supports Local Ollama, Avelyn Cloud (powered by OpenRouter), and Custom API endpoints. You can run in Single Provider mode, configure specific Route Overrides per task group (Smart Router), or use Auto Provider mode which dynamically switches between local privacy and cloud horsepower depending on text length and task classification.",
     },
     {
-      q: "Is my data private?",
-      a: "Absolutely. Avelyn only captures clipboard content when you trigger the global shortcut Ctrl+Shift+E, holds it in local memory during enhancement, and immediately restores your original clipboard history afterwards. No logs of your text are written to disk or sent to the cloud.",
+      q: "Are my API keys secure?",
+      a: "Absolutely. All API keys are stored strictly in local configuration files on your machine. Within the settings UI, keys are masked with secure password bullet points to prevent over-the-shoulder leaks. Avelyn has zero cloud analytics or telemetry trackers, guaranteeing complete data sovereignty.",
     },
     {
-      q: "Which local models are supported?",
-      a: "Avelyn supports any model available on Ollama! The default recommended model is 'gemma3:4b' (a lightweight, blazing-fast model that starts in less than 1.5s), but you can easily use llama3, mistral, or codegemma by inputting the model name in Settings.",
+      q: "Can I cancel a running generation?",
+      a: "Yes. Avelyn provides immediate generation cancellation. If a model is taking too long or you change your mind mid-prompt, you can click cancel to halt the stream instantly, saving local CPU/GPU cycles and API tokens.",
+    },
+    {
+      q: "Which models are supported?",
+      a: "For local execution, you can run Gemma 3, Llama 3, Mistral, or custom Modelfiles via Ollama. For cloud execution, you can use GPT-4o Mini, Claude 3.5 Haiku, Gemini 2.5 Flash, and other models. Custom APIs allow you to connect LM Studio, vLLM, or any OpenAI-compatible endpoint.",
     },
     {
       q: "Does it work everywhere on macOS?",
-      a: "Yes. Once you grant standard Accessibility permissions (required to simulate standard copy/paste events) and Input Monitoring (required to detect the global hotkey), Avelyn works system-wide in any editable text field—including Safari, Chrome, Slack, VS Code, Word, and textareas.",
+      a: "Yes. Once you grant standard macOS Accessibility permissions (required to simulate standard copy/paste events) and Input Monitoring (required to detect the global hotkey), Avelyn works system-wide in any editable text field—including Safari, Chrome, Slack, VS Code, Word, and textareas.",
     },
   ];
 

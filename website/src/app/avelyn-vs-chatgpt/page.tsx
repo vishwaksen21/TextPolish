@@ -1,7 +1,7 @@
 import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Check, X } from "lucide-react";
+import InteractiveComparison from "@/components/InteractiveComparison";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,43 +13,6 @@ export const metadata: Metadata = {
 };
 
 export default function AvelynVsChatGptPage() {
-  const comparison = [
-    {
-      feature: "Data Privacy & Telemetry",
-      avelyn: "100% Local. No logs, no telemetry, no data leaves your machine.",
-      chatgpt: "Cloud-reliant. Prompts are sent to servers and potentially used for training.",
-      avelynCheck: true,
-      chatgptCheck: false
-    },
-    {
-      feature: "Offline Capabilities",
-      avelyn: "Fully offline. Works on flights, remote areas, and air-gapped systems.",
-      chatgpt: "Requires active, fast internet connection. Fails during outages.",
-      avelynCheck: true,
-      chatgptCheck: false
-    },
-    {
-      feature: "System-wide Integration",
-      avelyn: "Native macOS menu bar app. Works in VS Code, Slack, Word, and textareas.",
-      chatgpt: "Mainly browser or isolated desktop app. Requires copying text back and forth.",
-      avelynCheck: true,
-      chatgptCheck: false
-    },
-    {
-      feature: "Subscription & Limits",
-      avelyn: "Free. Runs open weights models locally with zero limits or quotas.",
-      chatgpt: "Premium tier needed for fast access. Has strict hourly rate limits.",
-      avelynCheck: true,
-      chatgptCheck: true
-    },
-    {
-      feature: "Custom Prompts",
-      avelyn: "Inline custom prompts directly on highlighted text blocks.",
-      chatgpt: "Chat-based structure requiring copy, paste, instruction, copy-back.",
-      avelynCheck: true,
-      chatgptCheck: true
-    }
-  ];
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -208,46 +171,13 @@ export default function AvelynVsChatGptPage() {
             Detailed Comparison Table
           </h2>
 
-          <div className="overflow-x-auto border border-neutral-200/60 rounded-[32px] bg-white shadow-sm mb-16">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-neutral-200/60">
-                  <th className="p-6 text-sm font-bold text-neutral-900 uppercase tracking-wider">Feature</th>
-                  <th className="p-6 text-sm font-bold text-[#7C3AED] uppercase tracking-wider">Avelyn (Local Offline)</th>
-                  <th className="p-6 text-sm font-bold text-neutral-500 uppercase tracking-wider">ChatGPT (Cloud AI)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.map((row) => (
-                  <tr key={row.feature} className="border-b border-neutral-100 last:border-none hover:bg-neutral-50/50 transition-colors">
-                    <td className="p-6 font-bold text-neutral-900 text-sm sm:text-base">{row.feature}</td>
-                    <td className="p-6 text-neutral-600 text-xs sm:text-sm font-medium">
-                      <div className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{row.avelyn}</span>
-                      </div>
-                    </td>
-                    <td className="p-6 text-neutral-400 text-xs sm:text-sm font-medium">
-                      <div className="flex items-start gap-2">
-                        {row.chatgptCheck ? (
-                          <Check className="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                        )}
-                        <span>{row.chatgpt}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <InteractiveComparison competitor="ChatGPT" />
 
-          <div className="space-y-10">
+          <div className="space-y-10 mt-12">
             <div>
               <h3 className="text-2xl font-bold text-neutral-900 mb-4 tracking-tight">Why Choose Avelyn over ChatGPT?</h3>
               <p className="text-neutral-500 leading-relaxed font-medium">
-                ChatGPT is an excellent conversational partner, but it is built as a destination. You have to open a tab, copy your text, paste it, formulate instructions, wait for generation, copy the output, go back to your app, and paste it. Avelyn simplifies this loop down to 3 keystrokes and runs entirely offline on your Mac, keeping your confidential documents completely private.
+                ChatGPT is an excellent conversational partner, but it is built as a cloud destination. You have to open a browser window, copy your text, paste it, write instructions, wait for the response, copy it back, and paste it back into your editor. Avelyn simplifies this down to a simple keyboard shortcut, routing tasks dynamically between local models and cloud endpoints with zero extra steps, while offering complete privacy and instant generation cancellation.
               </p>
             </div>
           </div>

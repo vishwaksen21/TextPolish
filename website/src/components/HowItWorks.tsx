@@ -43,8 +43,8 @@ export default function HowItWorks() {
     {
       tabTitle: "Enhance",
       icon: <Cpu className="w-4 h-4" />,
-      title: "Real-Time Inference",
-      desc: "Watch the local AI stream the improved text token-by-token. Powered natively by Ollama, running 100% offline with zero cloud telemetry.",
+      title: "Hybrid Inference",
+      desc: "Watch the text stream back token-by-token, computed locally on your machine or routed securely to high-speed cloud providers. Supports instant cancel controls.",
       screenshot: "/images/step5.png",
       alt: "Avelyn real-time streaming text enhancement popup",
     },

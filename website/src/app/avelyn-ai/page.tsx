@@ -5,8 +5,8 @@ import { Cpu, Zap, Eye, Terminal } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Avelyn AI — macOS Local Ollama Assistant Integration Guide",
-  description: "Optimize your macOS workflow with Avelyn, a local Ollama assistant. Configure Gemma 3, Llama 3, and custom system prompts for high-speed local offline inference.",
+  title: "Avelyn AI — macOS Multi-Provider & API Key Integration Guide",
+  description: "Optimize your macOS workflow with Avelyn. Integrate local Ollama engines, OpenRouter API keys, and custom endpoints to route and fall back between offline and cloud models.",
   alternates: {
     canonical: "/avelyn-ai",
   },
@@ -15,24 +15,34 @@ export const metadata: Metadata = {
 export default function AvelynAiPage() {
   const models = [
     {
+      name: "GPT-4o Mini",
+      desc: "Fast, extremely cheap, and highly capable cloud model. Ideal for complex reasoning tasks and large document summarizations.",
+      category: "Cloud / Reasoning"
+    },
+    {
+      name: "Claude 3.5 Haiku",
+      desc: "Anthropic's low-latency model, famous for coding task completions, technical writing, and structural email updates.",
+      category: "Cloud / Writing"
+    },
+    {
+      name: "Gemini 2.5 Flash",
+      desc: "Google's ultra-low-latency model. Processes system-wide highlight requests in sub-second speeds.",
+      category: "Cloud / Speed"
+    },
+    {
       name: "Gemma 3 (4B / 9B)",
-      desc: "Developed by Google, this lightweight model is the default recommendation for Avelyn. Optimized for speed and quality in writing edits, executing in less than 1.5 seconds.",
-      category: "Default / Speed"
+      desc: "Developed by Google, this lightweight model is the default recommendation for local execution. Optimized for speed and quality in writing edits, executing in less than 1.5 seconds.",
+      category: "Local / Default"
     },
     {
       name: "Llama 3 (8B)",
       desc: "Meta's highly popular open weights model. Excellent for general structural updates, semantic rephrasing, and creative copy editing.",
-      category: "Prose / Structure"
+      category: "Local / Prose"
     },
     {
       name: "Mistral (7B)",
       desc: "Known for its rich linguistic ability, it serves as a powerful offline model for translation, formatting, and complex structural grammar checks.",
-      category: "Grammar / Formatting"
-    },
-    {
-      name: "CodeGemma (2B)",
-      desc: "Designed specifically for code completion and debugging. Integrates with IDEs via Avelyn to analyze scripts offline.",
-      category: "Code Support"
+      category: "Local / Grammar"
     }
   ];
 
@@ -72,14 +82,14 @@ export default function AvelynAiPage() {
           <div className="mx-auto max-w-[1200px] px-6 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-white border border-[#7C3AED]/20 px-3 py-1 mb-6 shadow-sm">
               <span className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-widest">
-                Local Intelligence Specifications
+                Local & Cloud Specs
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-neutral-900 tracking-tight leading-tight max-w-3xl mx-auto mb-6">
-              Avelyn AI — macOS Local Ollama Assistant Integration
+              Avelyn AI — macOS Multi-Provider & API Key Integration
             </h1>
             <p className="text-lg font-medium leading-relaxed text-neutral-500 max-w-xl mx-auto">
-              Run optimized, high-performance generative models directly on your hardware with absolute privacy.
+              Run optimized local language models or securely connect to cloud APIs with seamless routing.
             </p>
           </div>
         </section>
@@ -121,6 +131,39 @@ export default function AvelynAiPage() {
             {/* Subsection 2 */}
             <div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
+                Integrating Cloud APIs & OpenRouter Keys
+              </h2>
+              <p className="mb-4">
+                If you prefer not to download and compile large model weights locally, or want to access global frontier models, Avelyn supports direct cloud provider integrations. You can connect your custom API keys for <strong>OpenRouter (Avelyn Cloud)</strong> or standard OpenAI-compatible endpoints.
+              </p>
+              <p className="mb-4">
+                To integrate your cloud API keys:
+              </p>
+              <ol className="list-decimal pl-6 mb-4 space-y-2">
+                <li>
+                  Open the <strong>Settings</strong> panel and navigate to the <strong>AI Provider</strong> tab.
+                </li>
+                <li>
+                  Select the <strong>Single Provider</strong> mode or configure overrides inside the <strong>Smart Router</strong>.
+                </li>
+                <li>
+                  Under **Avelyn Cloud**, paste your OpenRouter API Key (prefixed with <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">sk-or-v1-...</code>). Your key will be permanently masked with password bullet points (<code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">••••••••</code>) for strict UI privacy.
+                </li>
+                <li>
+                  Choose a model from the list of options, such as <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">openai/gpt-4o-mini</code> or <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">google/gemini-2.5-flash</code>.
+                </li>
+                <li>
+                  To connect custom local endpoints (like LM Studio or vLLM) or raw OpenAI servers, choose the <strong>Custom API</strong> provider option and fill in your base URL, API Key, and target model ID.
+                </li>
+              </ol>
+              <p>
+                API keys are stored strictly in local configuration files. Avelyn does not route keys through third-party servers, ensuring complete telemetry privacy.
+              </p>
+            </div>
+
+            {/* Subsection 3 */}
+            <div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
                 Apple Silicon Benchmark Logs & Generation Speed
               </h2>
               <p className="mb-4">
@@ -145,7 +188,7 @@ export default function AvelynAiPage() {
               </p>
             </div>
 
-            {/* Subsection 3 */}
+            {/* Subsection 4 */}
             <div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
                 Custom System Prompts & Context Length Optimization
@@ -161,7 +204,7 @@ export default function AvelynAiPage() {
               </p>
             </div>
 
-            {/* Subsection 4 */}
+            {/* Subsection 5 */}
             <div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
                 Troubleshooting & GPU Layer Allocation Limits
@@ -227,7 +270,7 @@ export default function AvelynAiPage() {
 
           {/* Model Table */}
           <div className="max-w-[900px] mx-auto bg-white border border-neutral-200/60 rounded-[32px] p-8 shadow-sm">
-            <h3 className="text-2xl font-bold text-neutral-900 mb-6 tracking-tight">Supported Offline Model Profiles</h3>
+            <h3 className="text-2xl font-bold text-neutral-900 mb-6 tracking-tight">Supported Offline & Cloud Model Profiles</h3>
             <div className="space-y-6">
               {models.map((model) => (
                 <div key={model.name} className="flex flex-col sm:flex-row justify-between border-b border-neutral-100 pb-6 last:border-none last:pb-0">

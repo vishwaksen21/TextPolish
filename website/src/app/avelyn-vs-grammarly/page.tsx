@@ -1,7 +1,7 @@
 import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Check, X } from "lucide-react";
+import InteractiveComparison from "@/components/InteractiveComparison";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,43 +13,6 @@ export const metadata: Metadata = {
 };
 
 export default function AvelynVsGrammarlyPage() {
-  const comparison = [
-    {
-      feature: "Data Sovereignty",
-      avelyn: "100% Offline. Your documents never touch external servers or cloud networks.",
-      grammarly: "Sends text to cloud servers. Constantly monitors and inspects active inputs.",
-      avelynCheck: true,
-      grammarlyCheck: false
-    },
-    {
-      feature: "Custom Rewriting & Prompts",
-      avelyn: "Execute any inline command (e.g. 'translate to Japanese', 'explain like I'm 5').",
-      grammarly: "Confined to pre-defined correction rules and simple tone templates.",
-      avelynCheck: true,
-      grammarlyCheck: false
-    },
-    {
-      feature: "Offline Mode support",
-      avelyn: "Works perfectly without an active internet connection (via local Ollama).",
-      grammarly: "Fails entirely when offline or during cloud gateway outages.",
-      avelynCheck: true,
-      grammarlyCheck: false
-    },
-    {
-      feature: "Cost / Pricing",
-      avelyn: "100% Free. Runs open-source weights model packages directly on your CPU/GPU.",
-      grammarly: "Requires expensive monthly/annual team or premium subscriptions.",
-      avelynCheck: true,
-      grammarlyCheck: false
-    },
-    {
-      feature: "Fuzzy Search Command Palette",
-      avelyn: "Interactive command panel snaps directly to your cursor on hotkey press.",
-      grammarly: "Floating browser widgets or sidebar overlays that block editor views.",
-      avelynCheck: true,
-      grammarlyCheck: false
-    }
-  ];
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -208,46 +171,13 @@ export default function AvelynVsGrammarlyPage() {
             Detailed Comparison Table
           </h2>
 
-          <div className="overflow-x-auto border border-neutral-200/60 rounded-[32px] bg-white shadow-sm mb-16">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-neutral-200/60">
-                  <th className="p-6 text-sm font-bold text-neutral-900 uppercase tracking-wider">Feature</th>
-                  <th className="p-6 text-sm font-bold text-[#7C3AED] uppercase tracking-wider">Avelyn (Local Offline)</th>
-                  <th className="p-6 text-sm font-bold text-neutral-500 uppercase tracking-wider">Grammarly (Cloud AI)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.map((row) => (
-                  <tr key={row.feature} className="border-b border-neutral-100 last:border-none hover:bg-neutral-50/50 transition-colors">
-                    <td className="p-6 font-bold text-neutral-900 text-sm sm:text-base">{row.feature}</td>
-                    <td className="p-6 text-neutral-600 text-xs sm:text-sm font-medium">
-                      <div className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{row.avelyn}</span>
-                      </div>
-                    </td>
-                    <td className="p-6 text-neutral-400 text-xs sm:text-sm font-medium">
-                      <div className="flex items-start gap-2">
-                        {row.grammarlyCheck ? (
-                          <Check className="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                        )}
-                        <span>{row.grammarly}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <InteractiveComparison competitor="Grammarly" />
 
-          <div className="space-y-10">
+          <div className="space-y-10 mt-12">
             <div>
               <h3 className="text-2xl font-bold text-neutral-900 mb-4 tracking-tight">The Core Difference: Local Privacy & Flexibility</h3>
               <p className="text-neutral-500 leading-relaxed font-medium">
-                Cloud-based proofreading assistants monitor every keystroke in the background, raising concerns for organizations handling proprietary code, corporate strategies, or sensitive user data. Avelyn runs 100% of its language model processing offline using Ollama, offering complete data privacy. Additionally, you are not locked into standard grammar checks; you can customize prompts on the fly to write professional emails, summarize articles, format markdown tables, or explain complex scripts.
+                Cloud-based proofreading assistants monitor every keystroke in the background, raising concerns for organizations handling proprietary code, corporate strategies, or sensitive user data. Avelyn runs of its language model processing locally and offline by default using Ollama, offering complete data privacy. Additionally, you are not locked into standard grammar checks; you can customize prompts on the fly to write professional emails, summarize articles, format markdown tables, or explain complex scripts, with the option to leverage secure cloud providers when extra reasoning power is required.
               </p>
             </div>
           </div>

@@ -40,7 +40,7 @@ export default function Hero() {
                 <Sparkles className="w-3 h-3 text-[#7C3AED]" />
               </div>
               <span className="text-xs font-bold text-[#7C3AED] tracking-wide uppercase pr-1">
-                Local AI • Zero Cloud
+                Hybrid AI • Privacy-First
               </span>
             </motion.div>
 
@@ -64,7 +64,7 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="mt-6 text-lg sm:text-xl font-medium leading-relaxed text-neutral-500 max-w-[480px]"
             >
-              Avelyn lives in your menu bar. Highlight anywhere, hit your shortcut, and let local AI rewrite, refine, and perfect your text.
+              Avelyn lives in your menu bar. Highlight anywhere, hit your shortcut, and rewrite your text using local models or secure cloud APIs.
             </motion.p>
 
             {/* Buttons */}

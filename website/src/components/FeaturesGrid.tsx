@@ -75,10 +75,10 @@ export default function FeaturesBento() {
 
             <div className="relative z-10">
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
-                Absolute Privacy. <br /> 100% Local AI.
+                Hybrid Privacy. <br /> Local & Cloud AI.
               </h3>
               <p className="text-white/80 font-medium leading-relaxed text-sm md:text-base max-w-sm">
-                Your data never leaves your physical memory. Harness Llama 3, Gemma, or Mistral natively via Ollama with zero cloud processing and zero telemetry.
+                Your data is fully under your control. Run open-weights models locally via Ollama with zero telemetry, or connect securely to cloud endpoints using password-masked keys.
               </p>
             </div>
           </motion.div>
@@ -107,9 +107,9 @@ export default function FeaturesBento() {
             className="bg-white border border-neutral-200/60 rounded-[2rem] p-8 flex flex-col hover:border-[#7C3AED]/30 transition-all duration-300"
           >
             <BrainCircuit className="w-7 h-7 text-[#7C3AED] mb-6" />
-            <h3 className="text-lg font-bold text-neutral-900 mb-2">Context Aware</h3>
+            <h3 className="text-lg font-bold text-neutral-900 mb-2">Smart Router</h3>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">
-              Automatically detects your tone and intent to generate structural adjustments that feel human.
+              Intelligently routes tasks to local Ollama or cloud providers based on task classification and text length.
             </p>
           </motion.div>
 
@@ -147,9 +147,9 @@ export default function FeaturesBento() {
             className="bg-white border border-neutral-200/60 rounded-[2rem] p-8 flex flex-col hover:border-[#7C3AED]/30 transition-all duration-300"
           >
             <WandSparkles className="w-7 h-7 text-[#7C3AED] mb-6" />
-            <h3 className="text-lg font-bold text-neutral-900 mb-2">Auto-Prompts</h3>
+            <h3 className="text-lg font-bold text-neutral-900 mb-2">Smart Fallbacks</h3>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">
-              Transform basic instructions into highly optimized prompt structures instantly.
+              Automatic, cascading failover to alternate providers to ensure your workflow is never interrupted.
             </p>
           </motion.div>
 

@@ -10,18 +10,18 @@ export default function PrivacyFocus() {
   const highlights = [
     {
       icon: <EyeOff className="w-6 h-6 text-[#7C3AED]" />,
-      title: "Zero Telemetry",
-      desc: "Your selected text and clipboard history never touch external databases, trackers, or telemetry pipelines. Complete digital anonymity.",
+      title: "Zero Analytics & Telemetry",
+      desc: "No crash logs, tracking scripts, or analytics are sent to the cloud. Your selected text and clipboard history remain completely private.",
     },
     {
       icon: <ServerCrash className="w-6 h-6 text-[#7C3AED]" />,
-      title: "100% Offline",
-      desc: "Run inference entirely offline without active internet connections. Essential for high-security workplace policies and air-gapped systems.",
+      title: "Local Offline Defaults",
+      desc: "Keep your workflow 100% offline via Local Ollama. Essential for high-security workplace policies and air-gapped workstations.",
     },
     {
       icon: <Cpu className="w-6 h-6 text-[#7C3AED]" />,
-      title: "Local Acceleration",
-      desc: "Runs strictly locally utilizing Apple Silicon Unified Memory or Windows Nvidia RTX cores. Blazing-fast generation without server wait times.",
+      title: "API Key Masking & Security",
+      desc: "Cloud integrations utilize secure, local-only configuration files. All active API keys are fully masked with bullet points in the UI.",
     },
   ];
 

@@ -85,16 +85,16 @@ export default function AboutPage() {
             {/* Section 2 */}
             <div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
-                Under the Hood: The Local Sandboxed Architecture
+                Under the Hood: The Hybrid Multi-Provider Architecture
               </h2>
               <p className="mb-4">
                 Avelyn integrates with native macOS accessibility APIs to intercept highlighted text only when a user triggers the global shortcut (Ctrl+Shift+E). Once activated, the app captures the selection, loads it into local memory, and presents a minimalist command palette right at the cursor position. 
               </p>
               <p className="mb-4">
-                Unlike cloud-based tools that stream files to third-party endpoints, Avelyn routes the text directly to a local inference engine running on the host. By utilizing local ports connected to models hosted on your system, it guarantees that no information is sent to external servers. To understand the detailed mechanics, read our answers to common questions in the <a href="/what-is-avelyn" className="text-[#7C3AED] hover:underline font-bold">What is Avelyn FAQ guide</a>.
+                Unlike cloud-only tools that send all draft items to a single database, Avelyn is multi-provider. It routes text to your local Ollama engine by default, but can also route to Avelyn Cloud (OpenRouter) or custom OpenAI-compatible endpoints. The app's Auto Provider Mode uses smart task classification to decide when to run locally for privacy and when to leverage cloud power, utilizing local fallbacks to search-priority endpoints if a server goes down.
               </p>
               <p>
-                Once inference completes, Avelyn replaces the selection in place. The entire workflow is transparent, lightning-fast, and relies on zero cloud processing.
+                Once inference completes, Avelyn replaces the selection in place. The entire workflow is transparent, customizable, and protects raw API keys inside settings using password bullet masks.
               </p>
             </div>
 
@@ -117,7 +117,7 @@ export default function AboutPage() {
                 Strategic Comparisons: How We Stack Up
               </h2>
               <p className="mb-4">
-                When compared to cloud alternatives, Avelyn offers a completely different paradigm. Traditional systems operate as destinations, requiring constant copy-pasting and subscriptions. Avelyn runs 100% offline, for free, with unlimited context inputs.
+                When compared to cloud alternatives, Avelyn offers a completely different paradigm. Traditional systems operate as browser destinations, requiring constant copy-pasting, monthly subscriptions, and fixed rate limits. Avelyn gives you a system-wide macOS overlay that runs locally for free, supports flexible custom API connections, provides smart fallbacks, and implements instant cancellation controls so you can abort generations immediately.
               </p>
               <p>
                 To see detailed head-to-head comparisons against mainstream solutions, explore our dedicated research pages:
