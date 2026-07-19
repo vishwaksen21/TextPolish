@@ -41,7 +41,7 @@ if IS_MACOS:
             yield _precomputed_ctx
 
         darwin.keycode_context = _patched_keycode_context
-        import pynput.keyboard._darwin as kb_darwin
+        import pynput.keyboard._darwin as kb_darwin  # type: ignore[import]
         kb_darwin.keycode_context = _patched_keycode_context
         logger.debug("pynput keycode_context patched to avoid macOS background thread crash.")
     except Exception as e:
@@ -196,8 +196,10 @@ class HotkeyManager:
             from utils import PerfTracker
             
             # 1. Save what's currently on the clipboard.
+            PerfTracker.clipboard_save_start = time.perf_counter()
             self._clipboard.save()
             previous = self._clipboard.saved_content or ""
+            PerfTracker.clipboard_save_end = time.perf_counter()
             logger.debug("CLIPBOARD_BEFORE_CAPTURE_LEN=%d", len(previous))
             logger.debug("CLIPBOARD_BEFORE_CAPTURE_PREVIEW=%r", previous[:20])
             
@@ -215,7 +217,9 @@ class HotkeyManager:
 
             # 3. Simulate copy on the TARGET application.
             PerfTracker.capture_start = time.perf_counter()
+            PerfTracker.active_app_detect_start = time.perf_counter()
             copy_selection()
+            PerfTracker.active_app_detect_end = time.perf_counter()
             PerfTracker.capture_end = time.perf_counter()
             
             # CRITICAL FIX: Emit the hotkey_pressed signal ONLY AFTER copy_selection() finishes!

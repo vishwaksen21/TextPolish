@@ -15,7 +15,12 @@ export const metadata: Metadata = {
 export default function AvelynAiPage() {
   const models = [
     {
-      name: "GPT-4o Mini",
+      name: "Gemini 2.5 Flash",
+      desc: "Google's ultra-low-latency model. Processes system-wide highlight requests in ~1 second (TTFT). Default cloud provider for speed and quality.",
+      category: "Cloud / Speed / Default"
+    },
+    {
+      name: "Gemini 2.5 Flash",
       desc: "Fast, extremely cheap, and highly capable cloud model. Ideal for complex reasoning tasks and large document summarizations.",
       category: "Cloud / Reasoning"
     },
@@ -25,14 +30,9 @@ export default function AvelynAiPage() {
       category: "Cloud / Writing"
     },
     {
-      name: "Gemini 2.5 Flash",
-      desc: "Google's ultra-low-latency model. Processes system-wide highlight requests in sub-second speeds.",
-      category: "Cloud / Speed"
-    },
-    {
       name: "Gemma 3 (4B / 9B)",
-      desc: "Developed by Google, this lightweight model is the default recommendation for local execution. Optimized for speed and quality in writing edits, executing in less than 1.5 seconds.",
-      category: "Local / Default"
+      desc: "Developed by Google, this lightweight model is optimized for local execution. Optimized for speed and quality in writing edits.",
+      category: "Local / Offline"
     },
     {
       name: "Llama 3 (8B)",
@@ -150,7 +150,7 @@ export default function AvelynAiPage() {
                   Under **Avelyn Cloud**, paste your OpenRouter API Key (prefixed with <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">sk-or-v1-...</code>). Your key will be permanently masked with password bullet points (<code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">••••••••</code>) for strict UI privacy.
                 </li>
                 <li>
-                  Choose a model from the list of options, such as <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">openai/gpt-4o-mini</code> or <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">google/gemini-2.5-flash</code>.
+                  Choose a model from the list of options, such as <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">google/gemini-2.5-flash</code> or <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono">google/gemini-2.5-flash</code>.
                 </li>
                 <li>
                   To connect custom local endpoints (like LM Studio or vLLM) or raw OpenAI servers, choose the <strong>Custom API</strong> provider option and fill in your base URL, API Key, and target model ID.

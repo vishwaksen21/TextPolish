@@ -60,6 +60,10 @@ a = Analysis(
         'openwakeword',
         'onnxruntime',
         'faster_whisper',
+        # Google GenAI SDK
+        'google.genai',
+        'google.genai.client',
+        'google.genai.types',
     ],
     hookspath=[],
     hooksconfig={},

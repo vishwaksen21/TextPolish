@@ -28,12 +28,38 @@ from __future__ import annotations
 import json
 import re
 import time
+import threading
 from typing import Generator, Optional, Callable
 
 import requests
 
 from logger import logger
 from settings import Settings
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Shared HTTP Session for Connection Reuse
+# ──────────────────────────────────────────────────────────────────────────────
+
+_session_lock = threading.Lock()
+_shared_session: Optional[requests.Session] = None
+
+def _get_shared_session() -> requests.Session:
+    """Get or create a shared requests.Session for HTTP connection pooling."""
+    global _shared_session
+    with _session_lock:
+        if _shared_session is None:
+            _shared_session = requests.Session()
+            # Configure connection pooling
+            adapter = requests.adapters.HTTPAdapter(
+                pool_connections=10,
+                pool_maxsize=20,
+                max_retries=0,  # We handle retries manually
+                pool_block=False,
+            )
+            _shared_session.mount('http://', adapter)
+            _shared_session.mount('https://', adapter)
+        return _shared_session
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -189,10 +215,8 @@ def _build_prompt(text: str, mode: str, custom_instruction: Optional[str] = None
     PerfTracker.prompt_build_start = time.perf_counter()
 
     if mode.startswith("generate_code:"):
-        # mode may be generate_code:lang or generate_code:lang:quality
         parts = mode.split(":", 2)
         lang = parts[1].lower()
-        # quality suffix (fast/detailed/adaptive) is handled in num_predict logic only
         lang_name = _LANG_DISPLAY.get(lang, lang.capitalize())
         lang_rules = _LANG_PROMPTS.get(lang, f"{lang_name}.")
         res = (
@@ -211,9 +235,44 @@ def _build_prompt(text: str, mode: str, custom_instruction: Optional[str] = None
             MODE_PROMPTS["professional"]
         )
 
-    res = f"{SYSTEM_PROMPT.strip()}\n\n{mode_prompt.strip()}\n\nINPUT:\n{text.strip()}\n\nOUTPUT:\n"
+    # Use cached template
+    template = _get_cached_prompt_template(mode)
+    if mode == "custom" and custom_instruction:
+        res = template.format(mode_prompt=mode_prompt, text=text.strip())
+    else:
+        res = template.format(text=text.strip())
+    
     PerfTracker.prompt_build_end = time.perf_counter()
     return res
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prompt Template Caching
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Cache for pre-compiled prompt templates to avoid repeated string operations
+_PROMPT_TEMPLATE_CACHE: dict[str, str] = {}
+
+
+def _get_cached_prompt_template(mode: str) -> str:
+    """Get cached prompt template for a mode, or create and cache it."""
+    if mode not in _PROMPT_TEMPLATE_CACHE:
+        if mode.startswith("generate_code:"):
+            parts = mode.split(":", 2)
+            lang = parts[1].lower()
+            lang_name = _LANG_DISPLAY.get(lang, lang.capitalize())
+            lang_rules = _LANG_PROMPTS.get(lang, f"{lang_name}.")
+            _PROMPT_TEMPLATE_CACHE[mode] = (
+                f"{_CODE_SYSTEM_PROMPT.strip()}\n\n"
+                f"{lang_rules}\n\n"
+                f"REQUEST:\n{{text}}\n\nCODE:\n"
+            )
+        elif mode == "custom":
+            _PROMPT_TEMPLATE_CACHE[mode] = f"{SYSTEM_PROMPT.strip()}\n\n{{mode_prompt}}\n\nINPUT:\n{{text}}\n\nOUTPUT:\n"
+        else:
+            mode_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS["professional"])
+            _PROMPT_TEMPLATE_CACHE[mode] = f"{SYSTEM_PROMPT.strip()}\n\n{mode_prompt.strip()}\n\nINPUT:\n{{text}}\n\nOUTPUT:\n"
+    return _PROMPT_TEMPLATE_CACHE[mode]
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -407,15 +466,20 @@ def _call_ollama(
     )
 
     from utils import PerfTracker
+    PerfTracker.http_setup_start = time.perf_counter()
     PerfTracker.ollama_start = time.perf_counter()
 
+    session = _get_shared_session()
+
     try:
-        response = requests.post(
+        response = session.post(
             url,
             json=payload,
             timeout=90,
             stream=True,        # Enable HTTP streaming
         )
+
+        PerfTracker.http_setup_end = time.perf_counter()
 
         response.raise_for_status()
         logger.info("AI_REQUEST_SENT")
@@ -427,7 +491,7 @@ def _call_ollama(
         # _clean_response() runs exactly ONCE after the stream completes.
         full_response: list[str] = []
         token_count = 0
-        for raw_line in response.iter_lines():
+        for raw_line in response.iter_lines(chunk_size=1):
             if cancellation_check and cancellation_check():
                 logger.info("Ollama request cancelled cooperatively. Closing stream.")
                 response.close()
@@ -465,8 +529,10 @@ def _call_ollama(
         )
 
         # ── Single post-stream cleanup pass ───────────────────────────────────
+        PerfTracker.response_clean_start = time.perf_counter()
         raw_result = "".join(full_response)
         cleaned_result = _clean_response(raw_result, mode)
+        PerfTracker.response_clean_end = time.perf_counter()
         logger.info("AI_RESPONSE_RECEIVED")
 
         elapsed = time.perf_counter() - PerfTracker.ollama_start
@@ -589,7 +655,7 @@ class AIProcessor:
 
         mode = mode or self._settings.default_mode
 
-        # Check local fast-path first
+        # Check local fast-path first (grammar micro-corrections without AI)
         fast_result = _local_fast_path(text, mode)
         if fast_result is not None:
             from utils import PerfTracker
@@ -599,11 +665,24 @@ class AIProcessor:
             yield fast_result
             return
 
-        yield from _call_ollama(
-            text=text,
+        # Build the prompt (same for all providers)
+        prompt = _build_prompt(text, mode, custom_instruction)
+
+        # Route to the configured provider (Ollama / Avelyn Cloud / Custom API)
+        from providers import get_provider_for_settings
+        from utils import PerfTracker
+        
+        PerfTracker.provider_select_start = time.perf_counter()
+        provider = get_provider_for_settings(self._settings, mode, text)
+        PerfTracker.provider_select_end = time.perf_counter()
+
+        logger.info("AIProcessor.enhance: provider=%s mode=%s",
+                    type(provider).__name__, mode)
+
+        yield from provider.generate(
+            prompt=prompt,
+            system_prompt=SYSTEM_PROMPT,
             mode=mode,
-            host=self._settings.ollama_host,
-            model=self._settings.ollama_model,
             custom_instruction=custom_instruction,
             cancellation_check=cancellation_check,
         )

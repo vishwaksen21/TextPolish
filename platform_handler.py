@@ -277,6 +277,9 @@ def paste_text() -> None:
     Windows: win32gui.SetForegroundWindow + pynput Ctrl+V
     """
     global _macos_active_app, _windows_active_hwnd
+    
+    from utils import PerfTracker
+    PerfTracker.focus_restore_start = time.perf_counter()
 
     try:
         app_info_before = get_frontmost_app_diagnostics()
@@ -344,15 +347,17 @@ def paste_text() -> None:
                 logger.debug("Failed to restore focus via win32gui: %s", e)
 
         logger.info("FOCUS_RESTORE_SUCCESS=%s", restore_success)
+        PerfTracker.focus_restore_end = time.perf_counter()
 
         # Small clipboard stabilization delay
-        # macOS WindowServer requires ~100ms to complete the focus transition animation
+        # macOS WindowServer requires ~50ms to complete the focus transition animation (reduced from 100ms)
         if IS_MACOS:
-            time.sleep(0.10)
-        else:
             time.sleep(0.05)
+        else:
+            time.sleep(0.03)
 
         # ── Send paste keystroke ─────────────────────────────────────────────────────
+        PerfTracker.paste_start = time.perf_counter()
         kb = _get_keyboard()
         if kb is None or Key is None:
             logger.error("paste_text: keyboard controller unavailable, skipping Ctrl/Cmd+V")
@@ -376,9 +381,12 @@ def paste_text() -> None:
         logger.debug("Paste shortcut sent successfully.")
         logger.info("PASTE_SENT=True")
         logger.info("PASTE_SUCCESS=True")
+        PerfTracker.paste_end = time.perf_counter()
 
     except Exception as exc:
         logger.error("paste_text failed: %s", exc)
+        PerfTracker.focus_restore_end = time.perf_counter()
+        PerfTracker.paste_end = time.perf_counter()
 
 
 # ──────────────────────────────────────────────────────────────────────────────

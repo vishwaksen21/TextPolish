@@ -25,20 +25,21 @@ from typing import Optional
 import pyperclip
 
 from logger import logger
+from utils import PerfTracker
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Clipboard Timing Configuration
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Delay between clipboard polling attempts
-_RETRY_DELAY = 0.02
+# Delay between clipboard polling attempts - reduced for faster response
+_RETRY_DELAY = 0.015
 
-# Total retry attempts
-_MAX_RETRIES = 25
+# Total retry attempts - reduced since delay is smaller
+_MAX_RETRIES = 15
 
-# Additional stabilization delay after copy
-_POST_COPY_DELAY = 0.02
+# Additional stabilization delay after copy - reduced
+_POST_COPY_DELAY = 0.01
 
 
 class ClipboardManager:
@@ -57,7 +58,7 @@ class ClipboardManager:
         """
         Save current clipboard contents.
         """
-
+        PerfTracker.clipboard_save_start = time.perf_counter()
         try:
             self._saved = pyperclip.paste() or ""
 
@@ -73,19 +74,21 @@ class ClipboardManager:
             )
 
             self._saved = ""
+        finally:
+            PerfTracker.clipboard_save_end = time.perf_counter()
 
     def restore(self) -> None:
         """
         Restore original clipboard contents.
         """
-
-        if self._saved is None:
-            logger.debug(
-                "No clipboard snapshot available to restore."
-            )
-            return
-
+        PerfTracker.clipboard_restore_start = time.perf_counter()
         try:
+            if self._saved is None:
+                logger.debug(
+                    "No clipboard snapshot available to restore."
+                )
+                return
+
             pyperclip.copy(self._saved)
 
             logger.debug(
@@ -97,6 +100,8 @@ class ClipboardManager:
                 "Failed to restore clipboard: %s",
                 exc,
             )
+        finally:
+            PerfTracker.clipboard_restore_end = time.perf_counter()
 
     # ──────────────────────────────────────────────────────────────────────────
     # Clipboard Read
@@ -106,7 +111,6 @@ class ClipboardManager:
         """
         Return current clipboard contents safely.
         """
-
         try:
             return pyperclip.paste() or ""
 

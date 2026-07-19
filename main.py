@@ -17,6 +17,7 @@ import argparse
 import sys
 import traceback as _traceback
 from pathlib import Path
+from typing import Optional
 import requests
 
 from PyQt6.QtCore    import Qt, QTimer, QObject, QThread, pyqtSignal
@@ -505,31 +506,46 @@ class AvelynApp:
         except Exception as exc:
             logger.warning("STARTUP WARN: tray.notify() failed (non-fatal): %s", exc)
 
-        # Start Ollama background process silently if missing and warm the model
-        import threading
-        def background_ollama():
-            from installer import Installer
-            try:
-                Installer.start_ollama()
-            except Exception:
-                pass
-            try:
-                self._processor.warm_model()
-            except Exception:
-                pass
-        threading.Thread(target=background_ollama, daemon=True).start()
+        # Start Ollama background process ONLY if Ollama provider is actually selected
+        # Check both single provider mode and router config
+        should_start_ollama = False
+        provider = self._settings.ai_provider
+        if provider == "ollama":
+            should_start_ollama = True
+        else:
+            # Check router config for any task using ollama
+            router_config = self._settings.router_config
+            for task_config in router_config.values():
+                if task_config.get("provider") == "ollama":
+                    should_start_ollama = True
+                    break
+
+        if should_start_ollama:
+            import threading
+            def background_ollama():
+                from installer import Installer
+                try:
+                    Installer.start_ollama()
+                except Exception:
+                    pass
+                try:
+                    self._processor.warm_model()
+                except Exception:
+                    pass
+            threading.Thread(target=background_ollama, daemon=True).start()
+            logger.info("STARTUP: Ollama provider selected, starting Ollama in background")
+        else:
+            logger.info("STARTUP: Ollama provider not selected, skipping Ollama startup")
 
         # ── Keep-alive timer: prevents M1 GPU idle sleep ──────────────────────
-        # macOS aggressively idles the M1 GPU/ANE compute blocks after ~60s of
-        # inactivity. Ollama keeps model weights in RAM (keep_alive=24h) but
-        # cannot prevent the compute units from sleeping, causing TTFT to spike
-        # from ~2s to 8–12s on the first request after idle.
-        # Pinging Ollama every 120s with a 1-token request keeps the compute
-        # path warm at the cost of ~0.5s of CPU every 2 minutes.
-        self._keepalive_timer = QTimer(self._qapp)
-        self._keepalive_timer.timeout.connect(self._keepalive_ping)
-        self._keepalive_timer.start(120_000)   # every 2 minutes
-        logger.info("STARTUP: Keep-alive timer started (120s interval)")
+        # Only start keepalive timer if Ollama is the selected provider
+        if should_start_ollama:
+            self._keepalive_timer = QTimer(self._qapp)
+            self._keepalive_timer.timeout.connect(self._keepalive_ping)
+            self._keepalive_timer.start(120_000)   # every 2 minutes
+            logger.info("STARTUP: Keep-alive timer started (120s interval)")
+        else:
+            self._keepalive_timer = None
 
         logger.info("STARTUP: %s v%s started. Platform: %s", APP_NAME, __version__, ph.platform_name())
         logger.info("STARTUP: PACKAGED_MODE=%s", getattr(sys, 'frozen', False))
@@ -539,6 +555,23 @@ class AvelynApp:
 
     def _keepalive_ping(self) -> None:
         """Send a minimal 1-token Ollama request to prevent M1 GPU idle sleep."""
+        # Only ping if Ollama is the selected provider
+        should_ping = False
+        provider = self._settings.ai_provider
+        if provider == "ollama":
+            should_ping = True
+        else:
+            # Check router config for any task using ollama
+            router_config = self._settings.router_config
+            for task_config in router_config.values():
+                if task_config.get("provider") == "ollama":
+                    should_ping = True
+                    break
+
+        if not should_ping:
+            logger.debug("Keepalive skipped: Ollama provider not selected")
+            return
+
         import threading
         def _ping():
             try:

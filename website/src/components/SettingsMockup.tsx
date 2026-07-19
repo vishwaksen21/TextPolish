@@ -25,7 +25,7 @@ export default function SettingsMockup() {
   const [providerMode, setProviderMode] = useState("auto"); // "single" | "smart_router" | "auto"
   const [singleProvider, setSingleProvider] = useState("ollama"); // "ollama" | "avelyn_cloud" | "custom_api"
   const [cloudApiKey, setCloudApiKey] = useState("sk-or-v1-d6c91...");
-  const [cloudModel, setCloudModel] = useState("openai/gpt-4o-mini");
+  const [cloudModel, setCloudModel] = useState("google/gemini-2.5-flash");
   const [customPreset, setCustomPreset] = useState("OpenAI");
   const [customBaseUrl, setCustomBaseUrl] = useState("https://api.openai.com/v1");
   const [customApiKey, setCustomApiKey] = useState("");
@@ -38,7 +38,7 @@ export default function SettingsMockup() {
   const [writingProvider, setWritingProvider] = useState("avelyn_cloud");
   const [writingModel, setWritingModel] = useState("anthropic/claude-3.5-haiku");
   const [reasoningProvider, setReasoningProvider] = useState("custom_api");
-  const [reasoningModel, setReasoningModel] = useState("gpt-4o-mini");
+  const [reasoningModel, setReasoningModel] = useState("google/gemini-2.5-flash");
 
   const triggerAutoSave = () => {
     setSaveStatus("Saving...");
@@ -306,7 +306,7 @@ export default function SettingsMockup() {
                               <select value={cloudModel} onChange={(e) => { setCloudModel(e.target.value); triggerAutoSave(); }} className={`text-sm font-medium ${colors.input} rounded-lg px-3 py-1.5 w-full sm:w-48 outline-none`}>
                                 <option value="openai/gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
                                 <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
-                                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash (Ultra Fast)</option>
                                 <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free)</option>
                               </select>
                             </div>

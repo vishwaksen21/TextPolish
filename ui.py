@@ -40,7 +40,7 @@ from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFormLayout,
     QFrame, QGraphicsDropShadowEffect, QGroupBox, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu,
-    QMessageBox, QProgressBar, QPushButton, QScrollArea, QSizePolicy,
+    QMessageBox, QProgressBar, QPushButton, QRadioButton, QScrollArea, QSizePolicy,
     QSplitter, QStackedWidget, QSystemTrayIcon, QTextEdit,
     QToolButton, QVBoxLayout, QWidget,
 )
@@ -572,6 +572,17 @@ QCheckBox {{
     spacing: 8px;
     background: transparent;
 }}
+
+QRadioButton {{
+    spacing: 8px;
+    color: {TEXT_PRIMARY};
+    background: transparent;
+}}
+QRadioButton#ProviderRadio {{
+    min-height: 30px;
+    padding: 2px 0;
+}}
+
 
 QListWidget#SettingsHistory {{
     background: {SURFACE};
@@ -1132,7 +1143,8 @@ class AIWorker(QThread):
         try:
             last_value = ""
             for text_so_far in self._processor.enhance(
-                self._text, self._mode, self._custom_instruction
+                self._text, self._mode, self._custom_instruction,
+                cancellation_check=self.isInterruptionRequested
             ):
                 last_value = text_so_far
                 self.chunk_received.emit(text_so_far)
@@ -1386,8 +1398,11 @@ class EnhancementPopup(QDialog):
 
     def _start_enhancement(self) -> None:
         if self._worker and self._worker.isRunning():
-            self._worker.terminate()
-            self._worker.wait(500)
+            self._worker.requestInterruption()
+            self._worker.wait(100)
+            if self._worker.isRunning():
+                self._worker.terminate()
+                self._worker.wait(200)
 
         self._worker = AIWorker(self._processor, self._original_text, self._current_mode)
         self._worker.chunk_received.connect(self._on_chunk)
@@ -1467,7 +1482,10 @@ class EnhancementPopup(QDialog):
 
     def _on_cancel(self) -> None:
         if self._worker and self._worker.isRunning():
-            self._worker.terminate()
+            self._worker.requestInterruption()
+            self._worker.wait(100)
+            if self._worker.isRunning():
+                self._worker.terminate()
         self._clipboard.restore()
         self.hide()
 
@@ -1747,9 +1765,21 @@ def _divider_line() -> QFrame:
     line.setObjectName("SettingsDivider")
     return line
 
+def _make_scrollable_page(page_widget: QWidget) -> QScrollArea:
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    # The scroll area should be styled transparently so page background is visible
+    scroll.setStyleSheet("QScrollArea { background: transparent; }")
+    scroll.setWidget(page_widget)
+    return scroll
+
 def _settings_group(widgets: list[QWidget]) -> QWidget:
     card = QFrame()
     card.setObjectName("SettingsCard")
+    card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
     layout = QVBoxLayout(card)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(0)
@@ -1783,6 +1813,7 @@ def _premium_row(
 ) -> QWidget:
     row = QWidget()
     row.setObjectName("SettingsRow")
+    row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
     l = QHBoxLayout(row)
     l.setContentsMargins(14, 10, 14, 10)
     l.setSpacing(12)
@@ -1838,6 +1869,22 @@ def _premium_row(
     return row
 
 
+class ModelFetchWorker(QThread):
+    models_fetched = pyqtSignal(list)
+
+    def __init__(self, api_key: str, parent: Optional[QObject] = None) -> None:
+        super().__init__(parent)
+        self._api_key = api_key
+
+    def run(self) -> None:
+        try:
+            from providers import fetch_openrouter_models
+            models = fetch_openrouter_models(self._api_key)
+            self.models_fetched.emit(models)
+        except Exception:
+            pass
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SETTINGS WINDOW
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1857,6 +1904,30 @@ class SettingsWindow(QDialog):
         self._settings  = settings
         self._processor = processor
         self._build_ui()
+        
+        # Asynchronously fetch latest OpenRouter models to populate dropdown
+        self._fetch_worker = ModelFetchWorker(self._settings.avelyn_cloud_api_key, self)
+        self._fetch_worker.models_fetched.connect(self._on_models_fetched)
+        self._fetch_worker.start()
+
+    def _on_models_fetched(self, models: list[tuple[str, str]]) -> None:
+        if not models:
+            return
+        # Block signals temporarily to prevent auto-saving while populating
+        self._cloud_model_combo.blockSignals(True)
+        current_model = self._settings.avelyn_cloud_model
+        
+        self._cloud_model_combo.clear()
+        for display, model_id in models:
+            self._cloud_model_combo.addItem(display, userData=model_id)
+            
+        # Restore selection
+        for i in range(self._cloud_model_combo.count()):
+            if self._cloud_model_combo.itemData(i) == current_model:
+                self._cloud_model_combo.setCurrentIndex(i)
+                break
+        self._cloud_model_combo.blockSignals(False)
+
 
     def _build_ui(self) -> None:
         self.setWindowTitle("Avelyn — Settings")
@@ -2004,11 +2075,11 @@ class SettingsWindow(QDialog):
 
         self._stack = QStackedWidget()
         self._stack.setMaximumWidth(900)
-        self._stack.addWidget(self._page_ai())
-        self._stack.addWidget(self._page_hotkeys())
-        self._stack.addWidget(self._page_appearance())
-        self._stack.addWidget(self._page_history())
-        self._stack.addWidget(self._page_about())
+        self._stack.addWidget(_make_scrollable_page(self._page_ai()))
+        self._stack.addWidget(_make_scrollable_page(self._page_hotkeys()))
+        self._stack.addWidget(_make_scrollable_page(self._page_appearance()))
+        self._stack.addWidget(_make_scrollable_page(self._page_history()))
+        self._stack.addWidget(_make_scrollable_page(self._page_about()))
 
         content_layout.addWidget(self._stack, 1)
 
@@ -2039,7 +2110,8 @@ class SettingsWindow(QDialog):
 
     # ── Pages ─────────────────────────────────────────────────────────────────
 
-    def _page_ai(self) -> QWidget:
+    def _page_ai(self) -> QWidget:  # noqa: C901 (complex but coherent)
+        from providers import CUSTOM_PROVIDER_PRESETS, AVELYN_CLOUD_MODELS
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setSpacing(14)
@@ -2051,54 +2123,657 @@ class SettingsWindow(QDialog):
         title.setObjectName("SettingsTitle")
         layout.addWidget(title)
 
-        hint = QLabel("Configure how Avelyn connects to your local AI model.")
+        hint = QLabel("Choose where Avelyn sends your text for enhancement.")
         hint.setObjectName("SettingsMuted")
         layout.addWidget(hint)
 
-        # Section 1: General Configuration
-        layout.addWidget(_section_header("General Configuration"))
+        # ── Section 0: Provider Mode Selector ─────────────────────────────────
+        layout.addWidget(_section_header("Provider Mode"))
 
-        # Connection Status Layout
-        conn_row = QWidget()
-        conn_row.setObjectName("ConnRow")
-        conn_l = QHBoxLayout(conn_row)
-        conn_l.setContentsMargins(0, 0, 0, 0)
-        conn_l.setSpacing(10)
+        mode_card = QFrame()
+        mode_card.setObjectName("SettingsCard")
+        mode_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        mode_card_l = QVBoxLayout(mode_card)
+        mode_card_l.setContentsMargins(20, 16, 20, 16)
+        mode_card_l.setSpacing(12)
 
-        test_btn = QPushButton("Test Connection")
-        test_btn.setObjectName("SecondaryBtn")
-        test_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        test_btn.setIcon(QIcon(_paint_settings_icon("wave", tokens["PRIMARY"], 14)))
-        test_btn.clicked.connect(self._on_test_connection)
+        self._radio_mode_single = QRadioButton("👤  Single Provider  —  Use one provider for all tasks")
+        self._radio_mode_router = QRadioButton("🚦  Smart Router  —  Map different tasks to specific models")
+        self._radio_mode_auto   = QRadioButton("🤖  Auto Provider  —  Avelyn decides the provider automatically")
+        for rb in (self._radio_mode_single, self._radio_mode_router, self._radio_mode_auto):
+            rb.setObjectName("ProviderRadio")
+            rb.setCursor(Qt.CursorShape.PointingHandCursor)
+            rb.setMinimumHeight(30)
+            mode_card_l.addWidget(rb)
 
-        self._status_dot = QLabel("●")
-        self._status_dot.hide() # Hidden: we use StatusBadge background instead!
-        
-        self._test_result = QLabel("Not Tested")
-        self._test_result.setObjectName("StatusBadge")
-        self._test_result.setProperty("status", "not_tested")
-        self._test_result.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        conn_l.addWidget(self._status_dot)
-        conn_l.addWidget(self._test_result)
-        conn_l.addWidget(test_btn)
+        saved_mode = self._settings.ai_provider_mode
+        if saved_mode == "smart_router":
+            self._radio_mode_router.setChecked(True)
+        elif saved_mode == "auto":
+            self._radio_mode_auto.setChecked(True)
+        else:
+            self._radio_mode_single.setChecked(True)
 
-        self._conn_card = _premium_row(
-            label_text="Local AI Connection",
-            sub_label="Verify connection to your Ollama service.",
-            icon_kind="server",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            widget=conn_row,
-            theme=self._settings.theme
+        layout.addWidget(mode_card)
+
+        # ── Section 1: Provider Selector (only visible in Single Provider mode) ────
+        self._provider_sec_header = _section_header("Provider")
+        layout.addWidget(self._provider_sec_header)
+
+        self._provider_card = QFrame()
+        self._provider_card.setObjectName("SettingsCard")
+        self._provider_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        provider_card_l = QVBoxLayout(self._provider_card)
+        provider_card_l.setContentsMargins(20, 16, 20, 16)
+        provider_card_l.setSpacing(12)
+
+        self._radio_ollama  = QRadioButton("🖥  Local Ollama  —  100 % private, offline")
+        self._radio_gemini  = QRadioButton("✨  Google Gemini  —  Fast, high-quality cloud AI")
+        self._radio_cloud   = QRadioButton("☁  Avelyn Cloud  —  powered by OpenRouter")
+        self._radio_custom  = QRadioButton("🔑  Custom API  —  Bring your own key")
+        for rb in (self._radio_ollama, self._radio_gemini, self._radio_cloud, self._radio_custom):
+            rb.setObjectName("ProviderRadio")
+            rb.setCursor(Qt.CursorShape.PointingHandCursor)
+            rb.setMinimumHeight(30)
+            provider_card_l.addWidget(rb)
+
+        # Set initial selection
+        current_provider = self._settings.ai_provider
+        if current_provider == "gemini":
+            self._radio_gemini.setChecked(True)
+        elif current_provider == "avelyn_cloud":
+            self._radio_cloud.setChecked(True)
+        elif current_provider == "custom_api":
+            self._radio_custom.setChecked(True)
+        else:
+            self._radio_ollama.setChecked(True)
+
+        layout.addWidget(self._provider_card)
+
+        # ── Section 2: Configuration ─────────────────────────────────────────
+        self._config_sec_header = _section_header("Configuration")
+        layout.addWidget(self._config_sec_header)
+
+        self._provider_stack = QStackedWidget()
+        self._provider_stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        # ── Panel 0: Ollama ───────────────────────────────────────────────────
+        ollama_panel = QFrame()
+        ollama_panel.setObjectName("SettingsCard")
+        ollama_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        ollama_l = QVBoxLayout(ollama_panel)
+        ollama_l.setContentsMargins(0, 4, 0, 4)
+        ollama_l.setSpacing(0)
+
+        self._ollama_host = QLineEdit(self._settings.ollama_host)
+        self._ollama_host.setObjectName("SettingsLineEdit")
+        self._ollama_host.setFixedWidth(260)
+        ollama_host_row = _premium_row(
+            label_text="Host",
+            sub_label="Ollama server address",
+            icon_kind="link",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._ollama_host, show_arrow=True, theme=self._settings.theme
         )
 
-        # Default Mode Selection
+        self._ollama_model_edit = QLineEdit(self._settings.ollama_model)
+        self._ollama_model_edit.setObjectName("SettingsLineEdit")
+        self._ollama_model_edit.setPlaceholderText("e.g. gemma3:4b")
+        self._ollama_model_edit.setFixedWidth(260)
+        ollama_model_row = _premium_row(
+            label_text="Model",
+            sub_label="Model name as shown in 'ollama list'",
+            icon_kind="cube",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._ollama_model_edit, show_arrow=True, theme=self._settings.theme
+        )
+
+        ollama_test_row_w = QWidget()
+        ollama_test_l = QHBoxLayout(ollama_test_row_w)
+        ollama_test_l.setContentsMargins(0, 0, 0, 0)
+        ollama_test_l.setSpacing(10)
+        self._ollama_test_result = QLabel("Not Tested")
+        self._ollama_test_result.setObjectName("StatusBadge")
+        self._ollama_test_result.setProperty("status", "not_tested")
+        self._ollama_test_result.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ollama_test_btn = QPushButton("Test Connection")
+        ollama_test_btn.setObjectName("SecondaryBtn")
+        ollama_test_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        ollama_test_btn.clicked.connect(lambda: self._run_test("ollama"))
+        ollama_test_l.addWidget(self._ollama_test_result)
+        ollama_test_l.addWidget(ollama_test_btn)
+        ollama_conn_row = _premium_row(
+            label_text="Connection",
+            sub_label="Test connectivity to your Ollama service",
+            icon_kind="server",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=ollama_test_row_w, theme=self._settings.theme
+        )
+        self._test_result = self._ollama_test_result
+        self._status_dot  = QLabel()
+
+        ollama_l.addWidget(ollama_host_row)
+        ollama_l.addWidget(_divider_line())
+        ollama_l.addWidget(ollama_model_row)
+        ollama_l.addWidget(_divider_line())
+        ollama_l.addWidget(ollama_conn_row)
+        self._provider_stack.addWidget(ollama_panel)   # index 0
+
+        # ── Panel 1: Google Gemini ──────────────────────────────────────────────
+        gemini_panel = QFrame()
+        gemini_panel.setObjectName("SettingsCard")
+        gemini_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        gemini_l = QVBoxLayout(gemini_panel)
+        gemini_l.setContentsMargins(0, 4, 0, 4)
+        gemini_l.setSpacing(0)
+
+        gemini_key_w = QWidget()
+        gemini_key_l = QHBoxLayout(gemini_key_w)
+        gemini_key_l.setContentsMargins(0, 0, 0, 0)
+        gemini_key_l.setSpacing(0)
+        self._gemini_api_key = QLineEdit(self._settings.gemini_api_key)
+        self._gemini_api_key.setObjectName("SettingsLineEdit")
+        self._gemini_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self._gemini_api_key.setPlaceholderText("Leave blank to use built-in default key")
+        self._gemini_api_key.setFixedWidth(260)
+        gemini_key_l.addWidget(self._gemini_api_key)
+        gemini_key_row = _premium_row(
+            label_text="API Key",
+            sub_label="Your Google AI API key (aistudio.google.com/apikey) — optional",
+            icon_kind="shield",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=gemini_key_w, show_arrow=True, theme=self._settings.theme
+        )
+
+        self._gemini_model_edit = QLineEdit(self._settings.gemini_model)
+        self._gemini_model_edit.setObjectName("SettingsLineEdit")
+        self._gemini_model_edit.setPlaceholderText("models/gemini-1.5-flash-8b")
+        self._gemini_model_edit.setFixedWidth(260)
+        gemini_model_row = _premium_row(
+            label_text="Model",
+            sub_label="Gemini model ID (e.g. models/gemini-2.5-flash)",
+            icon_kind="cube",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._gemini_model_edit, show_arrow=True, theme=self._settings.theme
+        )
+
+        gemini_test_row_w = QWidget()
+        gemini_test_l = QHBoxLayout(gemini_test_row_w)
+        gemini_test_l.setContentsMargins(0, 0, 0, 0)
+        gemini_test_l.setSpacing(10)
+        self._gemini_test_result = QLabel("Not Tested")
+        self._gemini_test_result.setObjectName("StatusBadge")
+        self._gemini_test_result.setProperty("status", "not_tested")
+        self._gemini_test_result.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        gemini_test_btn = QPushButton("Test Connection")
+        gemini_test_btn.setObjectName("SecondaryBtn")
+        gemini_test_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        gemini_test_btn.clicked.connect(lambda: self._run_test("gemini"))
+        gemini_test_l.addWidget(self._gemini_test_result)
+        gemini_test_l.addWidget(gemini_test_btn)
+        gemini_conn_row = _premium_row(
+            label_text="Connection",
+            sub_label="Verify your API key is valid",
+            icon_kind="wave",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=gemini_test_row_w, theme=self._settings.theme
+        )
+
+        gemini_l.addWidget(gemini_key_row)
+        gemini_l.addWidget(_divider_line())
+        gemini_l.addWidget(gemini_model_row)
+        gemini_l.addWidget(_divider_line())
+        gemini_l.addWidget(gemini_conn_row)
+        self._provider_stack.addWidget(gemini_panel)   # index 1
+
+        # ── Panel 2: Avelyn Cloud ─────────────────────────────────────────────
+        cloud_panel = QFrame()
+        cloud_panel.setObjectName("SettingsCard")
+        cloud_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        cloud_l = QVBoxLayout(cloud_panel)
+        cloud_l.setContentsMargins(0, 4, 0, 4)
+        cloud_l.setSpacing(0)
+
+        cloud_key_w = QWidget()
+        cloud_key_l = QHBoxLayout(cloud_key_w)
+        cloud_key_l.setContentsMargins(0, 0, 0, 0)
+        cloud_key_l.setSpacing(0)
+        self._cloud_api_key = QLineEdit(self._settings.avelyn_cloud_api_key)
+        self._cloud_api_key.setObjectName("SettingsLineEdit")
+        self._cloud_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self._cloud_api_key.setPlaceholderText("sk-or-v1-…")
+        self._cloud_api_key.setFixedWidth(260)
+        cloud_key_l.addWidget(self._cloud_api_key)
+        cloud_key_row = _premium_row(
+            label_text="API Key",
+            sub_label="Your OpenRouter API key  (openrouter.ai/keys)",
+            icon_kind="shield",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=cloud_key_w, show_arrow=True, theme=self._settings.theme
+        )
+
+        self._cloud_model_combo = QComboBox()
+        self._cloud_model_combo.setObjectName("SettingsCombo")
+        self._cloud_model_combo.setFixedWidth(260)
+        for display, model_id in AVELYN_CLOUD_MODELS:
+            self._cloud_model_combo.addItem(display, userData=model_id)
+        current_cloud_model = self._settings.avelyn_cloud_model
+        for i in range(self._cloud_model_combo.count()):
+            if self._cloud_model_combo.itemData(i) == current_cloud_model:
+                self._cloud_model_combo.setCurrentIndex(i)
+                break
+        cloud_model_row = _premium_row(
+            label_text="Model",
+            sub_label="OpenRouter model to use for enhancement",
+            icon_kind="cube",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._cloud_model_combo, show_arrow=True, theme=self._settings.theme
+        )
+
+        cloud_test_row_w = QWidget()
+        cloud_test_l = QHBoxLayout(cloud_test_row_w)
+        cloud_test_l.setContentsMargins(0, 0, 0, 0)
+        cloud_test_l.setSpacing(10)
+        self._cloud_test_result = QLabel("Not Tested")
+        self._cloud_test_result.setObjectName("StatusBadge")
+        self._cloud_test_result.setProperty("status", "not_tested")
+        self._cloud_test_result.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        cloud_test_btn = QPushButton("Test Connection")
+        cloud_test_btn.setObjectName("SecondaryBtn")
+        cloud_test_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cloud_test_btn.clicked.connect(lambda: self._run_test("avelyn_cloud"))
+        cloud_test_l.addWidget(self._cloud_test_result)
+        cloud_test_l.addWidget(cloud_test_btn)
+        cloud_conn_row = _premium_row(
+            label_text="Connection",
+            sub_label="Verify your API key is valid",
+            icon_kind="wave",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=cloud_test_row_w, theme=self._settings.theme
+        )
+
+        cloud_l.addWidget(cloud_key_row)
+        cloud_l.addWidget(_divider_line())
+        cloud_l.addWidget(cloud_model_row)
+        cloud_l.addWidget(_divider_line())
+        cloud_l.addWidget(cloud_conn_row)
+        self._provider_stack.addWidget(cloud_panel)   # index 1
+
+        # ── Panel 2: Custom API ───────────────────────────────────────────────
+        custom_panel = QFrame()
+        custom_panel.setObjectName("SettingsCard")
+        custom_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        custom_l = QVBoxLayout(custom_panel)
+        custom_l.setContentsMargins(0, 4, 0, 4)
+        custom_l.setSpacing(0)
+
+        self._custom_preset_combo = QComboBox()
+        self._custom_preset_combo.setObjectName("SettingsCombo")
+        self._custom_preset_combo.setFixedWidth(200)
+        for preset_name in CUSTOM_PROVIDER_PRESETS:
+            self._custom_preset_combo.addItem(preset_name)
+        saved_preset = self._settings.custom_api_provider_name
+        if saved_preset in CUSTOM_PROVIDER_PRESETS:
+            self._custom_preset_combo.setCurrentText(saved_preset)
+        custom_preset_row = _premium_row(
+            label_text="Provider Preset",
+            sub_label="Auto-fills the base URL below",
+            icon_kind="sparkles",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._custom_preset_combo, show_arrow=True, theme=self._settings.theme
+        )
+
+        self._custom_base_url = QLineEdit(self._settings.custom_api_base_url)
+        self._custom_base_url.setObjectName("SettingsLineEdit")
+        self._custom_base_url.setPlaceholderText("https://api.openai.com/v1")
+        self._custom_base_url.setFixedWidth(280)
+        custom_url_row = _premium_row(
+            label_text="Base URL",
+            sub_label="OpenAI-compatible endpoint",
+            icon_kind="link",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._custom_base_url, show_arrow=True, theme=self._settings.theme
+        )
+
+        custom_key_w = QWidget()
+        custom_key_l = QHBoxLayout(custom_key_w)
+        custom_key_l.setContentsMargins(0, 0, 0, 0)
+        custom_key_l.setSpacing(0)
+        self._custom_api_key = QLineEdit(self._settings.custom_api_key)
+        self._custom_api_key.setObjectName("SettingsLineEdit")
+        self._custom_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self._custom_api_key.setPlaceholderText("sk-…")
+        self._custom_api_key.setFixedWidth(260)
+        custom_key_l.addWidget(self._custom_api_key)
+        custom_key_row = _premium_row(
+            label_text="API Key",
+            sub_label="Leave blank for local servers (LM Studio, vLLM)",
+            icon_kind="shield",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=custom_key_w, show_arrow=True, theme=self._settings.theme
+        )
+
+        self._custom_model_edit = QLineEdit(self._settings.custom_api_model)
+        self._custom_model_edit.setObjectName("SettingsLineEdit")
+        self._custom_model_edit.setPlaceholderText("e.g. gpt-4o-mini")
+        self._custom_model_edit.setFixedWidth(220)
+        custom_model_row = _premium_row(
+            label_text="Model",
+            sub_label="Exact model ID accepted by this endpoint",
+            icon_kind="cube",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._custom_model_edit, show_arrow=True, theme=self._settings.theme
+        )
+
+        custom_test_row_w = QWidget()
+        custom_test_l = QHBoxLayout(custom_test_row_w)
+        custom_test_l.setContentsMargins(0, 0, 0, 0)
+        custom_test_l.setSpacing(10)
+        self._custom_test_result = QLabel("Not Tested")
+        self._custom_test_result.setObjectName("StatusBadge")
+        self._custom_test_result.setProperty("status", "not_tested")
+        self._custom_test_result.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        custom_test_btn = QPushButton("Test Connection")
+        custom_test_btn.setObjectName("SecondaryBtn")
+        custom_test_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        custom_test_btn.clicked.connect(lambda: self._run_test("custom_api"))
+        custom_test_l.addWidget(self._custom_test_result)
+        custom_test_l.addWidget(custom_test_btn)
+        custom_conn_row = _premium_row(
+            label_text="Connection",
+            sub_label="Test endpoint reachability and key validity",
+            icon_kind="wave",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=custom_test_row_w, theme=self._settings.theme
+        )
+
+        custom_l.addWidget(custom_preset_row)
+        custom_l.addWidget(_divider_line())
+        custom_l.addWidget(custom_url_row)
+        custom_l.addWidget(_divider_line())
+        custom_l.addWidget(custom_key_row)
+        custom_l.addWidget(_divider_line())
+        custom_l.addWidget(custom_model_row)
+        custom_l.addWidget(_divider_line())
+        custom_l.addWidget(custom_conn_row)
+        self._provider_stack.addWidget(custom_panel)   # index 2
+
+        # ── Panel 3: Smart Router Panel ───────────────────────────────────────
+        router_panel = QFrame()
+        router_panel.setObjectName("SettingsCard")
+        router_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        router_l = QVBoxLayout(router_panel)
+        router_l.setContentsMargins(0, 4, 0, 4)
+        router_l.setSpacing(0)
+
+        # Helper to build combo/input task rows
+        def _make_router_task_w(prov_combo: QComboBox, model_edit: QLineEdit, saved_prov: str, saved_model: str) -> QWidget:
+            row_w = QWidget()
+            row_l = QHBoxLayout(row_w)
+            row_l.setContentsMargins(0, 0, 0, 0)
+            row_l.setSpacing(8)
+            
+            prov_combo.setObjectName("SettingsCombo")
+            prov_combo.addItems(["Ollama", "Google Gemini", "Avelyn Cloud", "Custom API"])
+            prov_combo.setFixedWidth(120)
+            if saved_prov == "gemini":
+                prov_combo.setCurrentIndex(1)
+            elif saved_prov == "avelyn_cloud":
+                prov_combo.setCurrentIndex(2)
+            elif saved_prov == "custom_api":
+                prov_combo.setCurrentIndex(3)
+            else:
+                prov_combo.setCurrentIndex(0)
+                
+            model_edit.setObjectName("SettingsLineEdit")
+            model_edit.setText(saved_model)
+            model_edit.setPlaceholderText("model tag/id")
+            model_edit.setFixedWidth(160)
+            
+            row_l.addWidget(prov_combo)
+            row_l.addWidget(model_edit)
+            return row_w
+
+        # Add "Apply Recommended Setup" button at the top of the grid
+        recommended_btn = QPushButton("Apply Recommended Routing")
+        recommended_btn.setObjectName("SecondaryBtn")
+        recommended_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        recommended_btn.setFixedWidth(200)
+
+        rec_row_w = QWidget()
+        rec_row_l = QHBoxLayout(rec_row_w)
+        rec_row_l.setContentsMargins(14, 8, 14, 8)
+        rec_lbl = QLabel("🚦 Configure model overrides per task or apply recommended setup:")
+        rec_lbl.setObjectName("SettingsMuted")
+        rec_row_l.addWidget(rec_lbl)
+        rec_row_l.addStretch()
+        rec_row_l.addWidget(recommended_btn)
+        router_l.addWidget(rec_row_w)
+        router_l.addWidget(_divider_line())
+
+        router_conf = self._settings.router_config
+        c_conf = router_conf.get("coding", {})
+        w_conf = router_conf.get("writing", {})
+        r_conf = router_conf.get("reasoning", {})
+        v_conf = router_conf.get("voice", {})
+        p_conf = router_conf.get("privacy", {})
+        d_conf = router_conf.get("default", {})
+
+        # Task 1: Coding
+        self._router_coding_prov = QComboBox()
+        self._router_coding_model_edit = QLineEdit()
+        coding_task_w = _make_router_task_w(
+            self._router_coding_prov, self._router_coding_model_edit,
+            c_conf.get("provider", "ollama"), c_conf.get("model", "gemma3:4b")
+        )
+        coding_task_row = _premium_row(
+            label_text="Coding Tasks",
+            sub_label="Applies to code generation, debug, and explain",
+            icon_kind="cube",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=coding_task_w, theme=self._settings.theme
+        )
+
+        # Task 2: Writing
+        self._router_writing_prov = QComboBox()
+        self._router_writing_model_edit = QLineEdit()
+        writing_task_w = _make_router_task_w(
+            self._router_writing_prov, self._router_writing_model_edit,
+            w_conf.get("provider", "avelyn_cloud"), w_conf.get("model", "deepseek/deepseek-chat-v3-0324:free")
+        )
+        writing_task_row = _premium_row(
+            label_text="Writing / Polishing",
+            sub_label="Applies to emails, professional tone, grammar, linkedin, translate",
+            icon_kind="sliders",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=writing_task_w, theme=self._settings.theme
+        )
+
+        # Task 3: Reasoning
+        self._router_reasoning_prov = QComboBox()
+        self._router_reasoning_model_edit = QLineEdit()
+        reasoning_task_w = _make_router_task_w(
+            self._router_reasoning_prov, self._router_reasoning_model_edit,
+            r_conf.get("provider", "avelyn_cloud"), r_conf.get("model", "google/gemma-3-27b-it:free")
+        )
+        reasoning_task_row = _premium_row(
+            label_text="Reasoning / smart",
+            sub_label="Applies to smart mode, ELI5 explanation, prompt eng.",
+            icon_kind="sparkles",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=reasoning_task_w, theme=self._settings.theme
+        )
+
+        # Task 4: Voice
+        self._router_voice_prov = QComboBox()
+        self._router_voice_model_edit = QLineEdit()
+        voice_task_w = _make_router_task_w(
+            self._router_voice_prov, self._router_voice_model_edit,
+            v_conf.get("provider", "ollama"), v_conf.get("model", "gemma3:4b")
+        )
+        voice_task_row = _premium_row(
+            label_text="Voice Commands",
+            sub_label="Applies to microphone inputs and voice triggers",
+            icon_kind="wave",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=voice_task_w, theme=self._settings.theme
+        )
+
+        # Task 5: Privacy
+        self._router_privacy_prov = QComboBox()
+        self._router_privacy_model_edit = QLineEdit()
+        privacy_task_w = _make_router_task_w(
+            self._router_privacy_prov, self._router_privacy_model_edit,
+            p_conf.get("provider", "ollama"), p_conf.get("model", "gemma3:4b")
+        )
+        privacy_task_row = _premium_row(
+            label_text="Privacy / Local fallback",
+            sub_label="Used for local processing and default fallback",
+            icon_kind="shield",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=privacy_task_w, theme=self._settings.theme
+        )
+
+        # Task 6: Default
+        self._router_default_prov = QComboBox()
+        self._router_default_model_edit = QLineEdit()
+        default_task_w = _make_router_task_w(
+            self._router_default_prov, self._router_default_model_edit,
+            d_conf.get("provider", "ollama"), d_conf.get("model", "gemma3:4b")
+        )
+        default_task_row = _premium_row(
+            label_text="Default",
+            sub_label="Used when task mode doesn't match other groups",
+            icon_kind="sparkles",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=default_task_w, theme=self._settings.theme
+        )
+
+        router_l.addWidget(coding_task_row)
+        router_l.addWidget(_divider_line())
+        router_l.addWidget(writing_task_row)
+        router_l.addWidget(_divider_line())
+        router_l.addWidget(reasoning_task_row)
+        router_l.addWidget(_divider_line())
+        router_l.addWidget(voice_task_row)
+        router_l.addWidget(_divider_line())
+        router_l.addWidget(privacy_task_row)
+        router_l.addWidget(_divider_line())
+        router_l.addWidget(default_task_row)
+        
+        self._provider_stack.addWidget(router_panel)   # index 3
+
+        # Wire Recommended button implementation
+        def _apply_recommended() -> None:
+            self._router_coding_prov.setCurrentIndex(1) # OpenRouter
+            self._router_coding_model_edit.setText("moonshotai/kimi-k2:free")
+            self._router_writing_prov.setCurrentIndex(1) # OpenRouter
+            self._router_writing_model_edit.setText("anthropic/claude-3.5-haiku")
+            self._router_reasoning_prov.setCurrentIndex(1) # OpenRouter
+            self._router_reasoning_model_edit.setText("openai/gpt-4o-mini")
+            self._router_voice_prov.setCurrentIndex(0) # Ollama
+            self._router_voice_model_edit.setText("gemma3:4b")
+            self._router_privacy_prov.setCurrentIndex(0) # Ollama
+            self._router_privacy_model_edit.setText("gemma3:4b")
+            self._router_default_prov.setCurrentIndex(0) # Ollama
+            self._router_default_model_edit.setText("gemma3:4b")
+            self._auto_save()
+        recommended_btn.clicked.connect(_apply_recommended)
+
+        # Wire preset → URL auto-fill
+        def _on_preset_changed(preset_name: str) -> None:
+            url = CUSTOM_PROVIDER_PRESETS.get(preset_name, "")
+            if url:
+                self._custom_base_url.setText(url)
+        self._custom_preset_combo.currentTextChanged.connect(_on_preset_changed)
+
+        # Wire Single Provider radio buttons → stack index + auto-save
+        def _on_provider_radio() -> None:
+            if self._radio_gemini.isChecked():
+                self._provider_stack.setCurrentIndex(1)
+            elif self._radio_cloud.isChecked():
+                self._provider_stack.setCurrentIndex(2)
+            elif self._radio_custom.isChecked():
+                self._provider_stack.setCurrentIndex(3)
+            else:
+                self._provider_stack.setCurrentIndex(0)
+            self._auto_save()
+
+        self._radio_ollama.toggled.connect(lambda _: _on_provider_radio())
+        self._radio_gemini.toggled.connect(lambda _: _on_provider_radio())
+        self._radio_cloud.toggled.connect(lambda _: _on_provider_radio())
+        self._radio_custom.toggled.connect(lambda _: _on_provider_radio())
+
+        # Wire Provider Mode toggle → UI changes
+        def _on_mode_radio() -> None:
+            is_single = self._radio_mode_single.isChecked()
+            self._provider_sec_header.setVisible(is_single)
+            self._provider_card.setVisible(is_single)
+            
+            if not is_single:
+                # If Router or Auto mode, show the smart router configuration grid
+                self._provider_stack.setCurrentIndex(3)
+            else:
+                _on_provider_radio()
+            self._auto_save()
+
+        self._radio_mode_single.toggled.connect(lambda _: _on_mode_radio())
+        self._radio_mode_router.toggled.connect(lambda _: _on_mode_radio())
+        self._radio_mode_auto.toggled.connect(lambda _: _on_mode_radio())
+
+        # Set initial stack index & visibility
+        if self._settings.ai_provider_mode in ("smart_router", "auto"):
+            self._provider_sec_header.hide()
+            self._provider_card.hide()
+            self._provider_stack.setCurrentIndex(4)
+        else:
+            if current_provider == "gemini":
+                self._provider_stack.setCurrentIndex(1)
+            elif current_provider == "avelyn_cloud":
+                self._provider_stack.setCurrentIndex(2)
+            elif current_provider == "custom_api":
+                self._provider_stack.setCurrentIndex(3)
+            else:
+                self._provider_stack.setCurrentIndex(0)
+
+        layout.addWidget(self._provider_stack)
+
+        # ── Section 3: Smart Fallback ─────────────────────────────────────────
+        layout.addWidget(_section_header("Smart Fallback"))
+
+        self._smart_fallback_cb = QCheckBox()
+        self._smart_fallback_cb.setFixedSize(20, 20)
+        self._smart_fallback_cb.setChecked(self._settings.smart_fallback_enabled)
+        fallback_row = _premium_row(
+            label_text="Enable Smart Fallback",
+            sub_label="If the primary provider fails, automatically retry with the next available provider.",
+            icon_kind="sliders",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._smart_fallback_cb, theme=self._settings.theme
+        )
+
+        self._fallback_chain_edit = QLineEdit(", ".join(self._settings.fallback_chain))
+        self._fallback_chain_edit.setObjectName("SettingsLineEdit")
+        self._fallback_chain_edit.setPlaceholderText("ollama, avelyn_cloud, custom_api")
+        self._fallback_chain_edit.setFixedWidth(240)
+        fallback_order_row = _premium_row(
+            label_text="Fallback Order Priority",
+            sub_label="Comma-separated chain order: e.g. ollama, custom_api, avelyn_cloud",
+            icon_kind="link",
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._fallback_chain_edit, show_arrow=True, theme=self._settings.theme
+        )
+        layout.addWidget(_settings_group([fallback_row, fallback_order_row]))
+
+        # ── Section 4: General ────────────────────────────────────────────────
+        layout.addWidget(_section_header("General Configuration"))
+
+        # Default Mode
         self._default_mode_combo = QComboBox()
         self._default_mode_combo.setObjectName("SettingsCombo")
         self._default_mode_combo.setFixedWidth(220)
         self._mode_keys = [m[1] for m in CommandPalette.MODES]
-        display_labels = [m[0] for m in CommandPalette.MODES]
+        display_labels  = [m[0] for m in CommandPalette.MODES]
         self._default_mode_combo.addItems(display_labels)
         try:
             mode_idx = self._mode_keys.index(self._settings.default_mode)
@@ -2108,117 +2783,40 @@ class SettingsWindow(QDialog):
 
         default_mode_card = _premium_row(
             label_text="Default Mode",
-            sub_label="This is the default action selected when Avelyn opens.",
+            sub_label="The action selected by default when Avelyn opens.",
             icon_kind="sparkles",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            widget=self._default_mode_combo,
-            theme=self._settings.theme
+            icon_color=tokens["PRIMARY"], icon_bg_color=tokens["PRIMARY_LIGHT"],
+            widget=self._default_mode_combo, theme=self._settings.theme
         )
-        # Group Connection Status and Default Mode under General Configuration
-        layout.addWidget(_settings_group([self._conn_card, default_mode_card]))
+        layout.addWidget(_settings_group([default_mode_card]))
 
-        # Section 2: Engine Settings
-        layout.addWidget(_section_header("Engine Settings"))
-
-        # Advanced Settings Block
-        adv_btn = QToolButton()
-        adv_btn.setObjectName("DisclosureButton")
-        adv_btn.setText("▶  Advanced Settings")
-        adv_btn.setCheckable(True)
-        adv_btn.setChecked(False)
-        adv_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
-        adv_panel = QFrame()
-        adv_panel.setObjectName("SettingsCard")
-        adv_panel.hide()
-        adv_l = QVBoxLayout(adv_panel)
-        adv_l.setContentsMargins(0, 4, 0, 4)
-        adv_l.setSpacing(0)
-
-        # Provider row
-        provider_row = _premium_row(
-            label_text="Provider",
-            right_text="Ollama (Local)",
-            icon_kind="server",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            show_arrow=True,
-            theme=self._settings.theme
-        )
+        # Wire all inputs to auto-save
+        self._cloud_api_key.editingFinished.connect(self._auto_save)
+        self._cloud_model_combo.currentIndexChanged.connect(self._auto_save)
+        self._custom_preset_combo.currentIndexChanged.connect(self._auto_save)
+        self._custom_base_url.editingFinished.connect(self._auto_save)
+        self._custom_api_key.editingFinished.connect(self._auto_save)
+        self._custom_model_edit.editingFinished.connect(self._auto_save)
+        self._smart_fallback_cb.toggled.connect(self._auto_save)
+        self._fallback_chain_edit.editingFinished.connect(self._auto_save)
         
-        # Host row
-        self._ollama_host = QLineEdit(self._settings.ollama_host)
-        self._ollama_host.setObjectName("SettingsLineEdit")
-        self._ollama_host.setFixedWidth(220)
-        host_row = _premium_row(
-            label_text="Host",
-            icon_kind="link",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            widget=self._ollama_host,
-            show_arrow=True,
-            theme=self._settings.theme
-        )
+        # Wire all Smart Router inputs to auto-save
+        self._router_coding_prov.currentIndexChanged.connect(self._auto_save)
+        self._router_coding_model_edit.editingFinished.connect(self._auto_save)
+        self._router_writing_prov.currentIndexChanged.connect(self._auto_save)
+        self._router_writing_model_edit.editingFinished.connect(self._auto_save)
+        self._router_reasoning_prov.currentIndexChanged.connect(self._auto_save)
+        self._router_reasoning_model_edit.editingFinished.connect(self._auto_save)
+        self._router_voice_prov.currentIndexChanged.connect(self._auto_save)
+        self._router_voice_model_edit.editingFinished.connect(self._auto_save)
+        self._router_privacy_prov.currentIndexChanged.connect(self._auto_save)
+        self._router_privacy_model_edit.editingFinished.connect(self._auto_save)
+        self._router_default_prov.currentIndexChanged.connect(self._auto_save)
+        self._router_default_model_edit.editingFinished.connect(self._auto_save)
 
-        # Model row
-        self._ollama_model_edit = QLineEdit(self._settings.ollama_model)
-        self._ollama_model_edit.setObjectName("SettingsLineEdit")
-        self._ollama_model_edit.setPlaceholderText("e.g. gemma3:4b")
-        self._ollama_model_edit.setFixedWidth(220)
-        model_row = _premium_row(
-            label_text="Model",
-            icon_kind="cube",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            widget=self._ollama_model_edit,
-            show_arrow=True,
-            theme=self._settings.theme
-        )
-
-        # Additional options row
-        additional_row = _premium_row(
-            label_text="Additional Options",
-            sub_label="Customize advanced model settings",
-            icon_kind="sliders",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            show_arrow=True,
-            theme=self._settings.theme
-        )
-
-        adv_l.addWidget(provider_row)
-        adv_l.addWidget(_divider_line())
-        adv_l.addWidget(host_row)
-        adv_l.addWidget(_divider_line())
-        adv_l.addWidget(model_row)
-        adv_l.addWidget(_divider_line())
-        adv_l.addWidget(additional_row)
-
-        def _toggle_adv(checked: bool) -> None:
-            adv_btn.setText("▼  Advanced Settings" if checked else "▶  Advanced Settings")
-            adv_panel.setVisible(checked)
-
-        adv_btn.toggled.connect(_toggle_adv)
-
-        layout.addWidget(adv_btn)
-        layout.addWidget(adv_panel)
-
-        # Section 3: Security & Privacy
-        layout.addWidget(_section_header("Security & Privacy"))
-
-        # Footer Banner
-        footer_banner_row = _premium_row(
-            label_text="100% Local. 100% Private.",
-            sub_label="Avelyn never sends your data anywhere. All processing happens on your machine.",
-            icon_kind="shield",
-            icon_color=tokens["PRIMARY"],
-            icon_bg_color=tokens["PRIMARY_LIGHT"],
-            theme=self._settings.theme
-        )
-        layout.addWidget(_settings_group([footer_banner_row]))
         layout.addStretch()
         return w
+
 
     def _page_hotkeys(self) -> QWidget:
         w = QWidget()
@@ -2594,6 +3192,12 @@ class SettingsWindow(QDialog):
             layout.addStretch()
             return w
 
+        # Privacy container
+        self._history_container = QWidget()
+        container_l = QVBoxLayout(self._history_container)
+        container_l.setContentsMargins(0, 0, 0, 0)
+        container_l.setSpacing(14)
+
         self._history_list = QListWidget()
         self._history_list.setObjectName("SettingsHistory")
         for entry in history:
@@ -2602,14 +3206,56 @@ class SettingsWindow(QDialog):
             orig = entry.get("original", "")[:60].replace("\n", " ")
             item = QListWidgetItem(f"[{ts}]  {mode.upper()}  —  {orig}…")
             self._history_list.addItem(item)
-        layout.addWidget(self._history_list)
+        container_l.addWidget(self._history_list)
 
         clear_btn = QPushButton("Clear History")
         clear_btn.setObjectName("SecondaryBtn")
         clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         clear_btn.clicked.connect(self._on_clear_history)
-        layout.addWidget(clear_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        container_l.addWidget(clear_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        # Privacy lock overlay
+        self._privacy_w = QWidget()
+        privacy_l = QVBoxLayout(self._privacy_w)
+        privacy_l.setContentsMargins(0, 60, 0, 60)
+        privacy_l.setSpacing(14)
+
+        priv_icon = QLabel()
+        priv_icon.setFixedSize(64, 64)
+        priv_icon.setStyleSheet("background: #EDE9FE; border-radius: 32px;")
+        priv_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        tokens = DARK_TOKENS if self._settings.theme == "dark" else LIGHT_TOKENS
+        priv_icon.setPixmap(_paint_settings_icon("shield", tokens["PRIMARY"], 32))
+
+        priv_lbl = QLabel("History is hidden for privacy")
+        priv_lbl.setObjectName("SettingsHistoryTitle")
+        priv_lbl.setStyleSheet("font-size: 16px; font-weight: bold;")
+        priv_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        priv_desc = QLabel("To protect your personal data, past enhancement history is locked.")
+        priv_desc.setObjectName("SettingsMuted")
+        priv_desc.setWordWrap(True)
+        priv_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        reveal_btn = QPushButton("Reveal History")
+        reveal_btn.setObjectName("settingsSaveBtn")
+        reveal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        reveal_btn.clicked.connect(self._reveal_history)
+
+        privacy_l.addWidget(priv_icon, 0, Qt.AlignmentFlag.AlignCenter)
+        privacy_l.addWidget(priv_lbl, 0, Qt.AlignmentFlag.AlignCenter)
+        privacy_l.addWidget(priv_desc, 0, Qt.AlignmentFlag.AlignCenter)
+        privacy_l.addWidget(reveal_btn, 0, Qt.AlignmentFlag.AlignCenter)
+
+        layout.addWidget(self._privacy_w)
+        layout.addWidget(self._history_container)
+        self._history_container.hide()
+
         return w
+
+    def _reveal_history(self) -> None:
+        self._privacy_w.hide()
+        self._history_container.show()
 
     def _page_about(self) -> QWidget:
         w = QWidget()
@@ -2746,22 +3392,97 @@ class SettingsWindow(QDialog):
         anim.setStartValue(0.0)
         anim.setEndValue(1.0)
         anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        anim.finished.connect(lambda: page.setGraphicsEffect(None))
+        self._page_fade_anim = anim
         anim.start()
 
     def _auto_save(self) -> None:
-        self._settings.set("ai_provider",     "ollama")
-        self._settings.set("ollama_host",     self._ollama_host.text().strip())
-        self._settings.set("ollama_model",    self._ollama_model_edit.text().strip())
-        self._settings.set("default_mode",    self._mode_keys[self._default_mode_combo.currentIndex()])
-        self._settings.set("hotkey",          self._hotkey_raw.text().strip() or self._hotkey_edit.text().strip())
-        self._settings.set("shortcut_display",self._hotkey_edit.text().strip())
-        self._settings.set("hotkey_enabled",  self._hotkey_enabled_cb.isChecked())
-        self._settings.set("launch_at_startup", self._startup_cb.isChecked())
-        self._settings.set("theme",           "dark" if self._theme_combo.currentIndex() == 0 else "light")
-        self._settings.set("show_notifications", self._notif_cb.isChecked())
-        self._settings.set("voice_commands_enabled", self._voice_commands_enabled_cb.isChecked())
-        self._settings.set("wake_word_enabled", self._wake_word_cb.isChecked())
-        self._settings.set("microphone_device", self._mic_combo.currentText())
+        # Determine active provider from radio buttons
+        if self._radio_cloud.isChecked():
+            provider = "avelyn_cloud"
+        elif self._radio_custom.isChecked():
+            provider = "custom_api"
+        else:
+            provider = "ollama"
+
+        # Provider Mode
+        if self._radio_mode_auto.isChecked():
+            mode = "auto"
+        elif self._radio_mode_router.isChecked():
+            mode = "smart_router"
+        else:
+            mode = "single"
+        self._settings.set("ai_provider_mode",        mode)
+
+        self._settings.set("ai_provider",             provider)
+        self._settings.set("ollama_host",             self._ollama_host.text().strip())
+        self._settings.set("ollama_model",            self._ollama_model_edit.text().strip())
+        
+        self._settings.set("avelyn_cloud_api_key",    self._cloud_api_key.text().strip())
+        cloud_model_idx = self._cloud_model_combo.currentIndex()
+        cloud_model = self._cloud_model_combo.itemData(cloud_model_idx) or "deepseek/deepseek-chat-v3-0324:free"
+        self._settings.set("avelyn_cloud_model",      cloud_model)
+
+        self._settings.set("custom_api_provider_name",self._custom_preset_combo.currentText())
+        self._settings.set("custom_api_base_url",     self._custom_base_url.text().strip())
+        self._settings.set("custom_api_key",          self._custom_api_key.text().strip())
+        self._settings.set("custom_api_model",        self._custom_model_edit.text().strip())
+        
+        self._settings.set("smart_fallback_enabled",  self._smart_fallback_cb.isChecked())
+
+        # Save Fallback Chain order
+        fallback_order = [x.strip() for x in self._fallback_chain_edit.text().split(",") if x.strip()]
+        self._settings.set("fallback_chain",          fallback_order)
+
+        # Save Smart Router specific categories
+        def _get_provider_str(combo: QComboBox) -> str:
+            idx = combo.currentIndex()
+            if idx == 1:
+                return "gemini"
+            if idx == 2:
+                return "avelyn_cloud"
+            if idx == 3:
+                return "custom_api"
+            return "ollama"
+
+        router_config = {
+            "coding": {
+                "provider": _get_provider_str(self._router_coding_prov),
+                "model": self._router_coding_model_edit.text().strip()
+            },
+            "writing": {
+                "provider": _get_provider_str(self._router_writing_prov),
+                "model": self._router_writing_model_edit.text().strip()
+            },
+            "reasoning": {
+                "provider": _get_provider_str(self._router_reasoning_prov),
+                "model": self._router_reasoning_model_edit.text().strip()
+            },
+            "voice": {
+                "provider": _get_provider_str(self._router_voice_prov),
+                "model": self._router_voice_model_edit.text().strip()
+            },
+            "privacy": {
+                "provider": _get_provider_str(self._router_privacy_prov),
+                "model": self._router_privacy_model_edit.text().strip()
+            },
+            "default": {
+                "provider": _get_provider_str(self._router_default_prov),
+                "model": self._router_default_model_edit.text().strip()
+            }
+        }
+        self._settings.set("router_config",            router_config)
+
+        self._settings.set("default_mode",            self._mode_keys[self._default_mode_combo.currentIndex()])
+        self._settings.set("hotkey",                  self._hotkey_raw.text().strip() or self._hotkey_edit.text().strip())
+        self._settings.set("shortcut_display",        self._hotkey_edit.text().strip())
+        self._settings.set("hotkey_enabled",          self._hotkey_enabled_cb.isChecked())
+        self._settings.set("launch_at_startup",       self._startup_cb.isChecked())
+        self._settings.set("theme",                   "dark" if self._theme_combo.currentIndex() == 0 else "light")
+        self._settings.set("show_notifications",       self._notif_cb.isChecked())
+        self._settings.set("voice_commands_enabled",  self._voice_commands_enabled_cb.isChecked())
+        self._settings.set("wake_word_enabled",       self._wake_word_cb.isChecked())
+        self._settings.set("microphone_device",       self._mic_combo.currentText())
 
         from platform_handler import set_launch_at_startup
         set_launch_at_startup(self._startup_cb.isChecked())
@@ -2774,25 +3495,59 @@ class SettingsWindow(QDialog):
         self._wake_word_cb.setEnabled(enabled)
         self._mic_combo.setEnabled(enabled)
 
-    def _on_test_connection(self) -> None:
-        self._test_result.setText("Testing…")
-        self._test_result.setProperty("status", "testing")
-        self._test_result.style().unpolish(self._test_result)
-        self._test_result.style().polish(self._test_result)
-        QApplication.processEvents()
-        try:
-            result = self._processor.test_connection()
-            display_res = f"Connected: {result[:25]}..." if len(result) > 25 else f"Connected: {result}"
-            self._test_result.setText(display_res)
-            self._test_result.setProperty("status", "connected")
-        except Exception as exc:                          # noqa: BLE001
-            err_msg = str(exc)
-            display_err = f"Failed: {err_msg[:25]}..." if len(err_msg) > 25 else f"Failed: {err_msg}"
-            self._test_result.setText(display_err)
-            self._test_result.setProperty("status", "failed")
+    def _run_test(self, provider_name: str) -> None:
+        # First save current UI values to settings
+        self._auto_save()
 
-        self._test_result.style().unpolish(self._test_result)
-        self._test_result.style().polish(self._test_result)
+        # Pick the correct result label to update
+        if provider_name == "gemini":
+            lbl = self._gemini_test_result
+        elif provider_name == "avelyn_cloud":
+            lbl = self._cloud_test_result
+        elif provider_name == "custom_api":
+            lbl = self._custom_test_result
+        else:
+            lbl = self._ollama_test_result
+
+        lbl.setText("Testing…")
+        lbl.setProperty("status", "testing")
+        lbl.style().unpolish(lbl)
+        lbl.style().polish(lbl)
+        QApplication.processEvents()
+
+        # Build the provider dynamically based on current settings
+        from providers import ProviderManager, test_provider_connection
+        orig_provider = self._settings.ai_provider
+        try:
+            self._settings.set("ai_provider", provider_name)
+            provider = ProviderManager.get_provider(self._settings)
+            success, msg = test_provider_connection(provider)
+            if success:
+                lbl.setText("✓ Connected")
+                lbl.setProperty("status", "connected")
+            else:
+                lbl.setText(f"✗ {msg}")
+                lbl.setProperty("status", "failed")
+        except Exception as exc:
+            lbl.setText(f"✗ Error: {exc}")
+            lbl.setProperty("status", "failed")
+        finally:
+            # Restore the actual selected provider setting
+            self._settings.set("ai_provider", orig_provider)
+
+        lbl.style().unpolish(lbl)
+        lbl.style().polish(lbl)
+
+    def _on_test_connection(self) -> None:
+        # Backward-compatibility fallback
+        if self._radio_gemini.isChecked():
+            self._run_test("gemini")
+        elif self._radio_cloud.isChecked():
+            self._run_test("avelyn_cloud")
+        elif self._radio_custom.isChecked():
+            self._run_test("custom_api")
+        else:
+            self._run_test("ollama")
 
     def _on_clear_history(self) -> None:
         reply = QMessageBox.question(
@@ -3291,6 +4046,12 @@ class CommandPalette(QWidget):
             Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        # On macOS: set CanJoinAllSpaces + FullScreenAuxiliary so the palette
+        # can appear over full-screen apps without switching Spaces.
+        import sys as _sys
+        if _sys.platform == "darwin":
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, self._pre_configure_nswindow)
         # Detect theme from app palette for icon tinting
         self._is_dark = QApplication.instance() is not None and (
             QApplication.palette().window().color().lightness() < 128
@@ -3651,6 +4412,34 @@ class CommandPalette(QWidget):
         self._slide_in.setEndValue(QPoint(int(x), final_y))
         self._fade_in.start()
         self._slide_in.start()
+
+    def _pre_configure_nswindow(self) -> None:
+        """
+        Set NSWindowCollectionBehavior so the palette overlays full-screen apps.
+
+        Called once via QTimer.singleShot(0) from __init__ — deferred so that
+        winId() is valid (Qt creates the native NSWindow lazily).
+        Nothing else is changed: show(), focus, and activation are untouched.
+        """
+        try:
+            import objc
+            from ctypes import c_void_p
+            view = objc.objc_object(c_void_p=int(self.winId()))
+            window = view.window()
+            if window is None:
+                return
+            # CanJoinAllSpaces  → appear on every Space (including full-screen)
+            # FullScreenAuxiliary → float over a full-screen app in its own Space
+            NSWindowCollectionBehaviorCanJoinAllSpaces    = 1 << 0
+            NSWindowCollectionBehaviorFullScreenAuxiliary = 1 << 8
+            window.setCollectionBehavior_(
+                NSWindowCollectionBehaviorCanJoinAllSpaces |
+                NSWindowCollectionBehaviorFullScreenAuxiliary
+            )
+            logger.debug("CommandPalette NSWindow collectionBehavior set: 0x%x",
+                         window.collectionBehavior())
+        except Exception as e:
+            logger.debug("CommandPalette._pre_configure_nswindow failed: %s", e)
 
     def hide_palette(self) -> None:
         self._fade_in.stop()

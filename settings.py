@@ -25,9 +25,39 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "hotkey_enabled":     True,
 
     # AI provider
-    "ai_provider":        "ollama",   # "ollama" only
-    "ollama_model":       "gemma3:4b",
-    "ollama_host":        "http://localhost:11434",
+    "ai_provider":               "ollama",   # "ollama" | "avelyn_cloud" | "gemini" | "custom_api"
+    "ollama_model":              "gemma3:4b",
+    "ollama_host":               "http://localhost:11434",
+
+    # Avelyn Cloud (OpenRouter)
+    "avelyn_cloud_api_key":      "",
+    "avelyn_cloud_model":        "openai/gpt-4o-mini",
+
+    # Gemini (Google AI)
+    "gemini_api_key":            "",
+    "gemini_model":              "models/gemini-flash-latest",
+
+    # Custom API
+    "custom_api_provider_name":  "OpenAI",
+    "custom_api_base_url":       "https://api.openai.com/v1",
+    "custom_api_key":            "",
+    "custom_api_model":          "gpt-4o-mini",
+
+    # Smart fallback
+    "smart_fallback_enabled":    False,
+
+    # Smart Router settings
+    "ai_provider_mode":          "single",  # "single" | "smart_router" | "auto"
+    "router_config": {
+        "coding":    {"provider": "gemini",       "model": "models/gemini-flash-latest"},
+        "writing":   {"provider": "gemini",       "model": "models/gemini-flash-latest"},
+        "reasoning": {"provider": "gemini",       "model": "models/gemini-flash-latest"},
+        "voice":     {"provider": "ollama",       "model": "gemma3:4b"},
+        "privacy":   {"provider": "ollama",       "model": "gemma3:4b"},
+        "default":   {"provider": "gemini",       "model": "models/gemini-flash-latest"},
+    },
+    "fallback_chain": ["gemini", "ollama", "avelyn_cloud", "custom_api"],
+
 
     # Enhancement defaults
     "default_mode":       "professional",
@@ -191,4 +221,79 @@ class Settings:
     @property
     def microphone_device(self) -> str:
         return str(self._config.get("microphone_device", ""))
+
+    # ── Cloud / Custom provider properties ───────────────────────────────────
+
+    @property
+    def avelyn_cloud_api_key(self) -> str:
+        return str(self._config.get("avelyn_cloud_api_key", ""))
+
+    @property
+    def avelyn_cloud_model(self) -> str:
+        return str(self._config.get("avelyn_cloud_model", "openai/gpt-4o-mini"))
+
+    @property
+    def gemini_api_key(self) -> str:
+        """Return user-provided Gemini API key, or built-in default if not configured."""
+        user_key = str(self._config.get("gemini_api_key", ""))
+        if user_key:
+            return user_key
+        # Built-in default key (only used if user hasn't provided their own)
+        return "AQ.Ab8RN6LmRkep9BnEMfCKFWOPKh8LW7xYj84KY_86tmz7kKKSEw"
+
+    @property
+    def gemini_model(self) -> str:
+        return str(self._config.get("gemini_model", "models/gemini-flash-latest"))
+
+    @property
+    def custom_api_provider_name(self) -> str:
+        return str(self._config.get("custom_api_provider_name", "OpenAI"))
+
+    @property
+    def custom_api_base_url(self) -> str:
+        return str(self._config.get("custom_api_base_url", "https://api.openai.com/v1"))
+
+    @property
+    def custom_api_key(self) -> str:
+        return str(self._config.get("custom_api_key", ""))
+
+    @property
+    def custom_api_model(self) -> str:
+        return str(self._config.get("custom_api_model", "gpt-4o-mini"))
+
+    @property
+    def smart_fallback_enabled(self) -> bool:
+        return bool(self._config.get("smart_fallback_enabled", False))
+
+    @property
+    def ai_provider_mode(self) -> str:
+        return str(self._config.get("ai_provider_mode", "single"))
+
+    @property
+    def router_config(self) -> Dict[str, Dict[str, str]]:
+        val = self._config.get("router_config")
+        if isinstance(val, dict):
+            # Guarantee structure is filled and typed correctly
+            default_val = DEFAULT_CONFIG["router_config"]
+            res = {}
+            for k in default_val:
+                task_conf = val.get(k)
+                if isinstance(task_conf, dict):
+                    res[k] = {
+                        "provider": str(task_conf.get("provider", default_val[k]["provider"])),
+                        "model": str(task_conf.get("model", default_val[k]["model"]))
+                    }
+                else:
+                    res[k] = default_val[k].copy()
+            return res
+        return DEFAULT_CONFIG["router_config"].copy()
+
+    @property
+    def fallback_chain(self) -> list[str]:
+        val = self._config.get("fallback_chain")
+        if isinstance(val, list):
+            return [str(v) for v in val]
+        return DEFAULT_CONFIG["fallback_chain"].copy()
+
+
 

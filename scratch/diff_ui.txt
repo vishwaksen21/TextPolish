@@ -1,0 +1,1582 @@
+diff --git a/ui.py b/ui.py
+index b47ef83..eb8f8d6 100644
+--- a/ui.py
++++ b/ui.py
+@@ -50,6 +50,7 @@ from clipboard_manager import ClipboardManager
+ from platform_handler import paste_text
+ from settings import Settings
+ from logger import logger
++from utils import make_window_join_all_spaces, macos_show_without_activating
+ 
+ 
+ # ═══════════════════════════════════════════════════════════════════════════════
+@@ -1117,12 +1118,14 @@ class AIWorker(QThread):
+         mode: str,
+         custom_instruction: Optional[str] = None,
+         parent: Optional[QObject] = None,
++        active_app: Optional[str] = None,
+     ) -> None:
+         super().__init__(parent)
+         self._processor = processor
+         self._text = text
+         self._mode = mode
+         self._custom_instruction = custom_instruction
++        self._active_app = active_app
+         self._full_result = ""
+ 
+     def run(self) -> None:
+@@ -1132,7 +1135,7 @@ class AIWorker(QThread):
+         try:
+             last_value = ""
+             for text_so_far in self._processor.enhance(
+-                self._text, self._mode, self._custom_instruction
++                self._text, self._mode, self._custom_instruction, active_app=self._active_app
+             ):
+                 last_value = text_so_far
+                 self.chunk_received.emit(text_so_far)
+@@ -1194,6 +1197,11 @@ class EnhancementPopup(QDialog):
+ 
+         self._build_ui()
+         self._apply_shadow()
++        # Pre-configure NSPanel at startup so show_for_text() never switches Spaces
++        import sys as _sys
++        if _sys.platform == "darwin":
++            from PyQt6.QtCore import QTimer
++            QTimer.singleShot(0, lambda: macos_show_without_activating(self) or self.hide())
+ 
+     # ── Build ─────────────────────────────────────────────────────────────────
+ 
+@@ -1204,6 +1212,8 @@ class EnhancementPopup(QDialog):
+             | Qt.WindowType.Tool
+         )
+         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
++        # Never steal focus or cause a Space switch on macOS
++        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+         self.setMinimumSize(700, 480)
+         self.setMaximumSize(900, 640)
+ 
+@@ -1222,7 +1232,7 @@ class EnhancementPopup(QDialog):
+ 
+         # ── Header ────────────────────────────────────────────────────────────
+         header = QHBoxLayout()
+-        icon_lbl = QLabel("✦")
++        icon_lbl = QLabel("")
+         icon_lbl.setObjectName("EnhancementIcon")
+         
+         title_lbl = QLabel("Avelyn")
+@@ -1231,7 +1241,7 @@ class EnhancementPopup(QDialog):
+         self._status_lbl = QLabel("Enhancing…")
+         self._status_lbl.setObjectName("EnhancementStatus")
+         
+-        close_btn = QPushButton("✕")
++        close_btn = QPushButton("x")
+         close_btn.setObjectName("EnhancementCloseBtn")
+         close_btn.setFixedSize(28, 28)
+         close_btn.clicked.connect(self._on_cancel)
+@@ -1330,7 +1340,7 @@ class EnhancementPopup(QDialog):
+         self._undo_btn.setEnabled(False)
+         self._undo_btn.clicked.connect(self._on_undo)
+ 
+-        self._replace_btn = QPushButton("Replace Text  ✓")
++        self._replace_btn = QPushButton("Replace Text")
+         self._replace_btn.setObjectName("replaceBtn")
+         self._replace_btn.setEnabled(False)
+         self._replace_btn.clicked.connect(self._on_replace)
+@@ -1350,7 +1360,7 @@ class EnhancementPopup(QDialog):
+ 
+     # ── Public API ────────────────────────────────────────────────────────────
+ 
+-    def show_for_text(self, text: str) -> None:
++    def show_for_text(self, text: str, mode: Optional[str] = None, custom_instruction: Optional[str] = None) -> None:
+         """Populate the popup with `text` and start the AI enhancement."""
+         self._original_text = text
+         self._enhanced_text = ""
+@@ -1361,6 +1371,17 @@ class EnhancementPopup(QDialog):
+         self._status_lbl.setText("Enhancing…")
+         self._spinner.start()
+ 
++        if mode:
++            self._current_mode = mode
++        else:
++            self._current_mode = self._settings.default_mode
++
++        self._custom_instruction = custom_instruction
++
++        # Update the checked button in UI
++        for k, btn in self._mode_btns.items():
++            btn.setChecked(k == self._current_mode)
++
+         # Position popup near cursor.
+         cursor_pos = QCursor.pos()
+         screen = QApplication.primaryScreen()
+@@ -1370,7 +1391,7 @@ class EnhancementPopup(QDialog):
+             y = min(cursor_pos.y() + 20, sg.bottom() - self.height() - 20)
+             self.move(max(sg.left() + 20, x), max(sg.top() + 20, y))
+ 
+-        self.show()
++        macos_show_without_activating(self)  # native orderFront_ — no Space switch
+         self._animate_in()
+         self._start_enhancement()
+ 
+@@ -1389,7 +1410,10 @@ class EnhancementPopup(QDialog):
+             self._worker.terminate()
+             self._worker.wait(500)
+ 
+-        self._worker = AIWorker(self._processor, self._original_text, self._current_mode)
++        import platform_handler
++        app_name = platform_handler.get_recorded_app_name()
++        custom_instr = getattr(self, "_custom_instruction", None)
++        self._worker = AIWorker(self._processor, self._original_text, self._current_mode, custom_instruction=custom_instr, active_app=app_name)
+         self._worker.chunk_received.connect(self._on_chunk)
+         self._worker.finished.connect(self._on_finished)
+         self._worker.error_occurred.connect(self._on_error)
+@@ -1415,7 +1439,7 @@ class EnhancementPopup(QDialog):
+     @pyqtSlot(str)
+     def _on_error(self, msg: str) -> None:
+         self._spinner.stop()
+-        self._status_lbl.setText("⚠ Error")
++        self._status_lbl.setText("Error")
+         self._enh_edit.setPlainText(f"Error: {msg}")
+         self._replace_btn.setEnabled(False)
+ 
+@@ -1423,6 +1447,7 @@ class EnhancementPopup(QDialog):
+         for k, btn in self._mode_btns.items():
+             btn.setChecked(k == key)
+         self._current_mode = key
++        self._custom_instruction = None
+         # Re-run enhancement with new mode.
+         self._enh_edit.clear()
+         self._enhanced_text = ""
+@@ -1453,23 +1478,27 @@ class EnhancementPopup(QDialog):
+         QTimer.singleShot(120, do_paste)
+         self._undo_btn.setEnabled(True)
+ 
+-        # Save to history.
++        # Save to history & productivity tracker.
+         self._settings.add_to_history(
+             self._original_text, self._enhanced_text, self._current_mode
+         )
++        from productivity import ProductivityTracker
++        ProductivityTracker().record_execution(self._original_text, self._current_mode)
+ 
+     def _on_undo(self) -> None:
+         logger.info("Undoing replacement.")
+         self._clipboard.set(self._original_text)
+         QTimer.singleShot(80, paste_text)
+         self._undo_btn.setEnabled(False)
+-        self._status_lbl.setText("Undone ✓")
++        self._status_lbl.setText("Undone")
+ 
+     def _on_cancel(self) -> None:
+         if self._worker and self._worker.isRunning():
+             self._worker.terminate()
+         self._clipboard.restore()
+         self.hide()
++        from platform_handler import restore_focus
++        restore_focus()
+ 
+     # ── Drag to move (frameless window) ───────────────────────────────────────
+ 
+@@ -1638,9 +1667,20 @@ def _paint_settings_icon(kind: str, color: str = "#111827", size: int = 24) -> Q
+         path.cubicTo(6, 16, 18, 16, 18, 11)
+         path.lineTo(18, 9)
+         painter.drawPath(path)
+-        # Draw the base vertical line and horizontal bar
+-        painter.drawLine(12, 15, 12, 19)
+-        painter.drawLine(8, 19, 16, 19)
++    elif kind == "trending-up":
++        path = QPainterPath()
++        path.moveTo(22, 7)
++        path.lineTo(13, 16)
++        path.lineTo(8, 11)
++        path.lineTo(2, 17)
++        painter.drawPath(path)
++        
++        # Arrowhead
++        path_arrow = QPainterPath()
++        path_arrow.moveTo(17, 7)
++        path_arrow.lineTo(22, 7)
++        path_arrow.lineTo(22, 12)
++        painter.drawPath(path_arrow)
+         
+     else:
+         painter.drawEllipse(10, 10, 4, 4)
+@@ -1922,7 +1962,7 @@ class SettingsWindow(QDialog):
+         self._sidebar.setObjectName("SettingsNav")
+         self._sidebar.setFrameShape(QFrame.Shape.NoFrame)
+         self._sidebar.setIconSize(QSize(16, 16))
+-        self._sidebar.setFixedHeight(220)
++        self._sidebar.setFixedHeight(340)
+         self._sidebar.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+         self._sidebar.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+ 
+@@ -1930,6 +1970,9 @@ class SettingsWindow(QDialog):
+             ("AI Provider", "sparkles"),
+             ("Hotkeys", "keyboard"),
+             ("Appearance", "palette"),
++            ("Prompt Library", "sliders"),
++            ("Knowledge Base", "cube"),
++            ("Productivity", "trending-up"),
+             ("History", "clock"),
+             ("About", "info"),
+         ]
+@@ -2007,6 +2050,9 @@ class SettingsWindow(QDialog):
+         self._stack.addWidget(self._page_ai())
+         self._stack.addWidget(self._page_hotkeys())
+         self._stack.addWidget(self._page_appearance())
++        self._stack.addWidget(self._page_prompts())
++        self._stack.addWidget(self._page_knowledge())
++        self._stack.addWidget(self._page_productivity())
+         self._stack.addWidget(self._page_history())
+         self._stack.addWidget(self._page_about())
+ 
+@@ -2029,6 +2075,7 @@ class SettingsWindow(QDialog):
+         self._voice_commands_enabled_cb.toggled.connect(self._update_voice_ui_state)
+         self._wake_word_cb.toggled.connect(self._auto_save)
+         self._mic_combo.currentIndexChanged.connect(self._auto_save)
++        self._context_cb.toggled.connect(self._auto_save)
+ 
+         # Initialize voice UI state and dynamic status reporting
+         self._update_voice_ui_state()
+@@ -2071,7 +2118,7 @@ class SettingsWindow(QDialog):
+         test_btn.setIcon(QIcon(_paint_settings_icon("wave", tokens["PRIMARY"], 14)))
+         test_btn.clicked.connect(self._on_test_connection)
+ 
+-        self._status_dot = QLabel("●")
++        self._status_dot = QLabel("")
+         self._status_dot.hide() # Hidden: we use StatusBadge background instead!
+         
+         self._test_result = QLabel("Not Tested")
+@@ -2108,101 +2155,63 @@ class SettingsWindow(QDialog):
+ 
+         default_mode_card = _premium_row(
+             label_text="Default Mode",
+-            sub_label="This is the default action selected when Avelyn opens.",
+-            icon_kind="sparkles",
++            sub_label="Select the default AI transformation applied to text.",
++            icon_kind="sliders",
+             icon_color=tokens["PRIMARY"],
+             icon_bg_color=tokens["PRIMARY_LIGHT"],
+             widget=self._default_mode_combo,
+             theme=self._settings.theme
+         )
+-        # Group Connection Status and Default Mode under General Configuration
+-        layout.addWidget(_settings_group([self._conn_card, default_mode_card]))
+ 
+-        # Section 2: Engine Settings
+-        layout.addWidget(_section_header("Engine Settings"))
+-
+-        # Advanced Settings Block
+-        adv_btn = QToolButton()
+-        adv_btn.setObjectName("DisclosureButton")
+-        adv_btn.setText("▶  Advanced Settings")
+-        adv_btn.setCheckable(True)
+-        adv_btn.setChecked(False)
+-        adv_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+-
+-        adv_panel = QFrame()
+-        adv_panel.setObjectName("SettingsCard")
+-        adv_panel.hide()
+-        adv_l = QVBoxLayout(adv_panel)
+-        adv_l.setContentsMargins(0, 4, 0, 4)
+-        adv_l.setSpacing(0)
++        self._context_cb = QCheckBox()
++        self._context_cb.setFixedSize(20, 20)
++        self._context_cb.setChecked(self._settings.context_aware_rewriting)
+ 
+-        # Provider row
+-        provider_row = _premium_row(
+-            label_text="Provider",
+-            right_text="Ollama (Local)",
+-            icon_kind="server",
++        context_card = _premium_row(
++            label_text="Context-Aware Rewriting",
++            sub_label="Adjust tone based on the active application (VS Code, LinkedIn, Notion, Slack/Discord).",
++            icon_kind="sliders",
+             icon_color=tokens["PRIMARY"],
+             icon_bg_color=tokens["PRIMARY_LIGHT"],
+-            show_arrow=True,
++            widget=self._context_cb,
+             theme=self._settings.theme
+         )
+-        
+-        # Host row
++        # Group Connection Status, Default Mode, and Context-Aware Rewriting under General Configuration
++        layout.addWidget(_settings_group([self._conn_card, default_mode_card, context_card]))
++
++        # Section 2: Engine Settings
++        layout.addWidget(_section_header("Engine Settings"))
++
++        # Host row — always visible
+         self._ollama_host = QLineEdit(self._settings.ollama_host)
+         self._ollama_host.setObjectName("SettingsLineEdit")
+-        self._ollama_host.setFixedWidth(220)
++        self._ollama_host.setFixedWidth(240)
+         host_row = _premium_row(
+-            label_text="Host",
++            label_text="Ollama Host",
++            sub_label="URL of your local Ollama server.",
+             icon_kind="link",
+             icon_color=tokens["PRIMARY"],
+             icon_bg_color=tokens["PRIMARY_LIGHT"],
+             widget=self._ollama_host,
+-            show_arrow=True,
+             theme=self._settings.theme
+         )
+ 
+-        # Model row
++        # Model row — always visible
+         self._ollama_model_edit = QLineEdit(self._settings.ollama_model)
+         self._ollama_model_edit.setObjectName("SettingsLineEdit")
+         self._ollama_model_edit.setPlaceholderText("e.g. gemma3:4b")
+-        self._ollama_model_edit.setFixedWidth(220)
++        self._ollama_model_edit.setFixedWidth(240)
+         model_row = _premium_row(
+-            label_text="Model",
++            label_text="Model Name",
++            sub_label="The Ollama model tag to use for enhancements.",
+             icon_kind="cube",
+             icon_color=tokens["PRIMARY"],
+             icon_bg_color=tokens["PRIMARY_LIGHT"],
+             widget=self._ollama_model_edit,
+-            show_arrow=True,
+             theme=self._settings.theme
+         )
+ 
+-        # Additional options row
+-        additional_row = _premium_row(
+-            label_text="Additional Options",
+-            sub_label="Customize advanced model settings",
+-            icon_kind="sliders",
+-            icon_color=tokens["PRIMARY"],
+-            icon_bg_color=tokens["PRIMARY_LIGHT"],
+-            show_arrow=True,
+-            theme=self._settings.theme
+-        )
+-
+-        adv_l.addWidget(provider_row)
+-        adv_l.addWidget(_divider_line())
+-        adv_l.addWidget(host_row)
+-        adv_l.addWidget(_divider_line())
+-        adv_l.addWidget(model_row)
+-        adv_l.addWidget(_divider_line())
+-        adv_l.addWidget(additional_row)
+-
+-        def _toggle_adv(checked: bool) -> None:
+-            adv_btn.setText("▼  Advanced Settings" if checked else "▶  Advanced Settings")
+-            adv_panel.setVisible(checked)
+-
+-        adv_btn.toggled.connect(_toggle_adv)
+-
+-        layout.addWidget(adv_btn)
+-        layout.addWidget(adv_panel)
++        layout.addWidget(_settings_group([host_row, model_row]))
+ 
+         # Section 3: Security & Privacy
+         layout.addWidget(_section_header("Security & Privacy"))
+@@ -2239,31 +2248,56 @@ class SettingsWindow(QDialog):
+         # Section 1: Shortcut Configuration
+         layout.addWidget(_section_header("Shortcut Configuration"))
+ 
+-        # Global Shortcut Card
+-        preview_row = QWidget()
+-        preview_l = QHBoxLayout(preview_row)
+-        preview_l.setContentsMargins(0, 0, 0, 0)
+-        preview_l.setSpacing(8)
++        # Hotkey display + record row
++        hotkey_widget = QWidget()
++        hotkey_widget_l = QHBoxLayout(hotkey_widget)
++        hotkey_widget_l.setContentsMargins(0, 0, 0, 0)
++        hotkey_widget_l.setSpacing(8)
++
++        self._hotkey_edit = QLineEdit(self._settings.shortcut_display)
++        self._hotkey_edit.setObjectName("SettingsLineEdit")
++        self._hotkey_edit.setPlaceholderText("Ctrl+Shift+E")
++        self._hotkey_edit.setFixedWidth(130)
++        self._hotkey_edit.setReadOnly(True)
++
++        self._record_btn = QPushButton("Record")
++        self._record_btn.setObjectName("SecondaryBtn")
++        self._record_btn.setCursor(Qt.CursorShape.PointingHandCursor)
++        self._record_btn.setFixedWidth(70)
++        self._record_btn.setCheckable(True)
++        self._record_btn.setToolTip("Click then press your desired key combination")
++
++        self._record_btn.toggled.connect(self._on_record_toggle)
++
++        hotkey_widget_l.addWidget(self._hotkey_edit)
++        hotkey_widget_l.addWidget(self._record_btn)
+ 
+         self._keycap_host = QWidget()
+         self._keycap_layout = QHBoxLayout(self._keycap_host)
+         self._keycap_layout.setContentsMargins(0, 0, 0, 0)
+         self._keycap_layout.setSpacing(6)
+-        preview_l.addWidget(self._keycap_host, 1)
+-
+-        self._hotkey_edit = QLineEdit(self._settings.shortcut_display)
+-        self._hotkey_edit.setObjectName("SettingsLineEdit")
+-        self._hotkey_edit.setPlaceholderText("Ctrl+Shift+E")
+-        self._hotkey_edit.setFixedWidth(140)
+-        preview_l.addWidget(self._hotkey_edit)
+ 
+         shortcut_card_row = _premium_row(
+             label_text="Global Shortcut",
+-            sub_label="Visual keyboard keycaps representing the current trigger shortcut.",
++            sub_label="Click 'Record' then press your combination. Keys shown as macOS symbols.",
+             icon_kind="keyboard",
+             icon_color=tokens["PRIMARY"],
+             icon_bg_color=tokens["PRIMARY_LIGHT"],
+-            widget=preview_row,
++            widget=hotkey_widget,
++            theme=self._settings.theme
++        )
++
++        keycap_row_widget = QWidget()
++        keycap_row_l = QHBoxLayout(keycap_row_widget)
++        keycap_row_l.setContentsMargins(0, 0, 0, 0)
++        keycap_row_l.addWidget(self._keycap_host, 1)
++        keycap_card_row = _premium_row(
++            label_text="Key Preview",
++            sub_label="Visual representation of the trigger shortcut.",
++            icon_kind="info",
++            icon_color=tokens["PRIMARY"],
++            icon_bg_color=tokens["PRIMARY_LIGHT"],
++            widget=keycap_row_widget,
+             theme=self._settings.theme
+         )
+ 
+@@ -2306,7 +2340,7 @@ class SettingsWindow(QDialog):
+             theme=self._settings.theme
+         )
+ 
+-        layout.addWidget(_settings_group([shortcut_card_row, enabled_card_row, startup_card_row, voice_card_row]))
++        layout.addWidget(_settings_group([shortcut_card_row, keycap_card_row, enabled_card_row, startup_card_row, voice_card_row]))
+ 
+         # Section 2: Voice Configuration
+         layout.addWidget(_section_header("Voice Configuration"))
+@@ -2446,6 +2480,55 @@ class SettingsWindow(QDialog):
+         layout.addStretch()
+         return w
+ 
++    def _on_record_toggle(self, recording: bool) -> None:
++        """Toggle keyboard capture mode for recording a new hotkey."""
++        if recording:
++            self._record_btn.setText("Stop")
++            self._record_btn.setStyleSheet("background: #EF4444; color: white; border-radius: 6px;")
++            self._hotkey_edit.setText("Press keys...")
++            self._hotkey_edit.installEventFilter(self)
++            self._hotkey_edit.setFocus()
++            self._recorded_keys: list[str] = []
++        else:
++            self._record_btn.setText("Record")
++            self._record_btn.setStyleSheet("")
++            self._hotkey_edit.removeEventFilter(self)
++            # If nothing was recorded, restore the previous value
++            if self._hotkey_edit.text() == "Press keys...":
++                self._hotkey_edit.setText(self._settings.shortcut_display)
++
++    def eventFilter(self, obj, event) -> bool:  # type: ignore[override]
++        from PyQt6.QtCore import QEvent
++        if obj is self._hotkey_edit and self._record_btn.isChecked():
++            if event.type() == QEvent.Type.KeyPress:
++                key = event.key()
++                mods = event.modifiers()
++                parts = []
++                if mods & Qt.KeyboardModifier.ControlModifier:
++                    parts.append("Ctrl")
++                if mods & Qt.KeyboardModifier.ShiftModifier:
++                    parts.append("Shift")
++                if mods & Qt.KeyboardModifier.AltModifier:
++                    parts.append("Alt")
++                if mods & Qt.KeyboardModifier.MetaModifier:
++                    parts.append("Cmd")
++                from PyQt6.QtCore import Qt as QtCore
++                key_name = QtCore.Key(key).name.replace("Key_", "")
++                if key_name not in ("Control", "Shift", "Alt", "Meta", "Super"):
++                    parts.append(key_name)
++                if len(parts) >= 2:  # must have at least one modifier
++                    combo = "+".join(parts)
++                    self._hotkey_edit.setText(combo)
++                    # Also write the pynput-style raw version
++                    raw = "+".join(
++                        f"<{p.lower()}>" if p in ("Ctrl", "Shift", "Alt", "Cmd") else p.lower()
++                        for p in parts
++                    )
++                    self._hotkey_raw.setText(raw)
++                    self._record_btn.setChecked(False)  # auto-stop recording
++                return True
++        return super().eventFilter(obj, event)
++
+     def _page_appearance(self) -> QWidget:
+         w = QWidget()
+         layout = QVBoxLayout(w)
+@@ -2552,6 +2635,34 @@ class SettingsWindow(QDialog):
+             theme=self._settings.theme
+         )
+         layout.addWidget(_settings_group([notif_row]))
++
++        # Section 3: Popup Behavior
++        layout.addWidget(_section_header("Popup Behavior"))
++
++        self._popup_pos_combo = QComboBox()
++        self._popup_pos_combo.setObjectName("SettingsCombo")
++        self._popup_pos_combo.setFixedWidth(200)
++        _position_options = [("Near cursor", "cursor"), ("Screen center", "center"), ("Top right", "top-right")]
++        for label, val in _position_options:
++            self._popup_pos_combo.addItem(label, val)
++        current_pos = self._settings.get("popup_position", "cursor")
++        for i, (_, val) in enumerate(_position_options):
++            if val == current_pos:
++                self._popup_pos_combo.setCurrentIndex(i)
++                break
++        self._popup_pos_combo.currentIndexChanged.connect(self._auto_save)
++
++        popup_pos_row = _premium_row(
++            label_text="Popup Position",
++            sub_label="Where the AI enhancement popup appears on screen.",
++            icon_kind="sliders",
++            icon_color=tokens["PRIMARY"],
++            icon_bg_color=tokens["PRIMARY_LIGHT"],
++            widget=self._popup_pos_combo,
++            theme=self._settings.theme
++        )
++        layout.addWidget(_settings_group([popup_pos_row]))
++
+         layout.addStretch()
+         return w
+ 
+@@ -2611,6 +2722,246 @@ class SettingsWindow(QDialog):
+         layout.addWidget(clear_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+         return w
+ 
++    def _page_productivity(self) -> QWidget:
++        w = QWidget()
++        layout = QVBoxLayout(w)
++        layout.setSpacing(18)
++        layout.setContentsMargins(0, 0, 0, 0)
++
++        title = QLabel("Productivity Dashboard")
++        title.setObjectName("SettingsTitle")
++        layout.addWidget(title)
++
++        hint = QLabel("Track your performance, word counts, and estimated time saved using Avelyn.")
++        hint.setObjectName("SettingsMuted")
++        layout.addWidget(hint)
++
++        from productivity import ProductivityTracker
++        tracker = ProductivityTracker()
++        stats = tracker.get_stats()
++        totals = stats.get("totals", {"words_improved": 0, "commands_executed": 0, "time_saved_seconds": 0})
++        by_mode = stats.get("by_mode", {})
++
++        # Calculate display time saved
++        total_sec = totals.get("time_saved_seconds", 0)
++        hours = total_sec // 3600
++        minutes = (total_sec % 3600) // 60
++        seconds = total_sec % 60
++        if hours > 0:
++            time_saved_str = f"{hours}h {minutes}m"
++        elif minutes > 0:
++            time_saved_str = f"{minutes}m {seconds}s"
++        else:
++            time_saved_str = f"{seconds}s"
++
++        # ── Cards row ─────────────────────────────────────────────────────────
++        cards_widget = QWidget()
++        cards_layout = QHBoxLayout(cards_widget)
++        cards_layout.setContentsMargins(0, 0, 0, 0)
++        cards_layout.setSpacing(12)
++
++        is_dark = self._settings.theme == "dark"
++        bg_col = "rgba(22, 21, 26, 0.7)" if is_dark else "rgba(243, 244, 246, 0.8)"
++        border_col = "rgba(167, 139, 250, 0.3)" if is_dark else "rgba(124, 58, 237, 0.3)"
++        val_color = "#A78BFA" if is_dark else "#7C3AED"
++        text_color = "#F8FAFC" if is_dark else "#1F2937"
++        muted_color = "#94A3B8" if is_dark else "#6B7280"
++
++        def make_card(value: str, label: str, subtitle: str) -> QFrame:
++            card = QFrame()
++            card.setFrameShape(QFrame.Shape.StyledPanel)
++            card.setStyleSheet(f"""
++                QFrame {{
++                    background-color: {bg_col};
++                    border: 1px solid {border_col};
++                    border-radius: 10px;
++                }}
++            """)
++            card_l = QVBoxLayout(card)
++            card_l.setContentsMargins(16, 16, 16, 16)
++            card_l.setSpacing(4)
++
++            val_lbl = QLabel(value)
++            val_lbl.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {val_color}; border: none; background: transparent;")
++            lbl = QLabel(label)
++            lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {text_color}; border: none; background: transparent;")
++            sub = QLabel(subtitle)
++            sub.setStyleSheet(f"font-size: 11px; color: {muted_color}; border: none; background: transparent;")
++
++            card_l.addWidget(val_lbl)
++            card_l.addWidget(lbl)
++            card_l.addWidget(sub)
++            return card
++
++        cards_layout.addWidget(make_card(f"{totals.get('words_improved', 0):,}", "Words Improved", "Total words analyzed & rewritten"))
++        cards_layout.addWidget(make_card(f"{totals.get('commands_executed', 0):,}", "Commands Executed", "Successful enhancements run"))
++        cards_layout.addWidget(make_card(time_saved_str, "Estimated Time Saved", "Based on typical editing speed"))
++
++        layout.addWidget(cards_widget)
++
++        # Divider
++        layout.addWidget(_divider_line())
++
++        # ── Daily Goal Progress ───────────────────────────────────────────────
++        goal_w = QWidget()
++        goal_l = QVBoxLayout(goal_w)
++        goal_l.setContentsMargins(0, 0, 0, 0)
++        goal_l.setSpacing(8)
++
++        goal_header = QHBoxLayout()
++        goal_header.setSpacing(8)
++        
++        goal_lbl = QLabel("Daily Word Goal")
++        goal_lbl.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {text_color};")
++        
++        progress_data = tracker.get_daily_goal_progress(1000)
++        pct = progress_data["percentage"]
++        cur = progress_data["current"]
++        goal_words = progress_data["goal"]
++
++        progress_lbl = QLabel(f"{cur:,} / {goal_words:,} words today ({pct}%)")
++        progress_lbl.setStyleSheet(f"font-size: 12px; color: {muted_color};")
++        progress_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
++
++        goal_header.addWidget(goal_lbl)
++        goal_header.addWidget(progress_lbl)
++        goal_l.addLayout(goal_header)
++
++        pb = QProgressBar()
++        pb.setMaximum(100)
++        pb.setValue(pct)
++        pb.setTextVisible(False)
++        pb.setFixedHeight(12)
++        pb.setStyleSheet(f"""
++            QProgressBar {{
++                background-color: {"rgba(255,255,255,0.05)" if is_dark else "rgba(0,0,0,0.05)"};
++                border: 1px solid {border_col};
++                border-radius: 6px;
++            }}
++            QProgressBar::chunk {{
++                background-color: {val_color};
++                border-radius: 5px;
++            }}
++        """)
++        goal_l.addWidget(pb)
++        layout.addWidget(goal_w)
++
++        # Divider
++        layout.addWidget(_divider_line())
++
++        # ── Mode Usage & Details ──────────────────────────────────────────────
++        detail_w = QWidget()
++        detail_l = QHBoxLayout(detail_w)
++        detail_l.setContentsMargins(0, 0, 0, 0)
++        detail_l.setSpacing(24)
++
++        # Left Column: Mode Popularity
++        modes_card = QFrame()
++        modes_card.setStyleSheet(f"background-color: {bg_col}; border: 1px solid {border_col}; border-radius: 10px;")
++        modes_card_l = QVBoxLayout(modes_card)
++        modes_card_l.setContentsMargins(16, 16, 16, 16)
++        modes_card_l.setSpacing(10)
++
++        modes_title = QLabel("Most Popular Modes")
++        modes_title.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {text_color}; border: none; background: transparent;")
++        modes_card_l.addWidget(modes_title)
++
++        if not by_mode:
++            no_modes = QLabel("No modes executed yet.")
++            no_modes.setStyleSheet(f"font-size: 12px; color: {muted_color}; border: none; background: transparent;")
++            modes_card_l.addWidget(no_modes)
++        else:
++            sorted_modes = sorted(by_mode.items(), key=lambda x: x[1], reverse=True)[:4]
++            max_uses = sorted_modes[0][1] if sorted_modes else 1
++            for mode_name, uses in sorted_modes:
++                mode_row = QWidget()
++                mode_row.setStyleSheet("border: none; background: transparent;")
++                mode_row_l = QVBoxLayout(mode_row)
++                mode_row_l.setContentsMargins(0, 0, 0, 0)
++                mode_row_l.setSpacing(3)
++
++                mode_lbl_row = QHBoxLayout()
++                m_label = QLabel(mode_name.replace("_", " ").title())
++                m_label.setStyleSheet(f"font-size: 12px; font-weight: 500; color: {text_color};")
++                m_uses = QLabel(f"{uses} run" + ("s" if uses != 1 else ""))
++                m_uses.setStyleSheet(f"font-size: 11px; color: {muted_color};")
++                m_uses.setAlignment(Qt.AlignmentFlag.AlignRight)
++                mode_lbl_row.addWidget(m_label)
++                mode_lbl_row.addWidget(m_uses)
++                mode_row_l.addLayout(mode_lbl_row)
++
++                mode_pb = QProgressBar()
++                mode_pb.setMaximum(max_uses)
++                mode_pb.setValue(uses)
++                mode_pb.setTextVisible(False)
++                mode_pb.setFixedHeight(6)
++                mode_pb.setStyleSheet(f"""
++                    QProgressBar {{
++                        background-color: {"rgba(255,255,255,0.05)" if is_dark else "rgba(0,0,0,0.05)"};
++                        border-radius: 3px;
++                    }}
++                    QProgressBar::chunk {{
++                        background-color: {val_color};
++                        border-radius: 3px;
++                    }}
++                """)
++                mode_row_l.addWidget(mode_pb)
++                modes_card_l.addWidget(mode_row)
++
++        detail_l.addWidget(modes_card, 1)
++
++        # Right Column: Recent Activity
++        activity_card = QFrame()
++        activity_card.setStyleSheet(f"background-color: {bg_col}; border: 1px solid {border_col}; border-radius: 10px;")
++        activity_card_l = QVBoxLayout(activity_card)
++        activity_card_l.setContentsMargins(16, 16, 16, 16)
++        activity_card_l.setSpacing(10)
++
++        activity_title = QLabel("Recent Activity")
++        activity_title.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {text_color}; border: none; background: transparent;")
++        activity_card_l.addWidget(activity_title)
++
++        daily_stats = stats.get("daily", {})
++        if not daily_stats:
++            no_act = QLabel("No recent activity recorded.")
++            no_act.setStyleSheet(f"font-size: 12px; color: {muted_color}; border: none; background: transparent;")
++            activity_card_l.addWidget(no_act)
++        else:
++            sorted_days = sorted(daily_stats.items(), reverse=True)[:4]
++            for day_str, day_data in sorted_days:
++                day_row = QWidget()
++                day_row.setStyleSheet("border: none; background: transparent;")
++                day_row_l = QHBoxLayout(day_row)
++                day_row_l.setContentsMargins(0, 4, 0, 4)
++                
++                try:
++                    from datetime import datetime
++                    dt = datetime.strptime(day_str, "%Y-%m-%d")
++                    date_display = dt.strftime("%b %d, %Y")
++                except Exception:
++                    date_display = day_str
++
++                day_lbl = QLabel(date_display)
++                day_lbl.setStyleSheet(f"font-size: 12px; font-weight: 500; color: {text_color};")
++                
++                day_sec = day_data.get("time_saved_seconds", 0)
++                day_min = day_sec // 60
++                day_text = f"{day_data.get('words_improved', 0):,} words • {day_min}m saved"
++                
++                stats_lbl = QLabel(day_text)
++                stats_lbl.setStyleSheet(f"font-size: 11px; color: {muted_color};")
++                stats_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
++
++                day_row_l.addWidget(day_lbl)
++                day_row_l.addWidget(stats_lbl)
++                activity_card_l.addWidget(day_row)
++
++        detail_l.addWidget(activity_card, 1)
++        layout.addWidget(detail_w)
++
++        layout.addStretch()
++        return w
++
+     def _page_about(self) -> QWidget:
+         w = QWidget()
+         layout = QVBoxLayout(w)
+@@ -2724,6 +3075,310 @@ class SettingsWindow(QDialog):
+         layout.addStretch()
+         return w
+ 
++    def _page_prompts(self) -> QWidget:
++        w = QWidget()
++        layout = QVBoxLayout(w)
++        layout.setSpacing(14)
++        layout.setContentsMargins(0, 0, 0, 0)
++
++        tokens = DARK_TOKENS if self._settings.theme == "dark" else LIGHT_TOKENS
++
++        title = QLabel("Prompt Library")
++        title.setObjectName("SettingsTitle")
++        layout.addWidget(title)
++
++        hint = QLabel("Create, edit, or delete your custom AI rewrite prompts.")
++        hint.setObjectName("SettingsMuted")
++        layout.addWidget(hint)
++
++        splitter = QHBoxLayout()
++        splitter.setSpacing(20)
++
++        # Left side: List and control buttons
++        left_pane = QWidget()
++        left_layout = QVBoxLayout(left_pane)
++        left_layout.setContentsMargins(0, 0, 0, 0)
++        left_layout.setSpacing(10)
++
++        self._prompts_list = QListWidget()
++        self._prompts_list.setObjectName("SettingsNav")
++        self._prompts_list.setMinimumWidth(220)
++        self._prompts_list.currentRowChanged.connect(self._on_prompt_selection_changed)
++
++        btn_row = QHBoxLayout()
++        new_btn = QPushButton("New Prompt")
++        new_btn.setObjectName("SecondaryBtn")
++        new_btn.setCursor(Qt.CursorShape.PointingHandCursor)
++        new_btn.clicked.connect(self._on_new_prompt_clicked)
++
++        del_btn = QPushButton("Delete")
++        del_btn.setObjectName("SecondaryBtn")
++        del_btn.setCursor(Qt.CursorShape.PointingHandCursor)
++        del_btn.clicked.connect(self._on_delete_prompt_clicked)
++
++        btn_row.addWidget(new_btn)
++        btn_row.addWidget(del_btn)
++
++        left_layout.addWidget(self._prompts_list, 1)
++        left_layout.addLayout(btn_row)
++
++        # Right side: Editable form
++        self._prompt_form = QWidget()
++        self._prompt_form.setObjectName("SettingsCard")
++        self._prompt_form.setStyleSheet("""
++            QWidget#SettingsCard {
++                background-color: %s;
++                border: 1px solid %s;
++                border-radius: 8px;
++            }
++        """ % (tokens["SURFACE_ALT"], tokens["BORDER"]))
++        form_layout = QVBoxLayout(self._prompt_form)
++        form_layout.setContentsMargins(16, 16, 16, 16)
++        form_layout.setSpacing(12)
++
++        self._prompt_title_edit = QLineEdit()
++        self._prompt_title_edit.setObjectName("SettingsLineEdit")
++        self._prompt_title_edit.setPlaceholderText("e.g. Make Concise")
++
++        self._prompt_category_edit = QLineEdit()
++        self._prompt_category_edit.setObjectName("SettingsLineEdit")
++        self._prompt_category_edit.setPlaceholderText("e.g. Custom Presets")
++
++        self._prompt_text_edit = QTextEdit()
++        self._prompt_text_edit.setPlaceholderText("Rewrite the text to be short and clear...")
++        self._prompt_text_edit.setStyleSheet("""
++            QTextEdit {
++                background-color: %s;
++                border: 1px solid %s;
++                border-radius: 6px;
++                color: %s;
++                padding: 6px;
++            }
++        """ % (tokens["SURFACE"], tokens["BORDER"], tokens["TEXT_PRIMARY"]))
++
++        save_btn = QPushButton("Save Prompt")
++        save_btn.setObjectName("PrimaryBtn")
++        save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
++        save_btn.clicked.connect(self._on_save_prompt_clicked)
++
++        lbl1 = QLabel("Prompt Title:")
++        lbl1.setStyleSheet("font-weight: 600;")
++        form_layout.addWidget(lbl1)
++        form_layout.addWidget(self._prompt_title_edit)
++        
++        lbl2 = QLabel("Category:")
++        lbl2.setStyleSheet("font-weight: 600;")
++        form_layout.addWidget(lbl2)
++        form_layout.addWidget(self._prompt_category_edit)
++        
++        lbl3 = QLabel("Instructions (Prompt Template):")
++        lbl3.setStyleSheet("font-weight: 600;")
++        form_layout.addWidget(lbl3)
++        form_layout.addWidget(self._prompt_text_edit, 1)
++        form_layout.addWidget(save_btn)
++
++        splitter.addWidget(left_pane, 2)
++        splitter.addWidget(self._prompt_form, 3)
++
++        layout.addLayout(splitter)
++
++        self._refresh_prompts_list()
++        return w
++
++    def _refresh_prompts_list(self) -> None:
++        self._prompts_list.clear()
++        prompts = self._settings.custom_prompts
++        for p in prompts:
++            self._prompts_list.addItem(p["title"])
++        self._on_new_prompt_clicked()
++
++    def _on_prompt_selection_changed(self, row: int) -> None:
++        prompts = self._settings.custom_prompts
++        if 0 <= row < len(prompts):
++            p = prompts[row]
++            self._prompt_title_edit.setText(p["title"])
++            self._prompt_category_edit.setText(p.get("category", "Custom Presets"))
++            self._prompt_text_edit.setPlainText(p["prompt"])
++        else:
++            self._prompt_title_edit.clear()
++            self._prompt_category_edit.setText("Custom Presets")
++            self._prompt_text_edit.clear()
++
++    def _on_new_prompt_clicked(self) -> None:
++        self._prompts_list.setCurrentRow(-1)
++        self._prompt_title_edit.clear()
++        self._prompt_category_edit.setText("Custom Presets")
++        self._prompt_text_edit.clear()
++
++    def _on_delete_prompt_clicked(self) -> None:
++        row = self._prompts_list.currentRow()
++        prompts = self._settings.custom_prompts
++        if 0 <= row < len(prompts):
++            p = prompts[row]
++            self._settings.delete_custom_prompt(p["id"])
++            self.settings_changed.emit()
++            self._refresh_prompts_list()
++
++    def _on_save_prompt_clicked(self) -> None:
++        title = self._prompt_title_edit.text().strip()
++        category = self._prompt_category_edit.text().strip() or "Custom Presets"
++        prompt_text = self._prompt_text_edit.toPlainText().strip()
++
++        if not title or not prompt_text:
++            from PyQt6.QtWidgets import QMessageBox
++            QMessageBox.warning(self, "Validation", "Please fill in both the title and prompt text.")
++            return
++
++        row = self._prompts_list.currentRow()
++        prompts = self._settings.custom_prompts
++        if 0 <= row < len(prompts):
++            p = prompts[row]
++            self._settings.update_custom_prompt(p["id"], title, prompt_text, category)
++        else:
++            self._settings.add_custom_prompt(title, prompt_text, category)
++
++        self.settings_changed.emit()
++        self._refresh_prompts_list()
++        # Show brief confirmation
++        save_btn_ref = self.sender()
++        if save_btn_ref:
++            orig_text = save_btn_ref.text()
++            save_btn_ref.setText("Saved!")
++            save_btn_ref.setEnabled(False)
++            QTimer.singleShot(1500, lambda: (save_btn_ref.setText(orig_text), save_btn_ref.setEnabled(True)))
++
++    def _page_knowledge(self) -> QWidget:
++        w = QWidget()
++        layout = QVBoxLayout(w)
++        layout.setSpacing(14)
++        layout.setContentsMargins(0, 0, 0, 0)
++
++        tokens = DARK_TOKENS if self._settings.theme == "dark" else LIGHT_TOKENS
++
++        title = QLabel("Local Knowledge Base")
++        title.setObjectName("SettingsTitle")
++        layout.addWidget(title)
++
++        hint = QLabel("Import PDF, DOCX, TXT, or MD documents. Avelyn will pull from them locally when you refer to them in prompts (e.g., 'Use my resume').")
++        hint.setObjectName("SettingsMuted")
++        layout.addWidget(hint)
++
++        splitter = QHBoxLayout()
++        splitter.setSpacing(20)
++
++        # Left pane: List of imported files
++        left_pane = QWidget()
++        left_layout = QVBoxLayout(left_pane)
++        left_layout.setContentsMargins(0, 0, 0, 0)
++        left_layout.setSpacing(10)
++
++        self._kb_list = QListWidget()
++        self._kb_list.setObjectName("SettingsNav")
++        self._kb_list.setMinimumWidth(260)
++        
++        del_btn = QPushButton("Delete Selected Document")
++        del_btn.setObjectName("SecondaryBtn")
++        del_btn.setCursor(Qt.CursorShape.PointingHandCursor)
++        del_btn.clicked.connect(self._on_delete_kb_doc)
++
++        left_layout.addWidget(self._kb_list, 1)
++        left_layout.addWidget(del_btn)
++
++        # Right pane: Import controls
++        right_pane = QWidget()
++        right_pane.setObjectName("SettingsCard")
++        right_pane.setStyleSheet("""
++            QWidget#SettingsCard {
++                background-color: %s;
++                border: 1px solid %s;
++                border-radius: 8px;
++            }
++        """ % (tokens["SURFACE_ALT"], tokens["BORDER"]))
++        right_layout = QVBoxLayout(right_pane)
++        right_layout.setContentsMargins(16, 16, 16, 16)
++        right_layout.setSpacing(16)
++
++        import_btn = QPushButton("Choose File to Import")
++        import_btn.setObjectName("PrimaryBtn")
++        import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
++        import_btn.clicked.connect(self._on_import_kb_doc)
++
++        info_lbl = QLabel(
++            "Supported Formats:\n"
++            "• PDF (.pdf)\n"
++            "• Microsoft Word (.docx)\n"
++            "• Plain Text (.txt, .text)\n"
++            "• Markdown (.md)\n\n"
++            "Instructions:\n"
++            "Once imported, you can use document references naturally in your system-wide prompt or the Avelyn command bar, for example:\n"
++            "- 'summarize company guidelines'\n"
++            "- 'tailor this response using my resume'\n"
++            "- 'rewrite using project notes'"
++        )
++        info_lbl.setObjectName("SettingsMuted")
++        info_lbl.setWordWrap(True)
++
++        right_layout.addWidget(QLabel("Import Documents"))
++        right_layout.addWidget(import_btn)
++        right_layout.addWidget(info_lbl, 1)
++
++        splitter.addWidget(left_pane, 2)
++        splitter.addWidget(right_pane, 3)
++
++        layout.addLayout(splitter)
++        
++        self._refresh_kb_list()
++        return w
++
++    def _refresh_kb_list(self) -> None:
++        self._kb_list.clear()
++        try:
++            from knowledge_base import KnowledgeBaseManager
++            kb = KnowledgeBaseManager()
++            if not kb.documents:
++                placeholder = QListWidgetItem("No documents imported yet")
++                placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
++                self._kb_list.addItem(placeholder)
++            else:
++                for doc in kb.documents:
++                    imported = doc.get("imported_at", "")[:10]
++                    chunks = len(doc.get("chunks", []))
++                    label = f"{doc['filename']}  ·  {chunks} chunks  ·  {imported}"
++                    self._kb_list.addItem(label)
++        except Exception as e:
++            logger.error("Failed to refresh KB list: %s", e)
++
++    def _on_import_kb_doc(self) -> None:
++        from PyQt6.QtWidgets import QFileDialog, QMessageBox
++        file_path, _ = QFileDialog.getOpenFileName(
++            self, "Import Document", "", "Documents (*.pdf *.docx *.txt *.text *.md)"
++        )
++        if file_path:
++            try:
++                from knowledge_base import KnowledgeBaseManager
++                kb = KnowledgeBaseManager()
++                kb.import_document(file_path)
++                self._refresh_kb_list()
++                QMessageBox.information(self, "Success", f"Successfully imported: {Path(file_path).name}")
++            except Exception as e:
++                logger.error("Failed to import KB document: %s", e)
++                QMessageBox.critical(self, "Error", f"Failed to import document: {e}")
++
++    def _on_delete_kb_doc(self) -> None:
++        row = self._kb_list.currentRow()
++        if row < 0:
++            return
++        
++        try:
++            from knowledge_base import KnowledgeBaseManager
++            kb = KnowledgeBaseManager()
++            if row < len(kb.documents):
++                doc = kb.documents[row]
++                kb.delete_document(doc["id"])
++                self._refresh_kb_list()
++        except Exception as e:
++            logger.error("Failed to delete KB document: %s", e)
++
+     # ── Slots ─────────────────────────────────────────────────────────────────
+ 
+     @pyqtSlot(int)
+@@ -2732,17 +3387,11 @@ class SettingsWindow(QDialog):
+         page = self._stack.currentWidget()
+         if page is None:
+             return
+-        eff = page.graphicsEffect()
+-        if eff is None:
+-            from PyQt6.QtWidgets import QGraphicsOpacityEffect
+-            eff = QGraphicsOpacityEffect(page)
+-            page.setGraphicsEffect(eff)
+-        try:
+-            eff.setOpacity(0.0)  # type: ignore[attr-defined]
+-        except Exception:
+-            return
+-        anim = QPropertyAnimation(eff, b"opacity", self)
+-        anim.setDuration(160)
++        # Use window-level opacity animation instead of QGraphicsOpacityEffect
++        # (which causes 'QPainter not active' warnings when child widgets also have effects)
++        self._stack.setWindowOpacity(0.0)
++        anim = QPropertyAnimation(self._stack, b"windowOpacity", self)
++        anim.setDuration(150)
+         anim.setStartValue(0.0)
+         anim.setEndValue(1.0)
+         anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+@@ -2762,6 +3411,9 @@ class SettingsWindow(QDialog):
+         self._settings.set("voice_commands_enabled", self._voice_commands_enabled_cb.isChecked())
+         self._settings.set("wake_word_enabled", self._wake_word_cb.isChecked())
+         self._settings.set("microphone_device", self._mic_combo.currentText())
++        self._settings.set("context_aware_rewriting", self._context_cb.isChecked())
++        if hasattr(self, "_popup_pos_combo"):
++            self._settings.set("popup_position", self._popup_pos_combo.currentData() or "cursor")
+ 
+         from platform_handler import set_launch_at_startup
+         set_launch_at_startup(self._startup_cb.isChecked())
+@@ -2819,6 +3471,8 @@ class SystemTrayIcon(QSystemTrayIcon):
+     open_settings_requested = pyqtSignal()
+     quit_requested          = pyqtSignal()
+     pause_toggled           = pyqtSignal(bool)   # True = paused
++    voice_commands_toggled  = pyqtSignal(bool)
++    mode_triggered          = pyqtSignal(str)
+ 
+     def __init__(self, settings: Settings, parent: Optional[QObject] = None) -> None:
+         super().__init__(parent)
+@@ -2862,25 +3516,98 @@ class SystemTrayIcon(QSystemTrayIcon):
+             "QMenu::item:selected { background: #2A2A38; }"
+         )
+ 
+-        title_act = menu.addAction("✦  Avelyn")
++        title_act = menu.addAction("Avelyn AI")
+         title_act.setEnabled(False)
++
++        # Connection status
++        self._status_act = menu.addAction("Ollama: Checking...")
++        self._status_act.setEnabled(False)
+         menu.addSeparator()
+ 
+-        status_act = menu.addAction(f"Shortcut: {self._settings.shortcut_display}")
+-        status_act.setEnabled(False)
++        # Quick Actions submenu
++        qa_menu = menu.addMenu("Quick Rewrite")
++        qa_menu.setStyleSheet(menu.styleSheet())
++        
++        smart_act = qa_menu.addAction("Smart Rewrite")
++        smart_act.triggered.connect(lambda: self.mode_triggered.emit("smart"))
++        
++        prof_act = qa_menu.addAction("Professional Style")
++        prof_act.triggered.connect(lambda: self.mode_triggered.emit("professional"))
++        
++        grammar_act = qa_menu.addAction("Fix Grammar")
++        grammar_act.triggered.connect(lambda: self.mode_triggered.emit("grammar"))
++        
++        short_act = qa_menu.addAction("Make Shorter")
++        short_act.triggered.connect(lambda: self.mode_triggered.emit("shorten"))
++        
++        email_act = qa_menu.addAction("Rewrite as Email")
++        email_act.triggered.connect(lambda: self.mode_triggered.emit("email"))
++
+         menu.addSeparator()
+ 
+-        self._pause_act = menu.addAction("⏸  Pause")
++        # Status / Toggles
++        self._voice_toggle_act = menu.addAction("Voice Commands: " + ("On" if self._settings.voice_commands_enabled else "Off"))
++        self._voice_toggle_act.triggered.connect(self._on_voice_toggle)
++
++        shortcut_label = f"Shortcut: {self._settings.shortcut_display}"
++        self._shortcut_act = menu.addAction(shortcut_label)
++        self._shortcut_act.setEnabled(False)
++
++        self._pause_act = menu.addAction("Pause")
+         self._pause_act.triggered.connect(self._on_pause_toggle)
+ 
+-        settings_act = menu.addAction("⚙  Settings")
++        settings_act = menu.addAction("Settings")
+         settings_act.triggered.connect(self.open_settings_requested.emit)
+         menu.addSeparator()
+ 
+-        quit_act = menu.addAction("✕  Quit")
++        quit_act = menu.addAction("Quit")
+         quit_act.triggered.connect(self.quit_requested.emit)
+ 
+         self.setContextMenu(menu)
++        
++        # Start timer to check Ollama status periodically
++        self._check_timer = QTimer(self)
++        self._check_timer.timeout.connect(self._check_ollama_status)
++        self._check_timer.start(5000)
++        # Initial check
++        QTimer.singleShot(500, self._check_ollama_status)
++
++    def _on_voice_toggle(self) -> None:
++        new_val = not self._settings.voice_commands_enabled
++        self._settings.set("voice_commands_enabled", new_val)
++        self._voice_toggle_act.setText("Voice Commands: " + ("On" if new_val else "Off"))
++        self.voice_commands_toggled.emit(new_val)
++
++    def _check_ollama_status(self) -> None:
++        import threading
++        host = self._settings.get("ollama_host", "http://localhost:11434").rstrip('/')
++        url = f"{host}/api/tags"
++        
++        def run_check():
++            try:
++                import requests
++                res = requests.get(url, timeout=1.5)
++                connected = (res.status_code == 200)
++            except Exception:
++                connected = False
++                
++            def update_ui():
++                try:
++                    if connected:
++                        self._status_act.setText("Ollama: Connected")
++                        self._status_act.setStyleSheet("QMenu::item { color: #10B981; }")
++                    else:
++                        self._status_act.setText("Ollama: Disconnected")
++                        self._status_act.setStyleSheet("QMenu::item { color: #EF4444; }")
++                except Exception:
++                    pass
++            QTimer.singleShot(0, update_ui)
++            
++        threading.Thread(target=run_check, daemon=True).start()
++
++    def update_shortcut_display(self) -> None:
++        self.setToolTip(f"Avelyn — {self._settings.shortcut_display}")
++        self._shortcut_act.setText(f"Shortcut: {self._settings.shortcut_display}")
+ 
+     def _on_activated(self, reason) -> None:
+         if sys.platform == "darwin":
+@@ -3038,8 +3765,9 @@ class InstallerOverlay(QWidget):
+ 
+ class ToastOverlay(QWidget):
+     """A premium, animated frameless pill overlay to indicate activity."""
+-    def __init__(self, parent: Optional[QWidget] = None) -> None:
++    def __init__(self, parent: Optional[QWidget] = None, theme: str = "light") -> None:
+         super().__init__(parent)
++        self._theme = theme
+         # Use ToolTip to prevent focus stealing, but force on-top
+         self.setWindowFlags(
+             Qt.WindowType.ToolTip |
+@@ -3060,10 +3788,9 @@ class ToastOverlay(QWidget):
+         self._pill_layout = QHBoxLayout(self._pill)
+         self._pill_layout.setContentsMargins(20, 10, 20, 10)
+ 
+-        
+         # Label
+-        self._lbl = QLabel("✨ Enhancing...")
+-        self._lbl.setStyleSheet("background: transparent; color: #FFFFFF; font-weight: 600; font-size: 15px;")
++        self._lbl = QLabel("Enhancing...")
++        self._lbl.setStyleSheet("background: transparent; color: #FFFFFF; font-weight: 600; font-size: 14px;")
+         self._pill_layout.addWidget(self._lbl)
+         
+         # Shadow Effect
+@@ -3092,7 +3819,7 @@ class ToastOverlay(QWidget):
+         
+         # Loading dots timer
+         self._dot_count = 0
+-        self._base_text = "✨ Enhancing"
++        self._base_text = "Enhancing"
+         self._loading_timer = QTimer(self)
+         self._loading_timer.setInterval(400)
+         self._loading_timer.timeout.connect(self._update_loading_text)
+@@ -3110,24 +3837,43 @@ class ToastOverlay(QWidget):
+         self._anim_in.stop()
+         self._anim_out.stop()
+         
++        # Clean target emojis/symbols if any slipped in
++        for emoji in ["✨", "◴", "✦", "✓", "⚠", "●"]:
++            text = text.replace(emoji, "")
++        text = text.strip()
++        
+         if loading:
+-            self._base_text = text.replace(".", "")
++            self._base_text = text.rstrip(".")
+             self._dot_count = 0
+             self._lbl.setText(self._base_text)
+             self._loading_timer.start()
+         else:
+             self._lbl.setText(text)
+             
+-        # Anthropic Glassmorphism styling based on state
++        # Unified macOS styles
+         if success:
+-            self._pill.setStyleSheet("background: rgba(84, 160, 113, 0.95); border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 20px;")
+-            self._shadow.setColor(QColor(84, 160, 113, 60))
++            if self._theme == "dark":
++                self._pill.setStyleSheet("background: rgba(48, 209, 88, 0.95); border: 0.5px solid rgba(255, 255, 255, 0.15); border-radius: 20px;")
++                self._lbl.setStyleSheet("color: #FFFFFF; font-weight: 600; font-size: 14px;")
++            else:
++                self._pill.setStyleSheet("background: rgba(52, 199, 89, 0.95); border: 0.5px solid rgba(0, 0, 0, 0.1); border-radius: 20px;")
++                self._lbl.setStyleSheet("color: #FFFFFF; font-weight: 600; font-size: 14px;")
++            self._shadow.setColor(QColor(48, 209, 88, 60))
+         elif error:
+-            self._pill.setStyleSheet("background: rgba(212, 84, 84, 0.95); border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 20px;")
+-            self._shadow.setColor(QColor(212, 84, 84, 60))
++            if self._theme == "dark":
++                self._pill.setStyleSheet("background: rgba(255, 69, 58, 0.95); border: 0.5px solid rgba(255, 255, 255, 0.15); border-radius: 20px;")
++                self._lbl.setStyleSheet("color: #FFFFFF; font-weight: 600; font-size: 14px;")
++            else:
++                self._pill.setStyleSheet("background: rgba(255, 59, 48, 0.95); border: 0.5px solid rgba(0, 0, 0, 0.1); border-radius: 20px;")
++                self._lbl.setStyleSheet("color: #FFFFFF; font-weight: 600; font-size: 14px;")
++            self._shadow.setColor(QColor(255, 69, 58, 60))
+         else:
+-            self._pill.setStyleSheet("background: rgba(245, 244, 240, 0.95); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 20px;")
+-            self._lbl.setStyleSheet("color: #1A1918; font-weight: 500;")
++            if self._theme == "dark":
++                self._pill.setStyleSheet("background: rgba(28, 28, 30, 0.95); border: 0.5px solid rgba(255, 255, 255, 0.15); border-radius: 20px;")
++                self._lbl.setStyleSheet("color: #FFFFFF; font-weight: 500; font-size: 14px;")
++            else:
++                self._pill.setStyleSheet("background: rgba(255, 255, 255, 0.95); border: 0.5px solid rgba(0, 0, 0, 0.1); border-radius: 20px;")
++                self._lbl.setStyleSheet("color: #1C1C1E; font-weight: 500; font-size: 14px;")
+             self._shadow.setColor(QColor(0, 0, 0, 40))
+             
+         self.adjustSize()
+@@ -3140,8 +3886,7 @@ class ToastOverlay(QWidget):
+             y = sg.bottom() - 120
+             self.move(int(x), int(y))
+             
+-        self.show()
+-        self.raise_()
++        macos_show_without_activating(self)  # native orderFront_ — no Space switch
+         self.repaint()
+         
+         logger.info("Overlay shown: %s", text)
+@@ -3286,11 +4031,13 @@ class CommandPalette(QWidget):
+     def __init__(self, parent: Optional[QWidget] = None) -> None:
+         super().__init__(parent)
+         self.setWindowFlags(
+-            Qt.WindowType.Window |
++            Qt.WindowType.Tool |
+             Qt.WindowType.FramelessWindowHint |
+             Qt.WindowType.WindowStaysOnTopHint
+         )
+         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
++        # Critical: prevents macOS from switching Spaces when the palette appears
++        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+         # Detect theme from app palette for icon tinting
+         self._is_dark = QApplication.instance() is not None and (
+             QApplication.palette().window().color().lightness() < 128
+@@ -3307,6 +4054,17 @@ class CommandPalette(QWidget):
+         self._build_animations()
+         self.hide()
+ 
++        # ── macOS: pre-configure NSPanel at startup BEFORE any show() ──────────
++        # This is the critical fix: CanJoinAllSpaces and becomesKeyOnlyIfNeeded
++        # must be set on the NSWindow BEFORE show() is ever called.
++        # Qt's show() calls makeKeyAndOrderFront: which WILL switch Spaces if the
++        # window doesn't already have CanJoinAllSpaces set.
++        # QTimer.singleShot(0) fires on the first event-loop tick (before any
++        # user interaction) and safely forces NSWindow creation via winId().
++        import sys as _sys
++        if _sys.platform == "darwin":
++            QTimer.singleShot(0, self._pre_configure_nswindow)
++
+     # ── UI construction ───────────────────────────────────────────────────────
+ 
+     def _build_ui(self) -> None:
+@@ -3488,7 +4246,10 @@ class CommandPalette(QWidget):
+         from PyQt6.QtSvg import QSvgRenderer
+         from PyQt6.QtGui import QPainter
+ 
+-        svg_str = self.ICON_SVG.get(mode_id, self.ICON_SVG["__default__"])
++        mode_key = mode_id
++        if mode_id.startswith("custom_prompt:"):
++            mode_key = "smart"
++        svg_str = self.ICON_SVG.get(mode_key, self.ICON_SVG["__default__"])
+         if color is None:
+             color = self._icon_color
+ 
+@@ -3612,7 +4373,14 @@ class CommandPalette(QWidget):
+         else:
+             self._input.clear()
+         self._input.setPlaceholderText("Ask AI or search actions...")
+-        self._visible_modes = list(self.MAIN_MODES)
++        
++        source = list(self.MAIN_MODES)
++        app = QApplication.instance()
++        if app and hasattr(app, "_avelyn_app") and app._avelyn_app:
++            settings = app._avelyn_app._settings
++            for p in settings.custom_prompts:
++                source.insert(-2, (p["title"], f"custom_prompt:{p['id']}", p.get("category", "Custom Presets")))
++        self._visible_modes = source
+         self._populate_list()
+ 
+         # Preview selected text
+@@ -3640,10 +4408,11 @@ class CommandPalette(QWidget):
+         self.move(int(x), start_y)
+ 
+         self.setWindowOpacity(0.0)
+-        self.show()
+-        self.raise_()
+-        self.activateWindow()
+-        self._input.setFocus()
++        # Use _macos_show() on macOS: calls native orderFront_ instead of Qt's
++        # makeKeyAndOrderFront_ to show without activating the app or switching Spaces.
++        self._macos_show()
++        # Deferred keyboard focus via native makeFirstResponder_ (no app activation)
++        QTimer.singleShot(50, self._native_focus_input)
+ 
+         # Slide-up destination
+         from PyQt6.QtCore import QPoint
+@@ -3667,12 +4436,101 @@ class CommandPalette(QWidget):
+         self.hide()
+         self.hidden.emit()
+ 
++    def _pre_configure_nswindow(self) -> None:
++        """
++        Configure the NSPanel at startup, BEFORE any show() call.
++
++        This is the root-cause fix for macOS Space switching:
++        - Qt's show() calls [NSPanel makeKeyAndOrderFront:nil]
++        - If the NSPanel's collectionBehavior doesn't have CanJoinAllSpaces set yet,
++          macOS places the window on Python's Space and switches the user there.
++        - By setting CanJoinAllSpaces BEFORE the first show(), the window is already
++          on all Spaces, so makeKeyAndOrderFront: never needs to switch Spaces.
++
++        Called via QTimer.singleShot(0) so the Qt event loop is running when
++        winId() is invoked (safe, fires before any user interaction).
++        """
++        try:
++            import objc
++            from ctypes import c_void_p
++            # winId() forces NSWindow/NSPanel creation (lazy Qt initialization)
++            view = objc.objc_object(c_void_p=int(self.winId()))
++            window = view.window()
++            if window is None:
++                logger.warning("CommandPalette._pre_configure_nswindow: NSWindow is None — Space fix inactive")
++                return
++
++            # Set CanJoinAllSpaces NOW, before any show() is ever called
++            NSWindowCollectionBehaviorCanJoinAllSpaces    = 1 << 0
++            NSWindowCollectionBehaviorTransient          = 1 << 7   # hide from Mission Control
++            NSWindowCollectionBehaviorFullScreenAuxiliary = 1 << 8   # overlay fullscreen apps
++
++            window.setCollectionBehavior_(
++                NSWindowCollectionBehaviorCanJoinAllSpaces |
++                NSWindowCollectionBehaviorTransient |
++                NSWindowCollectionBehaviorFullScreenAuxiliary
++            )
++            try:
++                # NSPanel: only become key window when a text field requests it, NOT on show()
++                window.setBecomesKeyOnlyIfNeeded_(True)
++                window.setFloatingPanel_(True)
++            except Exception:
++                pass  # Not all windows are NSPanel
++
++            logger.debug("CommandPalette NSPanel pre-configured: collectionBehavior=0x%x",
++                         window.collectionBehavior())
++        except Exception as e:
++            logger.warning("CommandPalette._pre_configure_nswindow failed: %s", e)
++
++    def _macos_show(self) -> None:
++        """
++        Show the palette on macOS using native orderFront_ (no Space switch).
++        Delegates to shared macos_show_without_activating() in utils.py.
++        """
++        macos_show_without_activating(self)
++
++
++    def _native_focus_input(self) -> None:
++        """
++        Give keyboard focus to the search input WITHOUT activating the Python process.
++
++        Qt's setFocus() calls QCocoaWindow::requestActivateWindow() which calls
++        [NSApp activateIgnoringOtherApps:YES] — that activates the Python process
++        and causes macOS to switch Spaces.
++
++        Instead we use NSPanel.makeFirstResponder_(nsView) which only changes the
++        first responder WITHIN the panel's own responder chain, without activating
++        the application at the OS level.
++
++        This lets the user type into the search box immediately after the palette
++        appears, even if they are in a fullscreen app on a different Space.
++        """
++        import sys
++        if sys.platform != "darwin":
++            self._input.setFocus(Qt.FocusReason.OtherFocusReason)
++            return
++        try:
++            import objc
++            from ctypes import c_void_p
++            input_view = objc.objc_object(c_void_p=int(self._input.winId()))
++            panel = objc.objc_object(c_void_p=int(self.winId())).window()
++            if panel and input_view:
++                panel.makeFirstResponder_(input_view)
++        except Exception as e:
++            logger.debug("_native_focus_input: native focus failed (%s), falling back to Qt focus", e)
++            self._input.setFocus(Qt.FocusReason.OtherFocusReason)
++
+     # ── Interaction ───────────────────────────────────────────────────────────
+ 
+     def _on_search_changed(self, text: str) -> None:
+         query = text.strip().lower()
+         if self._state == self.STATE_MAIN:
+-            source = self.MAIN_MODES
++            source = list(self.MAIN_MODES)
++            app = QApplication.instance()
++            if app and hasattr(app, "_avelyn_app") and app._avelyn_app:
++                settings = app._avelyn_app._settings
++                for p in settings.custom_prompts:
++                    source.insert(-2, (p["title"], f"custom_prompt:{p['id']}", p.get("category", "Custom Presets")))
+         elif self._state == self.STATE_MORE_ACTIONS:
+             source = self.MORE_MODES
+         elif self._state == self.STATE_CODE_QUALITY:
+@@ -3680,6 +4538,25 @@ class CommandPalette(QWidget):
+         else:
+             source = self.LANGUAGES
+ 
++        if query.startswith("/"):
++            cmd_part = query.split(" ")[0]
++            slash_source = [
++                ("/improve",  "professional", "Slash Commands"),
++                ("/fix",      "grammar",      "Slash Commands"),
++                ("/shorten",  "shorten",      "Slash Commands"),
++                ("/expand",   "expand",       "Slash Commands"),
++                ("/email",    "email",        "Slash Commands"),
++                ("/linkedin", "linkedin",     "Slash Commands"),
++                ("/tweet",    "tweet",        "Slash Commands"),
++                ("/summarize","summarize",    "Slash Commands"),
++            ]
++            self._visible_modes = [
++                m for m in slash_source
++                if m[0].startswith(cmd_part)
++            ]
++            self._populate_list()
++            return
++
+         if query:
+             self._visible_modes = [
+                 m for m in source
+@@ -3739,6 +4616,28 @@ class CommandPalette(QWidget):
+                     self._populate_list()
+             return
+ 
++        # ── Slash Command parser ──────────────────────────────────────────────
++        if custom_instr.startswith("/"):
++            parts = custom_instr.split(" ", 1)
++            cmd = parts[0].lower()
++            arg = parts[1].strip() if len(parts) > 1 else ""
++            
++            SLASH_MAP = {
++                "/improve": "professional",
++                "/fix": "grammar",
++                "/shorten": "shorten",
++                "/expand": "expand",
++                "/email": "email",
++                "/linkedin": "linkedin",
++                "/tweet": "tweet",
++                "/summarize": "summarize",
++            }
++            if cmd in SLASH_MAP:
++                mode_id = SLASH_MAP[cmd]
++                self.action_selected.emit(mode_id, arg)
++                self.hide_palette()
++                return
++
+         # ── Custom command (text typed, not matching an action name) ──────────
+         all_action_names = [m[0].lower() for m in self.MAIN_MODES + self.MORE_MODES]
+         if custom_instr and not any(custom_instr.lower() in name for name in all_action_names):

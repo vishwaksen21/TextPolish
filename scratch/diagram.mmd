@@ -1,0 +1,132 @@
+flowchart LR
+    %% Professional Minimalist Styling (GitDiagram Aesthetic)
+    classDef default fill:#ffffff,stroke:#e2e8f0,stroke-width:1.5px,color:#1e293b,rx:8px,ry:8px,font-family:Inter;
+    classDef container fill:#f8fafc,stroke:#cbd5e1,stroke-width:2px,color:#0f172a,rx:12px,ry:12px,font-weight:bold;
+    classDef app fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a,font-weight:bold;
+    classDef engine fill:#fdf4ff,stroke:#d946ef,stroke-width:1.5px,color:#701a75;
+    classDef ai fill:#f5f3ff,stroke:#8b5cf6,stroke-width:2px,color:#4c1d95,font-weight:bold;
+    classDef os fill:#ecfdf5,stroke:#10b981,stroke-width:1.5px,color:#064e3b;
+    classDef data fill:#fffbeb,stroke:#f59e0b,stroke-width:1.5px,color:#78350f;
+    classDef ext fill:#f1f5f9,stroke:#94a3b8,stroke-width:1.5px,stroke-dasharray: 4 4,color:#334155;
+    classDef user fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d,rx:20px,ry:20px,font-weight:bold;
+
+    User((User)):::user
+
+    subgraph OSLayer [Operating System Integration]
+        direction TB
+        hk_api[Global Keyboard Hooks]:::os
+        clip_api[Clipboard API]:::os
+        acc_api[Accessibility API]:::os
+        win_mgr[Window Manager]:::os
+        notif[Notifications]:::os
+    end
+
+    subgraph AppLayer [Desktop Application]
+        direction TB
+        main[Main Application]:::app
+        tray[System Tray]:::app
+        cmd_pal[Command Palette]:::app
+        popup[Enhancement Popup]:::app
+        settings[Settings Window]:::app
+        voice[Voice Handler]:::app
+        dash[Productivity Dashboard]:::app
+    end
+
+    subgraph CoreLayer [Core Engine]
+        direction TB
+        hk_mgr[Hotkey Manager]:::engine
+        clip_mgr[Clipboard Manager]:::engine
+        plat_mgr[Platform Handler]:::engine
+        focus[Focus Restoration]:::engine
+        prompt[Prompt Builder]:::engine
+        ai_proc[AI Processor]:::engine
+        stream[Streaming Response Handler]:::engine
+    end
+
+    subgraph AILayer [AI Provider Layer]
+        direction TB
+        prov_mgr[Provider Manager]:::ai
+        smart[Smart Router]:::ai
+        auto[Auto Provider]:::ai
+        fallback[Smart Fallback]:::ai
+        
+        loc_ollama[Local Ollama]:::ai
+        avelyn_cloud[Avelyn Cloud / OpenRouter]:::ai
+        custom_api[Custom API / BYO Key]:::ai
+    end
+
+    subgraph ExtLayer [External Services]
+        direction TB
+        ext_ollama[Ollama Server]:::ext
+        ext_openrouter[OpenRouter]:::ext
+        ext_openai[OpenAI-compatible APIs]:::ext
+        ext_anthropic[Anthropic]:::ext
+        ext_groq[Groq]:::ext
+        ext_gemini[Gemini]:::ext
+        ext_deepseek[DeepSeek]:::ext
+    end
+
+    subgraph StorageLayer [Local Storage]
+        direction TB
+        cfg[config.json]:::data
+        prod[productivity.json]:::data
+        cache[cached_models.json]:::data
+        logs[logs]:::data
+    end
+
+    %% End-to-End Enhancement Flow
+    User -->|Global Hotkey| hk_api
+    hk_api -->|System Event| hk_mgr
+    hk_mgr -->|Trigger| clip_mgr
+    clip_mgr -->|Clipboard API| clip_api
+    clip_api -->|Captured Text| cmd_pal
+    
+    cmd_pal -->|Pass Request| prov_mgr
+    prov_mgr -->|Function Call| smart
+    prov_mgr -->|Function Call| auto
+    
+    smart -->|Select Provider| loc_ollama
+    smart -->|Select Provider| avelyn_cloud
+    smart -->|Select Provider| custom_api
+    auto -->|Select Provider| loc_ollama
+    auto -->|Select Provider| avelyn_cloud
+    
+    loc_ollama -->|HTTP| ext_ollama
+    avelyn_cloud -->|Streaming HTTPS| ext_openrouter
+    custom_api -->|Streaming HTTPS| ext_openai
+    custom_api -->|Streaming HTTPS| ext_anthropic
+    custom_api -->|Streaming HTTPS| ext_groq
+    custom_api -->|Streaming HTTPS| ext_gemini
+    custom_api -->|Streaming HTTPS| ext_deepseek
+
+    ext_ollama -->|Streaming AI Response| stream
+    ext_openrouter -->|Streaming AI Response| stream
+    ext_openai -->|Streaming AI Response| stream
+    
+    stream -->|Processed Text| clip_mgr
+    clip_mgr -->|Clipboard API| clip_api
+    stream -->|Completion Signal| focus
+    focus -->|Accessibility API| acc_api
+    acc_api -->|Simulate Cmd+V| win_mgr
+    win_mgr -->|Replace Text| User
+
+    %% Settings and Configuration Flow
+    settings -->|Configuration Manager| prov_mgr
+    settings -->|Provider Settings| loc_ollama
+    settings -->|Router Configuration| smart
+    settings -->|Fallback Configuration| fallback
+    settings -->|JSON| cfg
+    
+    %% Voice Command Flow
+    User -->|Voice Commands| voice
+    voice -->|Function Call| prov_mgr
+
+    %% Data Connections
+    dash -->|JSON| prod
+    prov_mgr -.->|File I/O Cache| cache
+    main -.-> logs
+    plat_mgr -.-> acc_api
+    plat_mgr -.-> clip_api
+    main --> tray
+
+    class AppLayer,CoreLayer,AILayer,OSLayer,StorageLayer,ExtLayer container;

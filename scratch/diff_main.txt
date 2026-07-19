@@ -1,0 +1,330 @@
+diff --git a/main.py b/main.py
+index 8533199..b4293bf 100644
+--- a/main.py
++++ b/main.py
+@@ -104,6 +104,7 @@ from ui              import (
+ from onboarding      import OnboardingWindow
+ from permissions     import PermissionManager
+ import platform_handler as ph
++from utils import play_sound
+ 
+ 
+ # ── Version ───────────────────────────────────────────────────────────────────
+@@ -138,9 +139,9 @@ def run_clipboard_test() -> None:
+     mgr.restore()
+     restored = mgr.get()
+     print(f"  After restore:     {repr(restored[:40])}")
+-    assert result == "Avelyn clipboard test 🟣", "SET failed"
++    assert result == "Avelyn clipboard test", "SET failed"
+     assert restored == original, "RESTORE failed"
+-    print("  ✓ All clipboard operations passed.\n")
++    print("  [OK] All clipboard operations passed.\n")
+ 
+ 
+ def run_ai_test(settings: Settings) -> None:
+@@ -148,7 +149,7 @@ def run_ai_test(settings: Settings) -> None:
+     proc = AIProcessor(settings)
+     result = proc.test_connection()
+     print(f"  Response: {result[:120]}")
+-    print("  ✓ AI connection OK.\n")
++    print("  [OK] AI connection OK.\n")
+ 
+ 
+ # ── Auto Replacer ─────────────────────────────────────────────────────────────
+@@ -159,18 +160,21 @@ class CommandPaletteWorkflow(QObject):
+     workflow_completed = pyqtSignal()
+     workflow_failed = pyqtSignal()
+     
+-    def __init__(self, settings: Settings, processor: AIProcessor, clipboard: ClipboardManager, tray: SystemTrayIcon) -> None:
++    def __init__(self, settings: Settings, processor: AIProcessor, clipboard: ClipboardManager, tray: SystemTrayIcon, popup: Optional[EnhancementPopup] = None) -> None:
+         super().__init__()
+         self._settings = settings
+         self._processor = processor
+         self._clipboard = clipboard
+         self._tray = tray
++        self._popup = popup
+         
+         self._palette = CommandPalette()
+-        self._toast = ToastOverlay()
++        self._toast = ToastOverlay(theme=self._settings.theme)
+         self._worker: AIWorker | None = None
+         
+         self._current_text = ""
++        self._current_mode = ""
++        self._enhanced_text = ""
+         self._palette_is_hidden = True   # tracks whether palette animation has completed
+         self._pending_paste    = False   # enhanced text is ready, waiting for palette close
+ 
+@@ -179,7 +183,7 @@ class CommandPaletteWorkflow(QObject):
+         self._palette.hidden.connect(self._on_palette_hidden)
+         
+     def show_capturing(self) -> None:
+-        self._toast.show_message("◴ Capturing Selection...", loading=True)
++        self._toast.show_message("Capturing Selection...", loading=True)
+         
+     def start_workflow(self, text: str) -> None:
+         if self._worker is not None and self._worker.isRunning():
+@@ -198,9 +202,30 @@ class CommandPaletteWorkflow(QObject):
+         logger.info("MODE_SELECTED")
+         logger.info("START_REPLACEMENT")
+         logger.info("Command Palette action selected: %s (custom: %s)", mode, custom_instruction)
+-        self._toast.show_message("✦ Enhancing with AI...", loading=True)
+         
+-        self._worker = AIWorker(self._processor, self._current_text, mode, custom_instruction)
++        # Handle parsed voice command modes:
++        if mode.startswith("custom_edit:"):
++            custom_instruction = mode.split(":", 1)[1]
++            mode = "custom"
++        elif mode.startswith("direct_query:"):
++            custom_instruction = mode.split(":", 1)[1]
++            mode = "direct_query"
++            
++        self._current_mode = mode
++        
++        if not self._settings.auto_replace and self._popup:
++            logger.info("Auto-replace is disabled. Redirecting to EnhancementPopup...")
++            self._toast.hide()
++            self._palette.hide_palette()
++            self._popup.show_for_text(self._current_text, mode=mode, custom_instruction=custom_instruction)
++            self.workflow_completed.emit()
++            return
++
++        self._toast.show_message("Enhancing with AI...", loading=True)
++        
++        import platform_handler
++        app_name = platform_handler.get_recorded_app_name()
++        self._worker = AIWorker(self._processor, self._current_text, mode, custom_instruction, active_app=app_name)
+         logger.info("AIWORKER_CREATED")
+         self._worker.finished.connect(self._on_ai_finished)
+         self._worker.error_occurred.connect(self._on_error)
+@@ -210,18 +235,36 @@ class CommandPaletteWorkflow(QObject):
+     def _on_cancelled(self) -> None:
+         logger.info("Command Palette cancelled by user.")
+         self._restore_clipboard()
++        from platform_handler import restore_focus
++        restore_focus()
+         if getattr(self, "_voice_action_pending", False):
+             logger.warning("VOICE_COMMAND_FAILED: Cancelled by user")
++            play_sound("Basso")
++            app = QApplication.instance()
++            if app and hasattr(app, "_avelyn_app") and app._avelyn_app:
++                vh = app._avelyn_app._voice_handler
++                if vh:
++                    vh.set_busy(False)
++                    if vh.overlay:
++                        vh.overlay.hide_overlay()
+             self._voice_action_pending = False
+         self.workflow_failed.emit()
+         
+     def _on_ai_finished(self, enhanced_text: str) -> None:
+         if not enhanced_text:
+-            self._toast.show_message("⚠ Empty response", error=True)
++            self._toast.show_message("Empty response", error=True)
+             self._clipboard.restore()
+             self._worker = None
+             if getattr(self, "_voice_action_pending", False):
+                 logger.warning("VOICE_COMMAND_FAILED: Empty response from AI")
++                play_sound("Basso")
++                app = QApplication.instance()
++                if app and hasattr(app, "_avelyn_app") and app._avelyn_app:
++                    vh = app._avelyn_app._voice_handler
++                    if vh:
++                        vh.set_busy(False)
++                        if vh.overlay:
++                            vh.overlay.hide_overlay()
+                 self._voice_action_pending = False
+             self.workflow_failed.emit()
+             return
+@@ -229,6 +272,7 @@ class CommandPaletteWorkflow(QObject):
+         from utils import PerfTracker
+         import time
+         PerfTracker.clipboard_replace_start = time.perf_counter()
++        self._enhanced_text = enhanced_text
+         self._clipboard.set(enhanced_text)
+         PerfTracker.clipboard_replace_end = time.perf_counter()
+         logger.info("CLIPBOARD_UPDATED")
+@@ -256,7 +300,7 @@ class CommandPaletteWorkflow(QObject):
+ 
+     def _perform_paste(self) -> None:
+         try:
+-            self._toast.show_message("◴ Replacing Text...", loading=True)
++            self._toast.show_message("Replacing Text...", loading=True)
+             # NOTE: Do NOT call QApplication.processEvents() here.
+             # It flushes pending Qt events which may include window-activation
+             # events that bring Avelyn back to the foreground right before
+@@ -266,19 +310,35 @@ class CommandPaletteWorkflow(QObject):
+             logger.info("PASTE_TRIGGERED")
+             logger.info("Auto-replaced selected text successfully.")
+             
++            # Save to history & productivity tracker
++            self._settings.add_to_history(
++                self._current_text, self._enhanced_text, self._current_mode
++            )
++            from productivity import ProductivityTracker
++            ProductivityTracker().record_execution(self._current_text, self._current_mode)
++            
+             from utils import PerfTracker
+             import time
+             PerfTracker.pipeline_end = time.perf_counter()
+             PerfTracker.log_summary()
+-
++ 
+             # Show toast 400ms after paste so it doesn't disrupt Cmd+V
+-            QTimer.singleShot(400, lambda: [
+-                self._toast.show_message("✓ Complete", success=True),
+-                logger.info("REPLACEMENT_COMPLETE"),
+-                logger.info("VOICE_COMMAND_SUCCESS") if getattr(self, "_voice_action_pending", False) else None,
+-                setattr(self, "_voice_action_pending", False),
+-                self.workflow_completed.emit(),
+-            ])
++            def _finish_voice_command():
++                self._toast.show_message("Complete", success=True)
++                logger.info("REPLACEMENT_COMPLETE")
++                if getattr(self, "_voice_action_pending", False):
++                    logger.info("VOICE_COMMAND_SUCCESS")
++                    play_sound("Glass")
++                    app = QApplication.instance()
++                    if app and hasattr(app, "_avelyn_app") and app._avelyn_app:
++                        vh = app._avelyn_app._voice_handler
++                        if vh and vh.overlay:
++                            vh.overlay.show_complete()
++                            QTimer.singleShot(1000, vh.overlay.hide_overlay)
++                setattr(self, "_voice_action_pending", False)
++                self.workflow_completed.emit()
++ 
++            QTimer.singleShot(400, _finish_voice_command)
+         finally:
+             # Restore clipboard well after paste completes
+             QTimer.singleShot(2000, self._restore_clipboard)
+@@ -289,10 +349,18 @@ class CommandPaletteWorkflow(QObject):
+         self._current_text = ""
+         
+     def _on_error(self, msg: str) -> None:
+-        self._toast.show_message("⚠ Error", error=True)
++        self._toast.show_message("Error", error=True)
+         logger.error("Workflow failed: %s", msg)
+         if getattr(self, "_voice_action_pending", False):
+             logger.warning("VOICE_COMMAND_FAILED: %s", msg)
++            play_sound("Basso")
++            app = QApplication.instance()
++            if app and hasattr(app, "_avelyn_app") and app._avelyn_app:
++                vh = app._avelyn_app._voice_handler
++                if vh:
++                    vh.set_busy(False)
++                    if vh.overlay:
++                        vh.overlay.hide_overlay()
+             self._voice_action_pending = False
+         self.workflow_failed.emit()
+         
+@@ -351,6 +419,7 @@ class AvelynApp:
+             self._qapp.setApplicationName(APP_NAME)
+             self._qapp.setApplicationVersion(__version__)
+             self._qapp.setQuitOnLastWindowClosed(False)   # Keep alive as tray app
++            self._qapp._avelyn_app = self
+             logger.info("STARTUP: QApplication ready (quitOnLastWindowClosed=False)")
+         except Exception as exc:
+             logger.critical("STARTUP FAIL: QApplication setup raised: %s\n%s", exc, _traceback.format_exc())
+@@ -397,7 +466,7 @@ class AvelynApp:
+ 
+         logger.info("STARTUP: Creating CommandPaletteWorkflow...")
+         try:
+-            self._workflow = CommandPaletteWorkflow(self._settings, self._processor, self._clipboard, self._tray)
++            self._workflow = CommandPaletteWorkflow(self._settings, self._processor, self._clipboard, self._tray, self._popup)
+             logger.info("STARTUP: CommandPaletteWorkflow created OK")
+         except Exception as exc:
+             logger.critical("STARTUP FAIL: CommandPaletteWorkflow() raised: %s\n%s", exc, _traceback.format_exc())
+@@ -441,6 +510,8 @@ class AvelynApp:
+         self._tray.open_settings_requested.connect(self._show_settings)
+         self._tray.quit_requested.connect(self._quit)
+         self._tray.pause_toggled.connect(self._hotkeys.set_enabled)
++        self._tray.voice_commands_toggled.connect(self._on_voice_commands_toggled)
++        self._tray.mode_triggered.connect(self._on_tray_mode_triggered)
+ 
+     def _on_workflow_finished(self) -> None:
+         if hasattr(self, "_voice_handler") and self._voice_handler:
+@@ -569,6 +640,10 @@ class AvelynApp:
+             self._qapp.setStyleSheet(qss)
+             logger.info("Theme updated to: %s", theme)
+             
++            # Update toast theme
++            if hasattr(self, "_workflow") and self._workflow and self._workflow._toast:
++                self._workflow._toast._theme = theme
++            
+             if self._settings_win and self._settings_win.isVisible():
+                 current_page = self._settings_win._sidebar.currentRow()
+                 self._settings_win.close()
+@@ -594,12 +669,11 @@ class AvelynApp:
+ 
+         if hasattr(self, "_voice_handler") and self._voice_handler:
+             self._voice_handler.sync_with_settings()
++        if hasattr(self, "_tray") and self._tray:
++            self._tray.update_shortcut_display()
+ 
+     def _on_text_captured(self, text: str) -> None:
+-        if self._settings.auto_replace:
+-            self._workflow.start_workflow(text)
+-        else:
+-            self._popup.show_for_text(text)
++        self._workflow.start_workflow(text)
+ 
+     def _on_nothing_selected(self) -> None:
+         if self._settings.auto_replace:
+@@ -668,27 +742,55 @@ class AvelynApp:
+         
+         # In wake-word flow, selection text might not have been captured yet
+         text = getattr(self._workflow, "_current_text", "")
++        is_direct_query = mode_id.startswith("direct_query:")
++        
+         if not text:
++            if hasattr(self, "_voice_handler") and self._voice_handler and self._voice_handler.overlay:
++                self._voice_handler.overlay.show_processing()
+             logger.info("VOICE_CAPTURE_SELECTION_START")
+             logger.info("Wake-word triggered action. Capturing selection synchronously...")
+             text = self._capture_text_synchronously()
+-            if not text:
++            if not text and not is_direct_query:
+                 logger.warning("Wake-word triggered action but no text was selected.")
+                 logger.warning("VOICE_COMMAND_FAILED: No text highlighted")
++                play_sound("Basso")
+                 if hasattr(self, "_voice_handler") and self._voice_handler:
+                     self._voice_handler.set_busy(False)
++                    if self._voice_handler.overlay:
++                        self._voice_handler.overlay.hide_overlay()
+                 self._tray.notify(APP_NAME, "Please highlight some text before speaking commands.")
+                 return
+-            logger.info("VOICE_CAPTURE_SELECTION_SUCCESS chars=%d", len(text))
+-            self._workflow._current_text = text
++            logger.info("VOICE_CAPTURE_SELECTION_SUCCESS chars=%d", len(text) if text else 0)
++            self._workflow._current_text = text or ""
+         else:
+             logger.info("VOICE_CAPTURE_SELECTION_SUCCESS chars=%d", len(text))
+             
+         self._workflow._palette_is_hidden = True
+         self._workflow._voice_action_pending = True  # Signal to _perform_paste to emit VOICE_COMMAND_SUCCESS
+         logger.info("VOICE_PIPELINE_FORWARDING mode=%s", mode_id)
++        if hasattr(self, "_voice_handler") and self._voice_handler and self._voice_handler.overlay:
++            self._voice_handler.overlay.show_executing()
+         self._workflow._on_action_selected(mode_id, "")
+ 
++    def _on_voice_commands_toggled(self, enabled: bool) -> None:
++        logger.info("Voice commands toggled from tray: %s", enabled)
++        self._on_settings_changed()
++
++    def _on_tray_mode_triggered(self, mode_id: str) -> None:
++        logger.info("Tray menu triggered mode: %s", mode_id)
++        text = self._capture_text_synchronously()
++        if not text:
++            self._tray.notify(APP_NAME, "Please highlight some text before selecting a tray rewrite action.")
++            return
++        
++        if self._settings.auto_replace:
++            self._workflow._current_text = text
++            self._workflow._palette_is_hidden = True
++            self._workflow._voice_action_pending = False
++            self._workflow._on_action_selected(mode_id, "")
++        else:
++            self._popup.show_for_text(text, mode=mode_id)
++
+     def _on_voice_open_palette_requested(self, text: str) -> None:
+         logger.info("Fallback: opening Command Palette prefilled with: %r", text)
+         self._workflow._palette_is_hidden = False
