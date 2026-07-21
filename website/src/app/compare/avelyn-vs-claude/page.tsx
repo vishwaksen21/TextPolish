@@ -1,0 +1,53 @@
+import { Metadata } from "next";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import SchemaMarkup from "@/components/SchemaMarkup";
+import InteractiveComparison from "@/components/InteractiveComparison";
+
+export const metadata: Metadata = {
+  title: "Avelyn vs Claude 3.5 (2026 Comparison) — Desktop Hotkey vs Web Chat",
+  description: "Detailed comparison between Avelyn and Anthropic Claude. Learn how to trigger Claude 3.5 Haiku system-wide in any Mac app with zero copy-pasting.",
+  alternates: { canonical: "https://avelyn.software/compare/avelyn-vs-claude" },
+};
+
+export default function AvelynVsClaudePage() {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Avelyn vs Anthropic Claude Comparison",
+    "url": "https://avelyn.software/compare/avelyn-vs-claude"
+  };
+
+  const breadcrumbs = [
+    { label: "Comparisons", href: "/compare" },
+    { label: "Avelyn vs Claude 3.5" }
+  ];
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <SchemaMarkup schema={schema} />
+      <Navbar />
+
+      <main className="flex-1 pt-32 pb-20 max-w-[1200px] w-full mx-auto px-6 space-y-12">
+        <Breadcrumbs items={breadcrumbs} />
+
+        <header className="text-center max-w-3xl mx-auto space-y-4">
+          <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-[#7C3AED] border border-purple-100 uppercase tracking-wider">
+            Detailed Benchmark
+          </span>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight">
+            Avelyn vs Anthropic Claude
+          </h1>
+          <p className="text-lg text-neutral-600 leading-relaxed">
+            Trigger Claude 3.5 Haiku and Sonnet directly inside Xcode, Mail, and Pages with pay-as-you-go raw API key pricing.
+          </p>
+        </header>
+
+        <InteractiveComparison competitor="Claude" />
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

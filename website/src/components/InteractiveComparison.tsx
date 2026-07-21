@@ -13,7 +13,7 @@ interface ComparisonItem {
 }
 
 interface InteractiveComparisonProps {
-  competitor?: "ChatGPT" | "Grammarly";
+  competitor?: "ChatGPT" | "Grammarly" | "Gemini" | "Claude" | "Copilot" | "Notion AI";
 }
 
 export default function InteractiveComparison({ competitor = "ChatGPT" }: InteractiveComparisonProps) {
